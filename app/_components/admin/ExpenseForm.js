@@ -5,6 +5,7 @@ import { useActionState, useRef } from 'react';
 import { createExpense } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
+import { todayISO } from '@/app/_lib/date-helpers';
 
 const COMMON_CATEGORIES = [
   'Salaries',
@@ -24,7 +25,7 @@ export default function ExpenseForm() {
     return result;
   }, null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   return (
     <form ref={formRef} action={formAction} className="card h-fit space-y-4 p-4">

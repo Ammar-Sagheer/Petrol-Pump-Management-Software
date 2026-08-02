@@ -5,6 +5,7 @@ import { useActionState, useRef, useState } from 'react';
 import { recordLedgerAdjustment } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
+import { todayISO } from '@/app/_lib/date-helpers';
 
 /**
  * Owner-only manual ledger entry.
@@ -22,7 +23,7 @@ export default function LedgerAdjustmentForm({ customerId }) {
     return result;
   }, null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   if (!isOpen) {
     return (

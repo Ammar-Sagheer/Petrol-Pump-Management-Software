@@ -5,6 +5,7 @@ import { useActionState, useRef, useState } from 'react';
 import { createPurchase } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
+import { todayISO } from '@/app/_lib/date-helpers';
 
 const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
@@ -25,7 +26,7 @@ export default function PurchaseForm({ tanks }) {
   const totalCost = Number(quantity) * Number(rate);
   const showTotal = Number.isFinite(totalCost) && totalCost > 0;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   /*
    * Warn when a delivery would not physically fit. A tank that already holds

@@ -204,6 +204,11 @@ the numbers are fast and cannot be altered client-side.
 - **Shifts.** Readings are recorded once per nozzle per day. The `shift` column
   already accepts `day` and `night`, so splitting the day later is a UI change,
   not a data migration.
+- **The business day is pinned to `Asia/Karachi`**, in `app/_lib/date-helpers.js`.
+  It is deliberately *not* taken from the machine's clock: the browser sits in
+  Pakistan but a Vercel server runs in UTC, so between midnight and 5am the two
+  would disagree and entries would be filed against the previous day. Change the
+  one `PUMP_TIMEZONE` line if the pump ever moves.
 - **Number grouping** is `140,000` style. For the lakh style (`1,40,000`), change
   `'en-US'` to `'en-IN'` in the two formatters in `app/_lib/helpers.js`.
 - **Monthly profit** counts fuel *bought* in the month, not fuel sold from stock.

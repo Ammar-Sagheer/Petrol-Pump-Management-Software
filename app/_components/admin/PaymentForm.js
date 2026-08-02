@@ -5,6 +5,7 @@ import { useActionState, useRef } from 'react';
 import { recordPayment } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
+import { todayISO } from '@/app/_lib/date-helpers';
 
 const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
@@ -16,7 +17,7 @@ export default function PaymentForm({ customerId, balance }) {
     return result;
   }, null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const owes = Number(balance) > 0 ? Number(balance) : 0;
 
   return (

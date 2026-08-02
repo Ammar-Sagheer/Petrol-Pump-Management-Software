@@ -152,33 +152,12 @@ export function formatNumber(value) {
   return Number.isFinite(n) ? numberFormat.format(n) : '0';
 }
 
-/** '2026-08-02' -> "02 Aug 2026". Parsed as a plain date, no timezone shifting. */
-export function formatDate(value) {
-  if (!value) return '';
-  const [y, m, d] = String(value).slice(0, 10).split('-').map(Number);
-  if (!y || !m || !d) return String(value);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${String(d).padStart(2, '0')} ${months[m - 1]} ${y}`;
-}
-
-/** Today as 'YYYY-MM-DD', which is what <input type="date"> and Postgres want. */
-export function todayISO() {
-  const now = new Date();
-  return [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-');
-}
-
-/** Shift an ISO date string by whole days. */
-export function shiftISODate(iso, days) {
-  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return dt.toISOString().slice(0, 10);
-}
+/*
+ * Dates live in date-helpers.js so the client forms can import the same
+ * implementation - this module cannot go in a browser bundle. Re-exported here
+ * so server code carries on importing them from helpers as before.
+ */
+export { todayISO, shiftISODate, formatDate } from './date-helpers';
 
 // ---------------------------------------------------------------------------
 // Calculations
