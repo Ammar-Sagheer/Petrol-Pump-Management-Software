@@ -88,8 +88,18 @@ export async function signIn(_prevState, formData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    // Deliberately vague: never reveal whether an email exists.
-    return fail('Those details did not work. Check your email and password.');
+    // Bad email or password. Deliberately vague - never reveal whether an
+    // account with that email exists.
+    if (error.status === 400 || error.code === 'invalid_credentials') {
+      return fail('Those details did not work. Check your email and password.');
+    }
+
+    // Anything else means the server could not be reached or is unwell. Saying
+    // "check your password" here would send someone hunting for a typo that
+    // isn't there.
+    return fail(
+      'Could not reach the server just now. Check the internet connection and try again.',
+    );
   }
 
   const { data: claims } = await supabase.auth.getClaims();
