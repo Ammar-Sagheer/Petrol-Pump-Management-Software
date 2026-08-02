@@ -9,6 +9,7 @@
  */
 import 'server-only';
 import { createClient } from './supabase-server';
+import { todayISO } from './date-helpers';
 
 /** Turns a Supabase { data, error } into data, or throws something readable. */
 function unwrap({ data, error }, what) {
@@ -54,15 +55,21 @@ export async function getFuelPrices() {
   );
 }
 
-/** The rate in force today for each fuel, as { petrol: 280, diesel: 275 }. */
+/**
+ * The rate in force for each fuel, as { petrol: 280, diesel: 275 }.
+ *
+ * The date is always sent explicitly rather than left to the database default,
+ * so the app and Postgres cannot disagree about which day it is.
+ */
 export async function getCurrentRates(onDate) {
   const supabase = await createClient();
   const rates = {};
+  const date = onDate ?? todayISO();
 
   for (const fuelType of ['petrol', 'diesel']) {
     const { data, error } = await supabase.rpc('current_fuel_rate', {
       p_fuel_type: fuelType,
-      ...(onDate ? { p_date: onDate } : {}),
+      p_date: date,
     });
     if (error) throw new Error(`Could not load the ${fuelType} rate: ${error.message}`);
     rates[fuelType] = data === null ? null : Number(data);
