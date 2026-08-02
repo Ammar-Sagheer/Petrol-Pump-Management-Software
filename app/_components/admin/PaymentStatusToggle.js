@@ -1,54 +1,82 @@
 'use client';
 
-import { useActionState, useRef } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 
 import { setPurchasePaymentStatus } from '@/app/_lib/actions';
 
 /**
- * Whether a delivery has been paid for. Owner only - the page renders a plain
- * badge for staff instead.
+ * Whether a delivery has been paid for. Owner only - staff see a plain badge.
  *
- * A real <select> rather than a badge that happens to be a button: the dropdown
- * arrow is the thing that tells you it can be changed at all. As a coloured pill
- * it read as a status label, and nobody thought to click it.
+ * Both options are always on screen with the current one filled in, so the
+ * state and the fact that it can be changed are the same piece of information.
+ * A dropdown hid the current value behind a click, and a single pill did not
+ * look pressable at all.
  *
- * Saves as soon as the choice changes, so there is no second "apply" step. Left
- * uncontrolled on purpose - the browser keeps the chosen value while the server
- * action runs, so it never flickers back to the old one and then forward again.
+ * The highlight is driven by useOptimistic, which means it moves the instant
+ * you tap and then defers to whatever the server actually saved. An earlier
+ * version kept the choice in the DOM while colouring from the server prop, so a
+ * failed or racing save left the control showing "Paid" over a row the database
+ * still had as pending - the one thing a screen about money owed must never do.
  */
-export default function PaymentStatusToggle({ purchaseId, status }) {
-  const formRef = useRef(null);
-  const [state, formAction] = useActionState(setPurchasePaymentStatus, null);
+const OPTIONS = [
+  { value: 'paid', label: 'Paid', selectedClass: 'bg-brand-700 text-white' },
+  { value: 'pending', label: 'Pending', selectedClass: 'bg-amber-400 text-amber-950' },
+];
 
-  const isPaid = status === 'paid';
+export default function PaymentStatusToggle({ purchaseId, status }) {
+  const [error, setError] = useState(null);
+  const [isSaving, startTransition] = useTransition();
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic(status);
+
+  function choose(nextStatus) {
+    if (nextStatus === optimisticStatus || isSaving) return;
+
+    setError(null);
+    startTransition(async () => {
+      setOptimisticStatus(nextStatus);
+
+      const formData = new FormData();
+      formData.set('purchase_id', purchaseId);
+      formData.set('payment_status', nextStatus);
+
+      const result = await setPurchasePaymentStatus(null, formData);
+
+      // On failure the optimistic value is dropped automatically when the
+      // transition ends, so the control snaps back to what is really stored.
+      if (result?.ok === false) setError(result.message);
+    });
+  }
 
   return (
-    <form ref={formRef} action={formAction}>
-      <input type="hidden" name="purchase_id" value={purchaseId} />
-
-      <label className="sr-only" htmlFor={`payment-${purchaseId}`}>
-        Payment status for this delivery
-      </label>
-
-      <select
-        id={`payment-${purchaseId}`}
-        name="payment_status"
-        defaultValue={status}
-        onChange={() => formRef.current?.requestSubmit()}
-        className={`rounded-full border px-2.5 py-1 text-xs font-semibold outline-none transition
-          focus:ring-2 focus:ring-offset-1 ${
-            isPaid
-              ? 'border-brand-300 bg-brand-100 text-brand-800 hover:bg-brand-200 focus:ring-brand-300'
-              : 'border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 focus:ring-amber-300'
-          }`}
+    <div>
+      <div
+        role="group"
+        aria-label="Payment status"
+        className={`inline-flex items-center gap-0.5 rounded-full border border-ink-200 bg-ink-100 p-0.5 transition ${
+          isSaving ? 'opacity-60' : ''
+        }`}
       >
-        <option value="pending">Pending</option>
-        <option value="paid">Paid</option>
-      </select>
+        {OPTIONS.map((option) => {
+          const selected = optimisticStatus === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => choose(option.value)}
+              aria-pressed={selected}
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                selected
+                  ? option.selectedClass
+                  : 'text-ink-500 hover:bg-white hover:text-ink-900'
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
 
-      {state?.ok === false ? (
-        <span className="mt-1 block text-xs text-red-700">{state.message}</span>
-      ) : null}
-    </form>
+      {error ? <p className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
   );
 }
