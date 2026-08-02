@@ -198,6 +198,9 @@ function EntryForm({ row, date, customers }) {
           </label>
           <input
             id={`closing-${row.nozzle_id}`}
+            // Without a name the field is not submitted at all, however it
+            // looks on screen - the server would only ever see an empty value.
+            name="closing_reading"
             type="number"
             inputMode="decimal"
             step="0.01"

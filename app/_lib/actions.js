@@ -318,6 +318,32 @@ export async function createPurchase(_prevState, formData) {
   return ok(`Saved. ${quantity} L added to stock.`);
 }
 
+/**
+ * Removes a delivery. Owner only, and the way to correct a mistyped quantity -
+ * delete the wrong one and record it again, rather than leaving the tank
+ * carrying fuel that never arrived. Tank stock is recalculated by trigger.
+ */
+export async function deletePurchase(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const purchaseId = text(formData, 'purchase_id');
+  if (!purchaseId) return fail('Missing the delivery.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('fuel_purchases').delete().eq('id', purchaseId);
+
+  if (error) return fail(describe(error, 'Could not delete the delivery.'));
+
+  revalidatePath('/admin/purchases');
+  revalidatePath('/admin');
+  revalidatePath('/admin/stock-checks');
+  return ok('Delivery deleted. Tank stock has been recalculated.');
+}
+
 export async function setPurchasePaymentStatus(_prevState, formData) {
   try {
     await requireRole(ROLES.SUPER_ADMIN);

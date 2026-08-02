@@ -5,6 +5,7 @@ import EmptyState from '@/app/_components/ui/EmptyState';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import PurchaseForm from '@/app/_components/admin/PurchaseForm';
 import PaymentStatusToggle from '@/app/_components/admin/PaymentStatusToggle';
+import DeletePurchaseButton from '@/app/_components/admin/DeletePurchaseButton';
 
 export const metadata = { title: 'Fuel purchases' };
 
@@ -54,6 +55,7 @@ export default async function PurchasesPage() {
                     <th className="th text-right">Rate</th>
                     <th className="th text-right">Cost</th>
                     <th className="th">Payment</th>
+                    {isOwner ? <th className="th sr-only">Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100">
@@ -92,6 +94,16 @@ export default async function PurchasesPage() {
                           </span>
                         )}
                       </td>
+                      {isOwner ? (
+                        <td className="td">
+                          <DeletePurchaseButton
+                            purchaseId={purchase.id}
+                            summary={`${formatLitres(purchase.quantity_litres)} on ${formatDate(
+                              purchase.purchase_date,
+                            )}`}
+                          />
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>

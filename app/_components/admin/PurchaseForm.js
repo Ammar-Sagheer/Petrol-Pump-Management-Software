@@ -7,6 +7,7 @@ import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 
 const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 
 export default function PurchaseForm({ tanks }) {
   const formRef = useRef(null);
@@ -19,11 +20,26 @@ export default function PurchaseForm({ tanks }) {
 
   const [quantity, setQuantity] = useState('');
   const [rate, setRate] = useState('');
+  const [tankId, setTankId] = useState('');
 
   const totalCost = Number(quantity) * Number(rate);
   const showTotal = Number.isFinite(totalCost) && totalCost > 0;
 
   const today = new Date().toISOString().slice(0, 10);
+
+  /*
+   * Warn when a delivery would not physically fit. A tank that already holds
+   * 22,000 of a 25,000 litre capacity cannot take 10,000 more - so either the
+   * quantity is mistyped or the book stock is already wrong. Catching it here,
+   * before saving, is far easier than unpicking it later.
+   */
+  const selectedTank = tanks.find((tank) => tank.id === tankId);
+  const spaceLeft = selectedTank
+    ? Number(selectedTank.capacity_litres) - Number(selectedTank.current_stock_litres)
+    : null;
+  const litres = Number(quantity);
+  const wouldOverfill =
+    selectedTank && Number.isFinite(litres) && litres > 0 && spaceLeft !== null && litres > spaceLeft;
 
   return (
     <form ref={formRef} action={formAction} className="card space-y-4 p-4">
@@ -33,7 +49,14 @@ export default function PurchaseForm({ tanks }) {
         <label className="label" htmlFor="tank_id">
           Tank
         </label>
-        <select id="tank_id" name="tank_id" required className="input">
+        <select
+          id="tank_id"
+          name="tank_id"
+          required
+          value={tankId}
+          onChange={(event) => setTankId(event.target.value)}
+          className="input"
+        >
           <option value="">Choose a tank…</option>
           {tanks.map((tank) => (
             <option key={tank.id} value={tank.id}>
@@ -41,6 +64,16 @@ export default function PurchaseForm({ tanks }) {
             </option>
           ))}
         </select>
+        {selectedTank ? (
+          <p className="mt-1 text-xs text-ink-500">
+            Holds {litreFormat.format(selectedTank.current_stock_litres)} L of{' '}
+            {litreFormat.format(selectedTank.capacity_litres)} L —{' '}
+            <span className={spaceLeft < 0 ? 'font-semibold text-red-700' : 'font-semibold'}>
+              {litreFormat.format(Math.max(0, spaceLeft))} L
+            </span>{' '}
+            of space left.
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -95,6 +128,17 @@ export default function PurchaseForm({ tanks }) {
           />
         </div>
       </div>
+
+      {wouldOverfill ? (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <span className="font-semibold">
+            {litreFormat.format(litres)} L will not fit in {selectedTank.name}.
+          </span>{' '}
+          It has only {litreFormat.format(Math.max(0, spaceLeft))} L of space. Either the quantity
+          is mistyped, or an earlier reading or delivery is wrong. You can still save this if the
+          figure is genuinely right.
+        </p>
+      ) : null}
 
       {showTotal ? (
         <p className="rounded-lg bg-ink-900 px-4 py-3 text-white">

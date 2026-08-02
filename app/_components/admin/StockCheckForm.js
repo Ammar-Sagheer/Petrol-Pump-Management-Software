@@ -20,9 +20,13 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
   const hasDip = dipValue !== null && Number.isFinite(dipValue);
   const difference = hasDip ? round2(dipValue - expected) : null;
 
-  const fillPercent = tank.capacity_litres
-    ? Math.min(100, Math.max(0, (expected / Number(tank.capacity_litres)) * 100))
-    : 0;
+  const capacity = Number(tank.capacity_litres ?? 0);
+  const fillPercent = capacity ? Math.min(100, Math.max(0, (expected / capacity) * 100)) : 0;
+
+  // More fuel on the books than the tank can physically hold, or less than
+  // nothing in it. Either way the books are wrong, not the tank.
+  const overCapacity = capacity > 0 && expected > capacity;
+  const belowZero = expected < 0;
 
   return (
     <section className="card p-4">
@@ -41,7 +45,13 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
           <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
             Expected in tank
           </span>
-          <span className="tabular text-lg font-bold text-ink-900">{showLitres(expected)}</span>
+          <span
+            className={`tabular text-lg font-bold ${
+              overCapacity || belowZero ? 'text-red-700' : 'text-ink-900'
+            }`}
+          >
+            {showLitres(expected)}
+          </span>
         </div>
         <div
           className="mt-2 h-2 overflow-hidden rounded-full bg-ink-200"
@@ -50,11 +60,31 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
         >
           <div
             className={`h-full rounded-full ${
-              tank.fuel_type === 'petrol' ? 'bg-sky-500' : 'bg-amber-500'
+              overCapacity
+                ? 'bg-red-500'
+                : tank.fuel_type === 'petrol'
+                  ? 'bg-sky-500'
+                  : 'bg-amber-500'
             }`}
             style={{ width: `${fillPercent}%` }}
           />
         </div>
+
+        {overCapacity ? (
+          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+            The books show {showLitres(expected)} in a tank that only holds{' '}
+            {litreFormat.format(capacity)} L — {showLitres(expected - capacity)} too much. A
+            delivery quantity was probably mistyped. Check Purchases before recording a dip, or the
+            loss below will be nonsense.
+          </p>
+        ) : null}
+
+        {belowZero ? (
+          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+            The books show less than nothing in this tank. A delivery is probably missing, or the
+            opening stock was never set under Settings.
+          </p>
+        ) : null}
       </div>
 
       {existingCheck ? (
@@ -89,7 +119,8 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
 
           <div>
             <label className="label" htmlFor={`dip-${tank.id}`}>
-              Measured dip reading
+              Measured dip reading{' '}
+              <span className="font-semibold text-ink-900">in litres</span>
             </label>
             <input
               id={`dip-${tank.id}`}
@@ -103,7 +134,12 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
               onChange={(event) => setDip(event.target.value)}
               className="input-number"
               placeholder="0.00"
+              aria-describedby={`dip-help-${tank.id}`}
             />
+            <p id={`dip-help-${tank.id}`} className="mt-1 text-xs text-ink-500">
+              The dip rod reads a depth — convert it to litres on the tank chart first, then enter
+              that figure here.
+            </p>
           </div>
 
           {difference !== null ? (
