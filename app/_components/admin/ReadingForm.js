@@ -7,6 +7,7 @@ import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
+import ReadingChainWarning from '@/app/_components/admin/ReadingChainWarning';
 
 /*
  * Formatting is done inline here rather than imported from helpers.js: that
@@ -40,7 +41,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
       </header>
 
       {isSaved ? (
-        <SavedReading row={row} creditSales={creditSales} canDelete={canDelete} />
+        <SavedReading row={row} date={date} creditSales={creditSales} canDelete={canDelete} />
       ) : (
         <EntryForm row={row} date={date} customers={customers} />
       )}
@@ -52,11 +53,15 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
 // Already entered - show what was recorded
 // ---------------------------------------------------------------------------
 
-function SavedReading({ row, creditSales, canDelete }) {
+function SavedReading({ row, date, creditSales, canDelete }) {
   const [state, formAction] = useActionState(deleteReading, null);
 
   return (
     <div className="flex flex-1 flex-col gap-3 p-4">
+      {/* A saved row can still be part of a broken chain - flag it here rather
+          than leaving it to be found in a stock loss weeks later. */}
+      <ReadingChainWarning row={row} date={date} openingUsed={row.opening_reading} />
+
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <Figure label="Opening" value={litreFormat.format(row.opening_reading)} />
         <Figure label="Closing" value={litreFormat.format(row.closing_reading)} />
@@ -218,6 +223,9 @@ function EntryForm({ row, date, customers }) {
           The closing reading is below the opening reading of {litreFormat.format(opening)}.
         </p>
       ) : null}
+
+      {/* Says so before saving if this day does not join onto its neighbours. */}
+      <ReadingChainWarning row={row} date={date} openingUsed={opening} />
 
       {rate > 0 ? (
         <p className="text-xs text-ink-500">
