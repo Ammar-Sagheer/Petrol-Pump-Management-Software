@@ -6,6 +6,7 @@ import { createPurchase } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import { todayISO } from '@/app/_lib/date-helpers';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
@@ -96,11 +97,9 @@ export default function PurchaseForm({ tanks }) {
           <label className="label" htmlFor="quantity_litres">
             Litres
           </label>
-          <input
+          <NumberInput
             id="quantity_litres"
             name="quantity_litres"
-            type="number"
-            inputMode="decimal"
             step="0.01"
             min="0.01"
             required
@@ -114,11 +113,9 @@ export default function PurchaseForm({ tanks }) {
           <label className="label" htmlFor="rate">
             Rate / litre
           </label>
-          <input
+          <NumberInput
             id="rate"
             name="rate"
-            type="number"
-            inputMode="decimal"
             step="0.01"
             min="0.01"
             required

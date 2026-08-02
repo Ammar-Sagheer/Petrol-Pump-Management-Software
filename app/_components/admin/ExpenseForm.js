@@ -6,6 +6,7 @@ import { createExpense } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import { todayISO } from '@/app/_lib/date-helpers';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 const COMMON_CATEGORIES = [
   'Salaries',
@@ -55,11 +56,9 @@ export default function ExpenseForm() {
         <label className="label" htmlFor="expense_amount">
           Amount
         </label>
-        <input
+        <NumberInput
           id="expense_amount"
           name="amount"
-          type="number"
-          inputMode="decimal"
           step="0.01"
           min="0.01"
           required

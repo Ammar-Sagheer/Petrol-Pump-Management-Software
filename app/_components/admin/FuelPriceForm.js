@@ -6,6 +6,7 @@ import { setFuelPrice } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import { todayISO } from '@/app/_lib/date-helpers';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 export default function FuelPriceForm({ currentRates }) {
   const formRef = useRef(null);
@@ -42,11 +43,9 @@ export default function FuelPriceForm({ currentRates }) {
         <label className="label" htmlFor="rate">
           Rate per litre
         </label>
-        <input
+        <NumberInput
           id="rate"
           name="rate"
-          type="number"
-          inputMode="decimal"
           step="0.01"
           min="0.01"
           required

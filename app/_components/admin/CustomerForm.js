@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { createCustomer } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 export default function CustomerForm() {
   const [state, formAction] = useActionState(createCustomer, null);
@@ -50,11 +51,9 @@ export default function CustomerForm() {
         <label className="label" htmlFor="credit_limit">
           Credit limit <span className="font-normal text-ink-400">(optional)</span>
         </label>
-        <input
+        <NumberInput
           id="credit_limit"
           name="credit_limit"
-          type="number"
-          inputMode="decimal"
           step="0.01"
           min="0"
           className="input-number"

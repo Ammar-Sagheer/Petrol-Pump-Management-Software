@@ -6,6 +6,7 @@ import { saveReading, deleteReading } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 /*
  * Formatting is done inline here rather than imported from helpers.js: that
@@ -196,13 +197,11 @@ function EntryForm({ row, date, customers }) {
           <label className="label" htmlFor={`closing-${row.nozzle_id}`}>
             Closing
           </label>
-          <input
+          <NumberInput
             id={`closing-${row.nozzle_id}`}
             // Without a name the field is not submitted at all, however it
             // looks on screen - the server would only ever see an empty value.
             name="closing_reading"
-            type="number"
-            inputMode="decimal"
             step="0.01"
             min={opening}
             required
@@ -287,9 +286,7 @@ function EntryForm({ row, date, customers }) {
                   </button>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    inputMode="decimal"
+                  <NumberInput
                     step="0.01"
                     min="0"
                     required
@@ -299,9 +296,7 @@ function EntryForm({ row, date, customers }) {
                     onChange={(event) => onLitresChange(line.key, event.target.value)}
                     className="input tabular py-2 text-sm"
                   />
-                  <input
-                    type="number"
-                    inputMode="decimal"
+                  <NumberInput
                     step="0.01"
                     min="0"
                     required

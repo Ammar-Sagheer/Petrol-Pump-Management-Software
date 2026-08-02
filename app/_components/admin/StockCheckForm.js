@@ -6,6 +6,7 @@ import { createStockCheck } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 const showLitres = (n) => `${litreFormat.format(n || 0)} L`;
@@ -122,11 +123,9 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
               Measured dip reading{' '}
               <span className="font-semibold text-ink-900">in litres</span>
             </label>
-            <input
+            <NumberInput
               id={`dip-${tank.id}`}
               name="actual_dip_reading"
-              type="number"
-              inputMode="decimal"
               step="0.01"
               min="0"
               required

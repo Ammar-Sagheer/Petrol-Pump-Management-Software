@@ -6,6 +6,7 @@ import { recordPayment } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import { todayISO } from '@/app/_lib/date-helpers';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
@@ -30,11 +31,9 @@ export default function PaymentForm({ customerId, balance }) {
         <label className="label" htmlFor="amount">
           Amount received
         </label>
-        <input
+        <NumberInput
           id="amount"
           name="amount"
-          type="number"
-          inputMode="decimal"
           step="0.01"
           min="0.01"
           required

@@ -6,6 +6,7 @@ import { updateTank } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
+import NumberInput from '@/app/_components/ui/NumberInput';
 
 export default function TankForm({ tank }) {
   const [state, formAction] = useActionState(updateTank, null);
@@ -23,11 +24,9 @@ export default function TankForm({ tank }) {
         <label className="label" htmlFor={`capacity-${tank.id}`}>
           Capacity (litres)
         </label>
-        <input
+        <NumberInput
           id={`capacity-${tank.id}`}
           name="capacity_litres"
-          type="number"
-          inputMode="decimal"
           step="0.01"
           min="1"
           required
@@ -41,11 +40,9 @@ export default function TankForm({ tank }) {
           <label className="label" htmlFor={`opening-${tank.id}`}>
             Opening stock
           </label>
-          <input
+          <NumberInput
             id={`opening-${tank.id}`}
             name="opening_stock_litres"
-            type="number"
-            inputMode="decimal"
             step="0.01"
             min="0"
             required
