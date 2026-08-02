@@ -1,0 +1,272 @@
+/**
+ * Every read query in the app lives here.
+ *
+ * Rules:
+ *   - server only, always through the session-bound client, so RLS applies
+ *   - anything that aggregates goes through a Postgres RPC rather than pulling
+ *     rows into JavaScript and adding them up here
+ *   - these throw on failure; pages let the error boundary handle it
+ */
+import 'server-only';
+import { createClient } from './supabase-server';
+
+/** Turns a Supabase { data, error } into data, or throws something readable. */
+function unwrap({ data, error }, what) {
+  if (error) {
+    throw new Error(`Could not load ${what}: ${error.message}`);
+  }
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Configuration: tanks, nozzles, prices
+// ---------------------------------------------------------------------------
+
+export async function getTanks() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.from('tanks').select('*').order('fuel_type'),
+    'the tanks',
+  );
+}
+
+export async function getNozzles() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('nozzles')
+      .select('*, tank:tanks(id, name, fuel_type)')
+      .order('unit_number')
+      .order('nozzle_label'),
+    'the nozzles',
+  );
+}
+
+export async function getFuelPrices() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('fuel_prices')
+      .select('*')
+      .order('effective_from', { ascending: false })
+      .limit(50),
+    'the fuel prices',
+  );
+}
+
+/** The rate in force today for each fuel, as { petrol: 280, diesel: 275 }. */
+export async function getCurrentRates(onDate) {
+  const supabase = await createClient();
+  const rates = {};
+
+  for (const fuelType of ['petrol', 'diesel']) {
+    const { data, error } = await supabase.rpc('current_fuel_rate', {
+      p_fuel_type: fuelType,
+      ...(onDate ? { p_date: onDate } : {}),
+    });
+    if (error) throw new Error(`Could not load the ${fuelType} rate: ${error.message}`);
+    rates[fuelType] = data === null ? null : Number(data);
+  }
+
+  return rates;
+}
+
+// ---------------------------------------------------------------------------
+// Daily readings
+// ---------------------------------------------------------------------------
+
+/**
+ * The whole daily entry screen in one call: every nozzle with its opening
+ * reading prefilled, the rate for the day, and anything already entered.
+ */
+export async function getReadingSheet(date) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_reading_sheet', { p_date: date }),
+    "the day's reading sheet",
+  );
+}
+
+/**
+ * Credit slips for a set of readings, keyed by reading id.
+ *
+ * Takes ids rather than filtering through the parent table, because filtering
+ * on an embedded resource in PostgREST is easy to get subtly wrong.
+ */
+export async function getCreditSalesForReadings(readingIds = []) {
+  if (readingIds.length === 0) return {};
+
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase
+      .from('credit_sales')
+      .select('*, customer:customers(id, name, vehicle_number)')
+      .in('reading_id', readingIds),
+    'the credit slips',
+  );
+
+  return rows.reduce((byReading, row) => {
+    (byReading[row.reading_id] ||= []).push(row);
+    return byReading;
+  }, {});
+}
+
+export async function getRecentReadings(limit = 60) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('nozzle_readings')
+      .select('*, nozzle:nozzles(unit_number, nozzle_label, tank:tanks(fuel_type))')
+      .order('reading_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    'the recent readings',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fuel purchases
+// ---------------------------------------------------------------------------
+
+export async function getPurchases({ limit = 100 } = {}) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('fuel_purchases')
+      .select('*, tank:tanks(id, name, fuel_type)')
+      .order('purchase_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    'the fuel purchases',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stock checks
+// ---------------------------------------------------------------------------
+
+export async function getStockChecks({ limit = 60 } = {}) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('stock_checks')
+      .select('*, tank:tanks(id, name, fuel_type)')
+      .order('check_date', { ascending: false })
+      .limit(limit),
+    'the stock checks',
+  );
+}
+
+/** What the books say should be in a tank at the end of a given date. */
+export async function getExpectedStock(tankId, date) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('calculate_expected_stock', {
+    p_tank_id: tankId,
+    p_date: date,
+  });
+  if (error) throw new Error(`Could not work out the expected stock: ${error.message}`);
+  return data === null ? null : Number(data);
+}
+
+/** Expected stock for every tank on a date, ready for the stock check form. */
+export async function getExpectedStockForAllTanks(date) {
+  const tanks = await getTanks();
+  return Promise.all(
+    tanks.map(async (tank) => ({
+      ...tank,
+      expected_stock: await getExpectedStock(tank.id, date),
+    })),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Customers and the ledger
+// ---------------------------------------------------------------------------
+
+export async function getCustomers() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.from('customers').select('*').eq('is_active', true).order('name'),
+    'the customers',
+  );
+}
+
+/** Every customer with their outstanding balance - one query, not one each. */
+export async function getCustomerBalances() {
+  const supabase = await createClient();
+  return unwrap(await supabase.rpc('get_customer_balances'), 'the customer balances');
+}
+
+export async function getCustomerStatement(customerId) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_customer_statement', { p_customer_id: customerId }),
+    'the customer statement',
+  );
+}
+
+export async function getLedgerEntries(customerId, { limit = 500 } = {}) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('ledger_entries')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('entry_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    'the ledger entries',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard and reports - all aggregated in Postgres
+// ---------------------------------------------------------------------------
+
+export async function getDailySummary(date) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_daily_summary', { p_date: date }),
+    "the day's summary",
+  );
+}
+
+export async function getSalesTrend(from, to) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_sales_trend', { p_from: from, p_to: to }),
+    'the sales trend',
+  );
+}
+
+export async function getMonthlyReport(year, month) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_monthly_report', { p_year: year, p_month: month }),
+    'the monthly report',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Expenses and staff accounts (super_admin only - RLS enforces it)
+// ---------------------------------------------------------------------------
+
+export async function getExpenses({ limit = 100 } = {}) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('expenses')
+      .select('*')
+      .order('expense_date', { ascending: false })
+      .limit(limit),
+    'the expenses',
+  );
+}
+
+export async function getProfiles() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.from('profiles').select('*').order('full_name'),
+    'the staff accounts',
+  );
+}
