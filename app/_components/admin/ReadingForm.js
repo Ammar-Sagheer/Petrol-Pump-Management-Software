@@ -247,14 +247,27 @@ function EntryForm({ row, date, customers }) {
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">
             Credit slips
           </span>
-          <button type="button" onClick={addLine} className="btn-secondary px-2.5 py-1 text-xs">
-            + Add customer
+          {/* The main action on this card once the meter is in, so it is given
+              the brand colour rather than the pale secondary style - it was
+              easy to miss against the rest of the form. */}
+          <button
+            type="button"
+            onClick={addLine}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300
+                       bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition
+                       hover:border-brand-500 hover:bg-brand-100
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          >
+            <span aria-hidden="true" className="text-base leading-none">
+              +
+            </span>
+            Add customer
           </button>
         </div>
 
         {lines.length === 0 ? (
           <p className="text-xs text-ink-500">
-            None yet — the whole amount is treated as cash.
+            None yet — the whole amount is treated as cash. Took fuel on credit? Add them above.
           </p>
         ) : (
           <ul className="space-y-2">

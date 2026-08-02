@@ -45,7 +45,9 @@ export default async function PurchasesPage() {
             />
           ) : (
             <div className="card table-scroll">
-              <table className="w-full min-w-[46rem]">
+              {/* Wider than the other tables: seven columns once the owner's
+                  delete action is included. */}
+              <table className="w-full min-w-[52rem]">
                 <thead className="border-b border-ink-200 bg-ink-50">
                   <tr>
                     <th className="th">Date</th>

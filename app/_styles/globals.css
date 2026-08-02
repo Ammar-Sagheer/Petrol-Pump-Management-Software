@@ -49,6 +49,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Tailwind v4 no longer gives buttons `cursor: pointer` - its reset leaves them
+ * on the browser default, which is an arrow. The result is an app where nothing
+ * looks clickable. Put it back for everything that responds to a click.
+ */
+button:not(:disabled),
+[role='button']:not(:disabled),
+select:not(:disabled),
+summary,
+label[for] {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 /* On a phone, number inputs should bring up the number pad and never get
    nudged by an accidental scroll. */
 input[type='number'] {
@@ -138,8 +156,10 @@ input[type='number']::-webkit-inner-spin-button {
     @apply px-3 py-2.5 text-sm text-ink-800;
   }
 
+  /* Figures never wrap - "Rs 2,500,000" split across two lines is unreadable,
+     and "10,000 L" broken after the number looks like two separate values. */
   .td-num {
-    @apply px-3 py-2.5 text-right text-sm font-medium text-ink-800;
+    @apply whitespace-nowrap px-3 py-2.5 text-right text-sm font-medium text-ink-800;
     font-variant-numeric: tabular-nums;
   }
 
