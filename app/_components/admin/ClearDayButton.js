@@ -5,6 +5,7 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 import { clearDay } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
+import Toast from '@/app/_components/ui/Toast';
 import Dialog from '@/app/_components/ui/Dialog';
 
 /**
@@ -41,13 +42,6 @@ export default function ClearDayButton({ date, dateLabel, entryCount }) {
       setNotice({ message: state.message });
     }
   }, [state]);
-
-  // The confirmation is worth reading, not worth keeping on screen.
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(null), 8000);
-    return () => clearTimeout(timer);
-  }, [notice]);
 
   function openDialog() {
     setShowResult(false);
@@ -138,29 +132,7 @@ export default function ClearDayButton({ date, dateLabel, entryCount }) {
       {/* Carries the result out of the dialog that reported it. How many slips
           were reversed is the part worth seeing, and it would be lost if the
           message closed along with the box. */}
-      <div
-        role="status"
-        aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
-      >
-        {notice ? (
-          <div
-            className="pointer-events-auto flex max-w-md items-start gap-3 rounded-lg border
-                       border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800
-                       shadow-lg"
-          >
-            <span>{notice.message}</span>
-            <button
-              type="button"
-              onClick={() => setNotice(null)}
-              aria-label="Dismiss"
-              className="-mr-1 shrink-0 rounded px-1 leading-none text-brand-700 hover:bg-brand-100"
-            >
-              ✕
-            </button>
-          </div>
-        ) : null}
-      </div>
+      <Toast notice={notice} onDismiss={() => setNotice(null)} duration={8000} />
     </>
   );
 }

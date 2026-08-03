@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { createBankTransaction } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import NumberInput from '@/app/_components/ui/NumberInput';
+import Toast from '@/app/_components/ui/Toast';
 import { todayISO } from '@/app/_lib/date-helpers';
 
 // helpers.js reaches into request cookies, so a client component cannot import
@@ -75,6 +76,7 @@ export default function BankTransactionForm({ accounts }) {
   // they get drawn on, so it is worth preserving rather than sorting.
   const [coverIds, setCoverIds] = useState([]);
 
+  const [notice, setNotice] = useState(null);
   const [state, formAction] = useActionState(async (prevState, formData) => {
     const result = await createBankTransaction(prevState, formData);
     if (result?.ok) {
@@ -86,6 +88,13 @@ export default function BankTransactionForm({ accounts }) {
     }
     return result;
   }, null);
+
+  // The result of a save is worth seeing once. Left in the form it would still
+  // be there over the next entry, describing something that is no longer on
+  // screen - a split payment confirmation hanging over a fresh deposit.
+  useEffect(() => {
+    if (state?.ok) setNotice({ message: state.message });
+  }, [state]);
 
   if (accounts.length === 0) return null;
 
@@ -329,7 +338,9 @@ export default function BankTransactionForm({ accounts }) {
         <input id="txn_note" name="note" type="text" className="input" />
       </div>
 
-      <FormMessage state={state} />
+      {/* A failure stays where it happened, until it is dealt with. A success
+          leaves as a toast. */}
+      <FormMessage state={state?.ok === false ? state : null} />
 
       <SubmitButton
         disabled={blocked}
@@ -350,6 +361,8 @@ export default function BankTransactionForm({ accounts }) {
               ? `Record money out from ${parts.length} accounts`
               : 'Record money out'}
       </SubmitButton>
+
+      <Toast notice={notice} onDismiss={() => setNotice(null)} />
     </form>
   );
 }

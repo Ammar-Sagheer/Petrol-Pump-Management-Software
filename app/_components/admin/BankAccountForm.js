@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { createBankAccount } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import NumberInput from '@/app/_components/ui/NumberInput';
+import Toast from '@/app/_components/ui/Toast';
 
 /**
  * Adds a bank account.
@@ -17,11 +18,16 @@ import NumberInput from '@/app/_components/ui/NumberInput';
  */
 export default function BankAccountForm() {
   const formRef = useRef(null);
+  const [notice, setNotice] = useState(null);
   const [state, formAction] = useActionState(async (prevState, formData) => {
     const result = await createBankAccount(prevState, formData);
     if (result?.ok) formRef.current?.reset();
     return result;
   }, null);
+
+  useEffect(() => {
+    if (state?.ok) setNotice({ message: state.message });
+  }, [state]);
 
   return (
     <form ref={formRef} action={formAction} className="card h-fit space-y-4 p-4">
@@ -88,9 +94,12 @@ export default function BankAccountForm() {
         </p>
       </div>
 
-      <FormMessage state={state} />
+      {/* Failures stay put; the confirmation leaves as a toast. */}
+      <FormMessage state={state?.ok === false ? state : null} />
 
       <SubmitButton className="btn-primary w-full">Add account</SubmitButton>
+
+      <Toast notice={notice} onDismiss={() => setNotice(null)} />
     </form>
   );
 }
