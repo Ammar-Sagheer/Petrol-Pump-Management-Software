@@ -60,8 +60,32 @@ export function shiftISODate(iso, days) {
   return dt.toISOString().slice(0, 10);
 }
 
+/**
+ * The first and last calendar day of a month, as ISO strings.
+ *
+ * `Date.UTC(year, month, 0)` is day zero of the FOLLOWING month, which is the
+ * last day of this one - so February and leap years come out right without a
+ * table of month lengths.
+ */
+export function monthRange(year, month) {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const mm = String(month).padStart(2, '0');
+  return {
+    from: `${year}-${mm}-01`,
+    to: `${year}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                     'August', 'September', 'October', 'November', 'December'];
+
+/** '2026-08' or (2026, 8) -> "August 2026". */
+export function formatMonth(year, month) {
+  return `${MONTHS_LONG[month - 1]} ${year}`;
+}
 
 /**
  * '2026-08-03' -> "03 Aug 2026".

@@ -159,7 +159,7 @@ export function formatNumber(value) {
  * implementation - this module cannot go in a browser bundle. Re-exported here
  * so server code carries on importing them from helpers as before.
  */
-export { todayISO, shiftISODate, formatDate } from './date-helpers';
+export { todayISO, shiftISODate, formatDate, monthRange, formatMonth } from './date-helpers';
 
 // ---------------------------------------------------------------------------
 // Calculations

@@ -693,11 +693,17 @@ export async function setNozzleTank(_prevState, formData) {
 
   const nozzleId = text(formData, 'nozzle_id');
   const tankId = text(formData, 'tank_id');
+  const startingReading = number(formData, 'starting_reading');
 
   if (!nozzleId || !tankId) return fail('Missing the nozzle or tank.');
+  if (startingReading === null) return fail('Enter the meter reading this nozzle starts from.');
+  if (startingReading < 0) return fail('A meter reading cannot be negative.');
 
   const supabase = await createClient();
-  const { error } = await supabase.from('nozzles').update({ tank_id: tankId }).eq('id', nozzleId);
+  const { error } = await supabase
+    .from('nozzles')
+    .update({ tank_id: tankId, starting_reading: startingReading })
+    .eq('id', nozzleId);
 
   if (error) return fail(describe(error, 'Could not update the nozzle.'));
 

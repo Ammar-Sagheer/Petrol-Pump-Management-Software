@@ -100,16 +100,23 @@ export default async function SettingsPage() {
       {/* ---- nozzles ---- */}
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">Nozzles</h2>
       <p className="mb-3 text-sm text-ink-600">
-        Which tank each nozzle draws from. Change this only if the plumbing at the pump actually
-        differs — it decides which tank a sale is taken out of.
+        Which tank each nozzle draws from, and where its meter stood when you started using this
+        app. The tank decides which stock a sale comes out of. The starting reading is only used
+        until that nozzle has its first day entered — after that each day opens at the previous
+        day&rsquo;s closing.
+      </p>
+      <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+        Set the starting readings <span className="font-semibold">before</span> entering your first
+        day. Leaving them at 0 on a pump that has been trading makes that first day count the
+        meter&rsquo;s whole lifetime as one day of sales.
       </p>
       <div className="card table-scroll">
-        <table className="w-full min-w-[30rem]">
+        <table className="w-full min-w-[38rem]">
           <thead className="border-b border-ink-200 bg-ink-50">
             <tr>
               <th className="th">Unit</th>
               <th className="th">Nozzle</th>
-              <th className="th">Draws from</th>
+              <th className="th">Draws from &amp; meter starts at</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-100">

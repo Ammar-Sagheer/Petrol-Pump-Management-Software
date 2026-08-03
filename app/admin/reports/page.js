@@ -2,7 +2,8 @@ import {
   requirePageRole,
   ROLES,
   todayISO,
-  shiftISODate,
+  monthRange,
+  formatMonth,
   formatDate,
   formatLitres,
   formatPKR,
@@ -17,8 +18,6 @@ import FuelBadge from '@/app/_components/ui/FuelBadge';
 import DeleteExpenseButton from '@/app/_components/admin/DeleteExpenseButton';
 
 export const metadata = { title: 'Reports' };
-
-const TREND_DAYS = 30;
 
 export default async function ReportsPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
@@ -39,9 +38,15 @@ export default async function ReportsPage({ searchParams }) {
   const exportError =
     typeof params?.export_error === 'string' ? params.export_error.slice(0, 300) : null;
 
+  // The charts and the day-by-day table follow the month box, like everything
+  // else on this page. They used to show a rolling last-30-days window
+  // regardless of the month chosen, so picking August still listed July's days
+  // - and disagreed with the Excel download, which was always month-based.
+  const { from: monthFrom, to: monthTo } = monthRange(year, month);
+
   const [report, trend, expenses] = await Promise.all([
     getMonthlyReport(year, month),
-    getSalesTrend(shiftISODate(today, -(TREND_DAYS - 1)), today),
+    getSalesTrend(monthFrom, monthTo),
     getExpenses({ limit: 50 }),
   ]);
 
@@ -189,7 +194,7 @@ export default async function ReportsPage({ searchParams }) {
 
       {/* ---- 30 day trend ---- */}
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
-        Last {TREND_DAYS} days
+        {formatMonth(year, month)} day by day
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
@@ -206,7 +211,7 @@ export default async function ReportsPage({ searchParams }) {
           and for checking a specific day without hovering. */}
       <details className="card mt-4 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-ink-800">
-          Show these {TREND_DAYS} days as a table
+          Show these days as a table
         </summary>
         <div className="table-scroll mt-4">
           <table className="w-full min-w-[38rem]">
