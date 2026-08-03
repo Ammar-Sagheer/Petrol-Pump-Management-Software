@@ -19,7 +19,14 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from './supabase-server';
 import { createAdminClient, createPasswordCheckClient } from './supabase-auth';
-import { requireRole, ROLES, roundMoney, landingPageFor, fullResetAllowed } from './helpers';
+import {
+  requireRole,
+  ROLES,
+  roundMoney,
+  landingPageFor,
+  fullResetAllowed,
+  formatLitres,
+} from './helpers';
 
 // ---------------------------------------------------------------------------
 // Small input helpers
@@ -775,6 +782,18 @@ export async function updateTank(_prevState, formData) {
   if (capacity === null || capacity <= 0) return fail('Enter the tank capacity.');
   if (openingStock === null || openingStock < 0) return fail('Enter the opening stock.');
   if (!openingStockDate) return fail('Enter the date the opening stock applies from.');
+
+  // A tank cannot hold more than it holds. Worth refusing rather than warning:
+  // opening stock is what every later litre is measured against, so a figure
+  // above capacity quietly overstates the stock on hand from that day onward,
+  // and the dashboard reads as fuel that was never in the ground.
+  if (openingStock > capacity) {
+    return fail(
+      `Opening stock cannot be more than the tank holds. ` +
+        `This tank holds ${formatLitres(capacity)} and you entered ${formatLitres(openingStock)}. ` +
+        `Raise the capacity if the tank really is bigger.`,
+    );
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
