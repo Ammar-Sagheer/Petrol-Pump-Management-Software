@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { saveReading, deleteReading } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
@@ -8,6 +8,7 @@ import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
 import ReadingChainWarning from '@/app/_components/admin/ReadingChainWarning';
+import Dialog from '@/app/_components/ui/Dialog';
 
 /*
  * Formatting is done inline here rather than imported from helpers.js: that
@@ -21,32 +22,115 @@ const showLitres = (n) => `${litreFormat.format(n || 0)} L`;
 const showMoney = (n) => `Rs ${moneyFormat.format(n || 0)}`;
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+/**
+ * One nozzle, as a compact row that opens a dialog.
+ *
+ * Six full-height forms stacked on one page meant a lot of scrolling, and -
+ * worse - six near-identical forms in view at once, which is exactly how a
+ * closing reading ends up typed into the wrong nozzle. Collapsed to rows, the
+ * whole day fits on one screen and entry happens with everything else out of
+ * the way.
+ *
+ * A dialog rather than an expanding row: an accordion pushes the rows below it
+ * down and yanks them back on collapse, so you lose your place after every
+ * save, and the credit slip list makes the page reflow as it grows.
+ */
 export default function ReadingForm({ row, date, customers, creditSales, canDelete }) {
   const isSaved = Boolean(row.reading_id);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Close once the save has gone through and come back from the server.
+  const savedRef = useRef(isSaved);
+  useEffect(() => {
+    if (isSaved && !savedRef.current) setIsOpen(false);
+    savedRef.current = isSaved;
+  }, [isSaved]);
+
+  const previousClosing =
+    row.previous_closing === null || row.previous_closing === undefined
+      ? null
+      : Number(row.previous_closing);
+  const openingUsed = Number(row.opening_reading ?? 0);
+  const hasChainProblem =
+    Boolean(row.later_date) || (previousClosing !== null && openingUsed !== previousClosing);
+
+  const title = `Unit ${row.unit_number} · Nozzle ${row.nozzle_label}`;
 
   return (
-    <section className="card flex flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-ink-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-ink-900">
-            Unit {row.unit_number} · Nozzle {row.nozzle_label}
-          </h2>
-          <FuelBadge fuelType={row.fuel_type} />
-        </div>
-        {isSaved ? (
-          <span className="badge bg-brand-100 text-brand-800">Entered</span>
-        ) : (
-          <span className="badge bg-ink-100 text-ink-600">Not entered</span>
-        )}
-      </header>
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="card flex w-full items-center gap-3 px-4 py-3 text-left transition
+                   hover:border-brand-300 hover:bg-brand-50/40
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-bold text-ink-900">{title}</span>
+            <FuelBadge fuelType={row.fuel_type} />
+            {hasChainProblem ? (
+              <span className="badge bg-red-100 text-red-800">check</span>
+            ) : null}
+          </div>
 
-      {isSaved ? (
-        <SavedReading row={row} date={date} creditSales={creditSales} canDelete={canDelete} />
-      ) : (
-        <EntryForm row={row} date={date} customers={customers} />
-      )}
-    </section>
+          {isSaved ? (
+            <p className="tabular mt-1 text-xs text-ink-600">
+              <span className="font-semibold text-ink-900">{showLitres(row.litres_sold)}</span>
+              {' · '}
+              <span className="font-semibold text-ink-900">{showMoney(row.sale_amount)}</span>
+              {' · cash '}
+              {showMoney(row.cash_amount)}
+              {Number(row.credit_amount) > 0 ? ` · credit ${showMoney(row.credit_amount)}` : ''}
+            </p>
+          ) : (
+            <p className="tabular mt-1 text-xs text-ink-500">
+              Opens at {litreFormat.format(openingUsed)}
+              {row.rate ? ` · Rs ${row.rate}/L` : ' · no rate set'}
+            </p>
+          )}
+        </div>
+
+        <span
+          className={`badge shrink-0 ${
+            isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-100 text-amber-900'
+          }`}
+        >
+          {isSaved ? 'Entered' : 'Enter'}
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-lg leading-none text-ink-400">
+          ›
+        </span>
+      </button>
+
+      <Dialog
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={title}
+        subtitle={
+          <div className="flex items-center gap-2">
+            <FuelBadge fuelType={row.fuel_type} />
+            <span className="text-xs text-ink-500">{formatDayLabel(date)}</span>
+          </div>
+        }
+      >
+        {isSaved ? (
+          <SavedReading row={row} date={date} creditSales={creditSales} canDelete={canDelete} />
+        ) : (
+          <EntryForm row={row} date={date} customers={customers} />
+        )}
+      </Dialog>
+    </>
   );
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatDayLabel(iso) {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return String(iso);
+  return `${String(d).padStart(2, '0')} ${MONTH_NAMES[m - 1]} ${y}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,7 +141,7 @@ function SavedReading({ row, date, creditSales, canDelete }) {
   const [state, formAction] = useActionState(deleteReading, null);
 
   return (
-    <div className="flex flex-1 flex-col gap-3 p-4">
+    <div className="flex flex-col gap-3 p-4">
       {/* A saved row can still be part of a broken chain - flag it here rather
           than leaving it to be found in a stock loss weeks later. */}
       <ReadingChainWarning row={row} date={date} openingUsed={row.opening_reading} />
@@ -92,7 +176,7 @@ function SavedReading({ row, date, creditSales, canDelete }) {
       <FormMessage state={state} />
 
       {canDelete ? (
-        <form action={formAction} className="mt-auto pt-1">
+        <form action={formAction} className="pt-1">
           <input type="hidden" name="reading_id" value={row.reading_id} />
           <SubmitButton className="btn-danger w-full text-xs" pendingLabel="Deleting…">
             Delete this reading
@@ -174,7 +258,7 @@ function EntryForm({ row, date, customers }) {
   }
 
   return (
-    <form action={formAction} className="flex flex-1 flex-col gap-4 p-4">
+    <form action={formAction} className="flex flex-col gap-4 p-4">
       <input type="hidden" name="nozzle_id" value={row.nozzle_id} />
       <input type="hidden" name="reading_date" value={date} />
       <input type="hidden" name="opening_reading" value={opening} />
@@ -365,7 +449,7 @@ function EntryForm({ row, date, customers }) {
 
       <FormMessage state={state} />
 
-      <SubmitButton className="btn-primary mt-auto w-full" disabled={!canSubmit}>
+      <SubmitButton className="btn-primary w-full" disabled={!canSubmit}>
         Save nozzle
       </SubmitButton>
     </form>

@@ -672,6 +672,29 @@ export async function createExpense(_prevState, formData) {
   return ok('Expense recorded.');
 }
 
+/**
+ * Removes an expense. Owner only - and the way to fix a mistyped amount, since
+ * an expense feeds the profit figure and a wrong one quietly distorts it.
+ */
+export async function deleteExpense(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const expenseId = text(formData, 'expense_id');
+  if (!expenseId) return fail('Missing the expense.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
+
+  if (error) return fail(describe(error, 'Could not delete the expense.'));
+
+  revalidatePath('/admin/reports');
+  return ok('Expense deleted.');
+}
+
 // ---------------------------------------------------------------------------
 // Staff accounts - super_admin only
 //

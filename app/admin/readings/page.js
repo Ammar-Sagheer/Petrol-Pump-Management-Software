@@ -84,7 +84,9 @@ export default async function ReadingsPage({ searchParams }) {
         <Stat label="Credit" value={formatPKR(totals.credit)} />
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* A list, not a grid of cards. Each row opens a dialog to enter that
+          nozzle, so the whole day stays visible on one screen. */}
+      <div className="space-y-2">
         {sheet.map((row) => (
           <ReadingForm
             key={row.nozzle_id}

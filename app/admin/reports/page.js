@@ -14,6 +14,7 @@ import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
 import CashCreditChart from '@/app/_components/admin/CashCreditChart';
 import ExpenseForm from '@/app/_components/admin/ExpenseForm';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
+import DeleteExpenseButton from '@/app/_components/admin/DeleteExpenseButton';
 
 export const metadata = { title: 'Reports' };
 
@@ -246,13 +247,18 @@ export default async function ReportsPage({ searchParams }) {
             </p>
           ) : (
             <div className="card table-scroll">
-              <table className="w-full min-w-[30rem]">
+              <table className="w-full min-w-[34rem]">
                 <thead className="border-b border-ink-200 bg-ink-50">
                   <tr>
                     <th className="th">Date</th>
                     <th className="th">Category</th>
                     <th className="th">Note</th>
                     <th className="th text-right">Amount</th>
+                    {/* The column still needs to occupy a cell, so the label
+                        is hidden rather than the header itself. */}
+                    <th className="th">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100">
@@ -262,6 +268,12 @@ export default async function ReportsPage({ searchParams }) {
                       <td className="td font-medium">{expense.category}</td>
                       <td className="td text-ink-600">{expense.note ?? '—'}</td>
                       <td className="td-num font-semibold">{formatPKR(expense.amount)}</td>
+                      <td className="td">
+                        <DeleteExpenseButton
+                          expenseId={expense.id}
+                          summary={`${expense.category} ${formatPKR(expense.amount)}`}
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
