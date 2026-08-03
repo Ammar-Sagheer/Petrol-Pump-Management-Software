@@ -161,6 +161,23 @@ export function formatNumber(value) {
  */
 export { todayISO, shiftISODate, formatDate, monthRange, formatMonth } from './date-helpers';
 
+/**
+ * Whether the "empty everything" button exists on this deployment.
+ *
+ * Scaffolding for the testing phase, switched on by ALLOW_FULL_RESET=true on
+ * the server. Deliberately NOT a NEXT_PUBLIC_ variable: those are baked into
+ * the browser bundle at build time, so the flag would ship to anyone who looked.
+ * Read here on the server only, by both the Settings page (to decide whether to
+ * draw the button) and the action itself (to decide whether to obey it) - the
+ * button being hidden is presentation, this check is the actual gate.
+ *
+ * To retire it for good: delete the variable in Vercel and redeploy. No code
+ * change, nothing to remember.
+ */
+export function fullResetAllowed() {
+  return process.env.ALLOW_FULL_RESET === 'true';
+}
+
 // ---------------------------------------------------------------------------
 // Calculations
 //

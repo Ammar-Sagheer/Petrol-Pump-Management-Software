@@ -19,7 +19,7 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from './supabase-server';
 import { createAdminClient, createPasswordCheckClient } from './supabase-auth';
-import { requireRole, ROLES, roundMoney, landingPageFor } from './helpers';
+import { requireRole, ROLES, roundMoney, landingPageFor, fullResetAllowed } from './helpers';
 
 // ---------------------------------------------------------------------------
 // Small input helpers
@@ -318,22 +318,131 @@ export async function deleteReading(_prevState, formData) {
   const readingId = text(formData, 'reading_id');
   if (!readingId) return fail('Missing the reading.');
 
+  // Goes through delete_reading() rather than deleting the row directly. That
+  // function posts an offsetting ledger entry for every credit slip it takes
+  // away, in the same transaction. Deleting the row straight would remove the
+  // slip but leave the customer's debit standing, so they would appear to owe
+  // money for fuel the books no longer show them taking.
   const supabase = await createClient();
-  const { error } = await supabase.from('nozzle_readings').delete().eq('id', readingId);
+  const { data, error } = await supabase.rpc('delete_reading', { p_reading_id: readingId });
 
-  if (error) {
-    if (String(error.message).includes('violates foreign key')) {
-      return fail(
-        'This reading has credit slips already posted to a customer ledger. Post an ' +
-          'offsetting ledger entry instead of deleting it.',
-      );
-    }
-    return fail(describe(error, 'Could not delete the reading.'));
-  }
+  if (error) return fail(describe(error, 'Could not delete the reading.'));
 
   revalidatePath('/admin/readings');
   revalidatePath('/admin');
-  return ok('Reading deleted.');
+  revalidatePath('/admin/customers');
+
+  const reversed = Number(data?.slips_reversed ?? 0);
+  return ok(
+    reversed > 0
+      ? `Reading deleted. ${reversed} credit ${reversed === 1 ? 'slip' : 'slips'} reversed on the customer ledger.`
+      : 'Reading deleted.',
+  );
+}
+
+/**
+ * Wipes one day's nozzle entries so the day can be entered again.
+ *
+ * The mistake this fixes is ordinary: a day entered against the wrong date, or
+ * six nozzles typed in before anyone noticed the figures were yesterday's. Left
+ * alone it poisons everything downstream, because each day's opening comes from
+ * the day before.
+ *
+ * Scope is deliberately just the nozzle entries and their credit slips. Fuel
+ * deliveries, stock checks and expenses are deleted one at a time on their own
+ * screens, where you can see what you are removing.
+ *
+ * Credit slips are reversed, not erased - clear_day posts an offsetting entry
+ * for each one, so a customer's balance comes back to correct while the history
+ * of what happened stays readable.
+ */
+export async function clearDay(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const date = text(formData, 'date');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail('Missing the date.');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('clear_day', { p_date: date });
+
+  if (error) return fail(describe(error, 'Could not clear the day.'));
+
+  revalidatePath('/admin/readings');
+  revalidatePath('/admin');
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin/reports');
+
+  const cleared = Number(data?.readings ?? 0);
+  const reversed = Number(data?.slips_reversed ?? 0);
+
+  if (cleared === 0) return ok('There was nothing entered for that day.');
+
+  return ok(
+    reversed > 0
+      ? `Cleared ${cleared} nozzle ${cleared === 1 ? 'entry' : 'entries'}, and reversed ${reversed} credit ${reversed === 1 ? 'slip' : 'slips'} on the customer ledger.`
+      : `Cleared ${cleared} nozzle ${cleared === 1 ? 'entry' : 'entries'}. Enter the day again when ready.`,
+  );
+}
+
+/**
+ * Empties the books completely. Testing scaffolding, not a feature.
+ *
+ * Three separate things have to be true for this to run: ALLOW_FULL_RESET must
+ * be set on the server, the caller must be the owner, and they must type their
+ * own password and the word RESET. The environment variable is the important
+ * one - deleting it in Vercel retires this permanently without touching code,
+ * which is how it is meant to end.
+ */
+export async function resetEverything(_prevState, formData) {
+  if (!fullResetAllowed()) {
+    return fail('Resetting everything is switched off on this deployment.');
+  }
+
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const password = String(formData.get('owner_password') ?? '');
+  const confirmation = text(formData, 'confirmation');
+
+  if (confirmation !== 'RESET') return fail('Type RESET in capitals to confirm.');
+  if (!password) return fail('Enter your own password to confirm.');
+  if (!profile.email) return fail('Could not read your email address. Sign in again and retry.');
+
+  const checkClient = createPasswordCheckClient();
+  const { error: checkError } = await checkClient.auth.signInWithPassword({
+    email: profile.email,
+    password,
+  });
+
+  if (checkError) {
+    if (checkError.status === 400 || checkError.code === 'invalid_credentials') {
+      return fail('That is not your password. Nothing has been deleted.');
+    }
+    return fail('Could not reach the server just now. Nothing has been deleted.');
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('reset_all_data');
+
+  if (error) return fail(describe(error, 'Could not reset the data.'));
+
+  ['/admin', '/admin/readings', '/admin/purchases', '/admin/stock-checks',
+   '/admin/customers', '/admin/reports', '/admin/settings'].forEach(revalidatePath);
+
+  const n = (key) => Number(data?.[key] ?? 0);
+  return ok(
+    `Everything cleared: ${n('readings')} readings, ${n('customers')} customers, ` +
+      `${n('purchases')} deliveries, ${n('expenses')} expenses. ` +
+      'Logins, tanks and nozzle starting readings were kept.',
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import {
 import PageHeader from '@/app/_components/ui/PageHeader';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
+import ClearDayButton from '@/app/_components/admin/ClearDayButton';
 
 export const metadata = { title: 'Daily readings' };
 
@@ -63,6 +64,12 @@ export default async function ReadingsPage({ searchParams }) {
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
         />
+        {/* Owner only. Entering a day against the wrong date is the mistake
+            this exists for, and it poisons every day after it because each
+            opening comes from the day before. */}
+        {profile.role === ROLES.SUPER_ADMIN ? (
+          <ClearDayButton date={date} dateLabel={formatDate(date)} entryCount={done.length} />
+        ) : null}
       </PageHeader>
 
       {missingRate ? (

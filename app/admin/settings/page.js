@@ -1,4 +1,4 @@
-import { requirePageRole, ROLES, formatDate, formatPKR } from '@/app/_lib/helpers';
+import { requirePageRole, ROLES, formatDate, formatPKR, fullResetAllowed } from '@/app/_lib/helpers';
 import {
   getTanks,
   getNozzles,
@@ -13,6 +13,7 @@ import TankForm from '@/app/_components/admin/TankForm';
 import NozzleTankForm from '@/app/_components/admin/NozzleTankForm';
 import StaffAccountForm from '@/app/_components/admin/StaffAccountForm';
 import StaffList from '@/app/_components/admin/StaffList';
+import FullResetPanel from '@/app/_components/admin/FullResetPanel';
 
 export const metadata = { title: 'Settings' };
 
@@ -141,6 +142,17 @@ export default async function SettingsPage() {
         <StaffAccountForm />
         <StaffList staff={staff} currentProfileId={profile.id} />
       </div>
+
+      {/* Testing scaffolding. Gone the moment ALLOW_FULL_RESET is removed from
+          the server, with no code change - see fullResetAllowed(). */}
+      {fullResetAllowed() ? (
+        <>
+          <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-red-700">
+            While testing
+          </h2>
+          <FullResetPanel />
+        </>
+      ) : null}
     </>
   );
 }
