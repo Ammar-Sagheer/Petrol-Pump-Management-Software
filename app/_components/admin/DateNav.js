@@ -13,8 +13,20 @@ import { todayISO, shiftISODate, formatDate } from '@/app/_lib/date-helpers';
  * days with the arrows changed the page underneath while the box carried on
  * showing the old date. Keying it by the date remounts it, so what it displays
  * is always the day being shown.
+ *
+ * Anything passed as children joins the end of the button row. A page-level
+ * action for the day on screen belongs on the same line as the day's controls,
+ * sharing their height and baseline, rather than floating beside the block and
+ * centring itself against the date caption underneath.
  */
-export default function DateNav({ date, basePath, previousDate, nextDate, paramName = 'date' }) {
+export default function DateNav({
+  date,
+  basePath,
+  previousDate,
+  nextDate,
+  paramName = 'date',
+  children,
+}) {
   const today = todayISO();
   const isToday = date === today;
   const isYesterday = date === shiftISODate(today, -1);
@@ -78,6 +90,8 @@ export default function DateNav({ date, basePath, previousDate, nextDate, paramN
             Back to today
           </PendingLink>
         ) : null}
+
+        {children}
       </div>
 
       {/* Which day is on screen, in words - the date box alone is easy to skim

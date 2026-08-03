@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { clearDay } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
+import FormMessage from '@/app/_components/ui/FormMessage';
 import Dialog from '@/app/_components/ui/Dialog';
 
 /**
@@ -17,23 +18,67 @@ export default function ClearDayButton({ date, dateLabel, entryCount }) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction] = useActionState(clearDay, null);
 
+  // What the last clear did, kept on the page once the dialog has gone.
+  const [notice, setNotice] = useState(null);
+  // A result belongs to the submission that produced it. Opening the dialog
+  // again starts clean rather than showing what happened last time.
+  const [showResult, setShowResult] = useState(false);
+
   const nothingToClear = entryCount === 0;
+  const result = showResult ? state : null;
+
+  // Close as soon as the clear comes back. The dialog exists to ask the
+  // question; once it is answered, leaving it up makes the owner dismiss a box
+  // that is only telling them it worked - and the page behind has already
+  // refreshed to show the day empty.
+  const handled = useRef(state);
+  useEffect(() => {
+    if (state === handled.current) return;
+    handled.current = state;
+
+    if (state?.ok) {
+      setIsOpen(false);
+      setNotice({ message: state.message });
+    }
+  }, [state]);
+
+  // The confirmation is worth reading, not worth keeping on screen.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 8000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  function openDialog() {
+    setShowResult(false);
+    setNotice(null);
+    setIsOpen(true);
+  }
 
   return (
     <>
+      {/* Sized like the buttons it sits beside rather than as quiet small text:
+          clearing a day is a real thing an owner comes to this screen to do, and
+          it was easy to miss. The styles are written out rather than using
+          .btn-danger so that with nothing to clear the button goes properly grey
+          instead of a faded red - unavailable at a glance, not a warning. */}
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={openDialog}
         disabled={nothingToClear}
         title={
           nothingToClear
             ? 'Nothing has been entered for this day yet'
             : `Clear all entries for ${dateLabel}`
         }
-        className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-ink-500 transition
-                   hover:bg-red-50 hover:text-red-700
-                   disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent
-                   disabled:hover:text-ink-500"
+        className={[
+          'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg',
+          'border px-4 py-2.5 text-sm font-semibold transition',
+          nothingToClear
+            ? 'cursor-not-allowed border-ink-200 bg-ink-100 text-ink-400'
+            : `border-red-300 bg-white text-red-700 hover:bg-red-50
+               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600`,
+        ].join(' ')}
       >
         Clear this day
       </button>
@@ -48,7 +93,13 @@ export default function ClearDayButton({ date, dateLabel, entryCount }) {
           </span>
         }
       >
-        <form action={formAction} className="space-y-4 p-4">
+        <form
+          action={(formData) => {
+            setShowResult(true);
+            formAction(formData);
+          }}
+          className="space-y-4 p-4"
+        >
           <input type="hidden" name="date" value={date} />
 
           <p className="text-sm text-ink-700">
@@ -70,27 +121,46 @@ export default function ClearDayButton({ date, dateLabel, entryCount }) {
             </li>
           </ul>
 
-          {state?.ok === false ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-              {state.message}
-            </p>
-          ) : null}
-          {state?.ok ? (
-            <p className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-800">
-              {state.message}
-            </p>
-          ) : null}
+          {/* Only a failure lands here now - a success has already closed this. */}
+          <FormMessage state={result} />
 
           <div className="flex gap-2">
             <SubmitButton className="btn-danger flex-1" pendingLabel="Clearing…">
               Clear this day
             </SubmitButton>
             <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">
-              {state?.ok ? 'Close' : 'Cancel'}
+              Cancel
             </button>
           </div>
         </form>
       </Dialog>
+
+      {/* Carries the result out of the dialog that reported it. How many slips
+          were reversed is the part worth seeing, and it would be lost if the
+          message closed along with the box. */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
+      >
+        {notice ? (
+          <div
+            className="pointer-events-auto flex max-w-md items-start gap-3 rounded-lg border
+                       border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800
+                       shadow-lg"
+          >
+            <span>{notice.message}</span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss"
+              className="-mr-1 shrink-0 rounded px-1 leading-none text-brand-700 hover:bg-brand-100"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }
