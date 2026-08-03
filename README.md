@@ -214,3 +214,20 @@ the numbers are fast and cannot be altered client-side.
 - **Monthly profit** counts fuel *bought* in the month, not fuel sold from stock.
   A big delivery near month end makes profit look low — that money is sitting in
   the tank, which is what the closing stock figure shows.
+- **Banking keeps only the last 60 transactions per account.** Older ones are
+  deleted automatically as new ones arrive. The *balances are never wrong* —
+  each removed amount is folded into `pruned_deposits` / `pruned_payments` on the
+  account before the row goes, so the balance and the lifetime totals stay exact.
+  What the cap costs is the itemised detail. **Download the monthly report and
+  that detail is kept forever**; skip a month and those individual rows really
+  are gone. The workbook's `Bank` sheet is written from the rows while they still
+  exist, which is why the export is the backup rather than a convenience.
+- **Bank movements are not profit.** Paying cash into the bank is not income and
+  transferring it out is not a cost — the sale and the expense were already
+  counted when they happened. That is why the Summary sheet keeps them in their
+  own `BANK` block instead of under `COSTS`, where they would count twice.
+- **Adding a sheet to the Excel template**: the app addresses sheets by file name
+  (`sheet1.xml`, `sheet2.xml`, …), and openpyxl numbers them in creation order.
+  Always `create_sheet` a new one **last** in `scripts/build-report-template.py`,
+  or every sheet after the insertion point is silently renumbered and the app
+  starts rewriting the wrong ones.

@@ -277,3 +277,37 @@ export async function getProfiles() {
     'the staff accounts',
   );
 }
+
+// ---------------------------------------------------------------------------
+// Banking
+//
+// The owner's own accounts: cash paid in, pump costs paid out by transfer.
+// Owner only - the RLS policies refuse a data_entry caller outright.
+// ---------------------------------------------------------------------------
+
+/** Each account with its balance and lifetime totals, from the view. */
+export async function getBankAccounts() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.from('bank_account_balances').select('*').order('created_at'),
+    'the bank accounts',
+  );
+}
+
+/**
+ * The transactions on screen.
+ *
+ * No limit is passed by the page and none is needed: the database keeps at most
+ * 60 rows per account, so "everything there is" is already a small number.
+ */
+export async function getBankTransactions() {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('bank_transactions')
+      .select('*, account:bank_accounts(id, bank_name, account_label)')
+      .order('txn_date', { ascending: false })
+      .order('created_at', { ascending: false }),
+    'the bank transactions',
+  );
+}

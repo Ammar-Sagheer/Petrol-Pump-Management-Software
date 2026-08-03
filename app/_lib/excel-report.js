@@ -35,6 +35,7 @@ const SHEET_FILES = {
   Expenses: 'xl/worksheets/sheet5.xml',
   Customers: 'xl/worksheets/sheet6.xml',
   Readings: 'xl/worksheets/sheet7.xml',
+  Bank: 'xl/worksheets/sheet8.xml',
 };
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -169,6 +170,7 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
 
   const sales = data.sales ?? {};
   const purchases = data.purchases ?? {};
+  const bankMonth = data.bank_month ?? {};
   const [year, month] = String(data.from).slice(0, 10).split('-').map(Number);
 
   // ---- Summary: label / value pairs, written as plain rows ----
@@ -195,6 +197,18 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
     ...(data.closing_inventory ?? []).map((tank) => [
       `  ${tank.name}`,
       num(tank.closing_litres),
+    ]),
+    ['', ''],
+    // Bank movements sit apart from profit on purpose: paying cash into the
+    // bank is not income and transferring it out is not a cost - the sale and
+    // the expense were already counted above when they happened. Putting these
+    // under COSTS would count the same money twice.
+    ['BANK', ''],
+    ['Paid into the bank this month', num(bankMonth.deposits)],
+    ['Paid out of the bank this month', num(bankMonth.payments)],
+    ...(data.bank_accounts ?? []).map((account) => [
+      `  ${account.account} balance`,
+      num(account.balance),
     ]),
     ['', ''],
     ['Note', 'Profit counts fuel BOUGHT this month, not fuel sold from stock.'],
@@ -267,6 +281,28 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
   ]);
   const readingsXml = await zip.file(SHEET_FILES.Readings).async('string');
   zip.file(SHEET_FILES.Readings, writeSheet(readingsXml, readingRows));
+
+  // ---- Bank ----
+  //
+  // This sheet matters more than the others. The Banking page keeps only the
+  // last 60 transactions per account, so once that is passed this workbook is
+  // the only itemised record of the rest. In and Out are separate columns for
+  // the same reason they are on screen: a signed number read in a hurry is how
+  // a payment gets taken for a deposit.
+  const bankRows = (data.bank_rows ?? []).map((row) => {
+    const isDeposit = row.direction === 'deposit';
+    return [
+      toExcelDate(row.date),
+      row.account ?? '',
+      row.bank ?? '',
+      isDeposit ? num(row.amount) : '',
+      isDeposit ? '' : num(row.amount),
+      row.category ?? (isDeposit ? 'Cash paid in' : ''),
+      row.note ?? '',
+    ];
+  });
+  const bankXml = await zip.file(SHEET_FILES.Bank).async('string');
+  zip.file(SHEET_FILES.Bank, writeSheet(bankXml, bankRows));
 
   return zip.generateAsync({
     type: 'nodebuffer',

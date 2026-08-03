@@ -1099,3 +1099,131 @@ async function requireRoleOrFail(...roles) {
     return { error: fail(error.message) };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Banking
+//
+// The owner's own accounts. Every one of these is super_admin only, and the
+// RLS policies say the same thing independently.
+// ---------------------------------------------------------------------------
+
+export async function createBankAccount(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const bankName = text(formData, 'bank_name');
+  const label = text(formData, 'account_label');
+  const accountNumber = text(formData, 'account_number');
+  const openingBalance = number(formData, 'opening_balance') ?? 0;
+
+  if (!bankName) return fail('Enter the bank name.');
+  if (!label) return fail('Give the account a short name, so you can tell the two apart.');
+  if (!Number.isFinite(openingBalance)) return fail('Enter the balance as a number.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('bank_accounts').insert({
+    bank_name: bankName,
+    account_label: label,
+    account_number: accountNumber || null,
+    opening_balance: roundMoney(openingBalance),
+  });
+
+  if (error) return fail(describe(error, 'Could not add the account.'));
+
+  revalidatePath('/admin/banking');
+  return ok(`${label} added.`);
+}
+
+/**
+ * Removes an account and everything recorded against it.
+ *
+ * Hard delete, on purpose: this is for an account added by mistake or one that
+ * has been closed. The transactions go with it, which is why the button asks
+ * first and says how many will go.
+ */
+export async function deleteBankAccount(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const accountId = text(formData, 'account_id');
+  if (!accountId) return fail('Missing the account.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('bank_accounts').delete().eq('id', accountId);
+
+  if (error) return fail(describe(error, 'Could not delete the account.'));
+
+  revalidatePath('/admin/banking');
+  return ok('Account removed.');
+}
+
+/**
+ * Records money in or out.
+ *
+ * Nothing here maintains a balance column - the balance is derived from these
+ * rows and the account's carried figures every time it is read, so it cannot
+ * drift away from the transactions that produced it. Same principle the tank
+ * stock already follows.
+ */
+export async function createBankTransaction(_prevState, formData) {
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const accountId = text(formData, 'account_id');
+  const txnType = text(formData, 'txn_type');
+  const amount = number(formData, 'amount');
+  const txnDate = text(formData, 'txn_date');
+  const category = text(formData, 'category');
+  const note = text(formData, 'note');
+
+  if (!accountId) return fail('Choose which account.');
+  if (txnType !== 'deposit' && txnType !== 'payment') return fail('Choose money in or money out.');
+  if (amount === null || amount <= 0) return fail('Enter an amount above zero.');
+  if (!txnDate) return fail('Enter the date.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('bank_transactions').insert({
+    account_id: accountId,
+    txn_type: txnType,
+    amount: roundMoney(amount),
+    txn_date: txnDate,
+    // A category says something about a payment and nothing about a deposit.
+    category: txnType === 'payment' ? category || null : null,
+    note: note || null,
+    created_by: profile.id,
+  });
+
+  if (error) return fail(describe(error, 'Could not record the transaction.'));
+
+  revalidatePath('/admin/banking');
+  return ok(txnType === 'deposit' ? 'Deposit recorded.' : 'Payment recorded.');
+}
+
+export async function deleteBankTransaction(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const txnId = text(formData, 'transaction_id');
+  if (!txnId) return fail('Missing the transaction.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('bank_transactions').delete().eq('id', txnId);
+
+  if (error) return fail(describe(error, 'Could not remove the transaction.'));
+
+  revalidatePath('/admin/banking');
+  return ok('Transaction removed.');
+}

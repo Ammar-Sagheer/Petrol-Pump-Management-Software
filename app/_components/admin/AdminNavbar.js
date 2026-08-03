@@ -18,6 +18,7 @@ const LINKS = [
   { href: '/admin/purchases', label: 'Purchases', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/stock-checks', label: 'Stock', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/customers', label: 'Customers', roles: ['super_admin', 'data_entry'] },
+  { href: '/admin/banking', label: 'Banking', roles: ['super_admin'] },
   { href: '/admin/reports', label: 'Reports', roles: ['super_admin'] },
   { href: '/admin/settings', label: 'Settings', roles: ['super_admin'] },
   { href: '/admin/account', label: 'Account', roles: ['super_admin', 'data_entry'] },

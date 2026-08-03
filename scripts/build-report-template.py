@@ -231,6 +231,23 @@ def build():
     prototype_row(readings, 2,
                   [DATE_FMT, None, None, None, LITRES, LITRES, LITRES, MONEY, MONEY, MONEY, MONEY])
 
+    # Bank goes LAST, and new sheets always should. The app addresses sheets by
+    # their file name (sheet1.xml, sheet2.xml ...), which openpyxl assigns in
+    # creation order - so inserting one anywhere else silently renumbers every
+    # sheet after it and the app starts rewriting the wrong ones.
+    #
+    # In and Out are separate columns rather than one signed amount: the owner
+    # reads this in Excel, and a column of positives he has to check the sign of
+    # is how a payment gets read as a deposit.
+    bank = wb.create_sheet("Bank")
+    style_header(
+        bank,
+        1,
+        ["Date", "Account", "Bank", "In", "Out", "What for", "Note"],
+        [14, 22, 22, 16, 16, 22, 34],
+    )
+    prototype_row(bank, 2, [DATE_FMT, None, None, MONEY, MONEY, None, None])
+
     out = os.path.join("app", "_lib", "report-template.xlsx")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     wb.save(out)
