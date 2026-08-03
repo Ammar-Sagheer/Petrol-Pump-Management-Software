@@ -61,6 +61,16 @@ export default async function ReportsPage({ searchParams }) {
             Show
           </button>
         </form>
+
+        {/* A plain link, not a fetch: the browser handles the download itself,
+            so it works the same on a phone as on a desktop. */}
+        <a
+          href={`/admin/reports/export?month=${monthParam}`}
+          className="btn-primary"
+          download
+        >
+          Download Excel
+        </a>
       </PageHeader>
 
       {/* ---- monthly headline ---- */}
