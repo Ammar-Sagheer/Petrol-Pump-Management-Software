@@ -222,6 +222,14 @@ the numbers are fast and cannot be altered client-side.
   that detail is kept forever**; skip a month and those individual rows really
   are gone. The workbook's `Bank` sheet is written from the rows while they still
   exist, which is why the export is the backup rather than a convenience.
+- **Money out cannot exceed money in**, counted across *all* accounts together
+  rather than per account — the two are one pot in practice, so a payment from
+  one covered by cash in the other is fine. Enforced by a trigger on insert, and
+  checked in the form as the amount is typed. Deletes are deliberately *not*
+  checked: deleting a transaction is how a mistake gets corrected, and blocking
+  a correction because the books are already wrong would trap you. So a
+  correction can still leave the total negative — that shows in red, and the
+  next payment is refused until it is put right.
 - **Bank movements are not profit.** Paying cash into the bank is not income and
   transferring it out is not a cost — the sale and the expense were already
   counted when they happened. That is why the Summary sheet keeps them in their

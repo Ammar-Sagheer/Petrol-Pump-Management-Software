@@ -26,6 +26,7 @@ import {
   landingPageFor,
   fullResetAllowed,
   formatLitres,
+  formatPKR,
 } from './helpers';
 
 // ---------------------------------------------------------------------------
@@ -1192,6 +1193,28 @@ export async function createBankTransaction(_prevState, formData) {
   if (!txnDate) return fail('Enter the date.');
 
   const supabase = await createClient();
+
+  // Money out cannot exceed the money there is, counted across every account -
+  // the two are one pot in practice, so a payment from one covered by cash in
+  // the other is fine. The database refuses this too; asking here first means
+  // the answer names the figures rather than arriving as a raised exception.
+  if (txnType === 'payment') {
+    const { data: accounts, error: balanceError } = await supabase
+      .from('bank_account_balances')
+      .select('balance');
+
+    if (balanceError) return fail(describe(balanceError, 'Could not check the balance.'));
+
+    const available = (accounts ?? []).reduce((sum, row) => sum + Number(row.balance ?? 0), 0);
+
+    if (roundMoney(amount) > available) {
+      return fail(
+        `That is more than the money in the accounts. Across every account there is ` +
+          `${formatPKR(available)}, and this pays out ${formatPKR(amount)}. ` +
+          `Record the deposit that covers it first, or correct the amount.`,
+      );
+    }
+  }
   const { error } = await supabase.from('bank_transactions').insert({
     account_id: accountId,
     txn_type: txnType,

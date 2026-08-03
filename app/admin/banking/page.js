@@ -82,7 +82,7 @@ export default async function BankingPage() {
 
           <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
             <div className="space-y-6">
-              <BankTransactionForm accounts={accounts} />
+              <BankTransactionForm accounts={accounts} availableBalance={totals.balance} />
               <BankAccountForm />
             </div>
 

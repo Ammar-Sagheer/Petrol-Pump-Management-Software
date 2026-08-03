@@ -8,6 +8,14 @@ import FormMessage from '@/app/_components/ui/FormMessage';
 import NumberInput from '@/app/_components/ui/NumberInput';
 import { todayISO } from '@/app/_lib/date-helpers';
 
+// helpers.js reaches into request cookies, so a client component cannot import
+// its formatter. Same approach as ReadingForm: format inline with Intl.
+const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+const money = (value) => {
+  const n = Number(value ?? 0);
+  return `${n < 0 ? '-' : ''}Rs ${moneyFormat.format(Math.abs(n))}`;
+};
+
 const PAYMENT_CATEGORIES = [
   'Fuel purchase',
   'Salaries',
@@ -30,19 +38,30 @@ const PAYMENT_CATEGORIES = [
  * bank" against "transfer out of the bank" - since in and out is the only thing
  * here that cannot be corrected by reading the number back.
  */
-export default function BankTransactionForm({ accounts }) {
+export default function BankTransactionForm({ accounts, availableBalance = 0 }) {
   const formRef = useRef(null);
   const [txnType, setTxnType] = useState('deposit');
+  const [amount, setAmount] = useState('');
   const [state, formAction] = useActionState(async (prevState, formData) => {
     const result = await createBankTransaction(prevState, formData);
     if (result?.ok) {
       formRef.current?.reset();
       setTxnType('deposit');
+      setAmount('');
     }
     return result;
   }, null);
 
   const isDeposit = txnType === 'deposit';
+
+  // Money out cannot exceed the money there is, across every account together.
+  // Checked as it is typed as well as on the server: being told at the moment
+  // the figure goes in beats being told after pressing Save, when the number
+  // already looks committed.
+  const amountNumber = Number(amount);
+  const hasAmount = amount !== '' && Number.isFinite(amountNumber) && amountNumber > 0;
+  const overdraws = !isDeposit && hasAmount && amountNumber > availableBalance;
+  const shortBy = overdraws ? amountNumber - availableBalance : 0;
 
   if (accounts.length === 0) return null;
 
@@ -82,9 +101,17 @@ export default function BankTransactionForm({ accounts }) {
       </div>
 
       <p className="text-xs text-ink-500">
-        {isDeposit
-          ? 'Cash from the pump paid into the bank.'
-          : 'A transfer out of the bank — fuel, salaries, a bill.'}
+        {isDeposit ? (
+          'Cash from the pump paid into the bank.'
+        ) : (
+          <>
+            A transfer out of the bank — fuel, salaries, a bill. There is{' '}
+            <span className={availableBalance > 0 ? 'font-semibold text-ink-700' : 'font-semibold text-red-700'}>
+              {money(availableBalance)}
+            </span>{' '}
+            across every account.
+          </>
+        )}
       </p>
 
       <div>
@@ -110,9 +137,21 @@ export default function BankTransactionForm({ accounts }) {
           step="0.01"
           min="0.01"
           required
-          className="input-number"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          aria-invalid={overdraws}
+          aria-describedby={overdraws ? 'txn-amount-error' : undefined}
+          className={`input-number ${
+            overdraws ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
+          }`}
           placeholder="0"
         />
+        {overdraws ? (
+          <p id="txn-amount-error" className="mt-1 text-xs font-semibold text-red-700">
+            {money(shortBy)} more than there is. Record the deposit that covers it first, or
+            correct the amount.
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -161,8 +200,18 @@ export default function BankTransactionForm({ accounts }) {
 
       <FormMessage state={state} />
 
-      <SubmitButton className={isDeposit ? 'btn-primary w-full' : 'btn-secondary w-full'}>
-        {isDeposit ? 'Record money in' : 'Record money out'}
+      <SubmitButton
+        disabled={overdraws}
+        className={
+          overdraws
+            ? `inline-flex w-full items-center justify-center rounded-lg border border-red-200
+               bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 disabled:cursor-not-allowed`
+            : isDeposit
+              ? 'btn-primary w-full'
+              : 'btn-secondary w-full'
+        }
+      >
+        {overdraws ? 'More than the accounts hold' : isDeposit ? 'Record money in' : 'Record money out'}
       </SubmitButton>
     </form>
   );
