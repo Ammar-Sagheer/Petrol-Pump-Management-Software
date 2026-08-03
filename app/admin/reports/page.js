@@ -34,6 +34,11 @@ export default async function ReportsPage({ searchParams }) {
 
   const [year, month] = monthParam.split('-').map(Number);
 
+  // Set by the export route when the download could not be produced. Trimmed,
+  // because it goes on screen and arrives from the query string.
+  const exportError =
+    typeof params?.export_error === 'string' ? params.export_error.slice(0, 300) : null;
+
   const [report, trend, expenses] = await Promise.all([
     getMonthlyReport(year, month),
     getSalesTrend(shiftISODate(today, -(TREND_DAYS - 1)), today),
@@ -62,7 +67,25 @@ export default async function ReportsPage({ searchParams }) {
             Show
           </button>
         </form>
+
+        {/* A plain link, not a fetch: the browser handles the download itself,
+            so it works the same on a phone as on a desktop.
+
+            Deliberately NO `download` attribute. It forces the browser to save
+            whatever the URL returns - including a redirect target - so a failed
+            export landed in Downloads as a junk file instead of showing why.
+            The route's Content-Disposition header downloads the workbook on
+            its own, and lets a failure navigate back here normally. */}
+        <a href={`/admin/reports/export?month=${monthParam}`} className="btn-primary">
+          Download Excel
+        </a>
       </PageHeader>
+
+      {exportError ? (
+        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          The Excel download did not work: {exportError}
+        </p>
+      ) : null}
 
       {/* ---- monthly headline ---- */}
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
