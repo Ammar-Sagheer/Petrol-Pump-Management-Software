@@ -104,12 +104,15 @@ export default async function SettingsPage() {
         Which tank each nozzle draws from, and where its meter stood when you started using this
         app. The tank decides which stock a sale comes out of. The starting reading is only used
         until that nozzle has its first day entered — after that each day opens at the previous
-        day&rsquo;s closing.
+        day’s closing.
       </p>
+      {/* Written with a literal ’ rather than &rsquo;. An HTML entity anywhere in
+          a multi-line JSX text node makes the compiler drop the leading space of
+          that node, so "before" ran into "entering" with nothing between them. */}
       <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
         Set the starting readings <span className="font-semibold">before</span> entering your first
         day. Leaving them at 0 on a pump that has been trading makes that first day count the
-        meter&rsquo;s whole lifetime as one day of sales.
+        meter’s whole lifetime as one day of sales.
       </p>
       <div className="card table-scroll">
         <table className="w-full min-w-[38rem]">
