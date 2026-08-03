@@ -60,9 +60,11 @@ export default function TankForm({ tank }) {
   const filledPercent = hasFigures ? (openingNum / capacityNum) * 100 : 0;
   const isNearlyFull = !isOver && filledPercent >= 90;
 
+  // The two figures compare as numbers, not as text: 25000 and 25000.00 are the
+  // same tank, and offering to save one as the other is a lie.
   const isDirty =
-    capacity !== String(tank.capacity_litres ?? '') ||
-    opening !== String(tank.opening_stock_litres ?? '') ||
+    (hasFigures && capacityNum !== Number(tank.capacity_litres)) ||
+    (hasFigures && openingNum !== Number(tank.opening_stock_litres)) ||
     openingDate !== (tank.opening_stock_date ?? '');
 
   // One place decides what the button says and whether it can be pressed, so

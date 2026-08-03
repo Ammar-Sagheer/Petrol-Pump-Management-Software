@@ -796,6 +796,25 @@ export async function updateTank(_prevState, formData) {
   }
 
   const supabase = await createClient();
+
+  // Same rule as the nozzles: read first, write only if it would change
+  // something.
+  const { data: current, error: readError } = await supabase
+    .from('tanks')
+    .select('capacity_litres, opening_stock_litres, opening_stock_date')
+    .eq('id', tankId)
+    .single();
+
+  if (readError) return fail(describe(readError, 'Could not read the tank.'));
+
+  if (
+    Number(current.capacity_litres) === capacity &&
+    Number(current.opening_stock_litres) === openingStock &&
+    current.opening_stock_date === openingStockDate
+  ) {
+    return ok('No change - this tank is already set that way.');
+  }
+
   const { error } = await supabase
     .from('tanks')
     .update({
@@ -828,6 +847,23 @@ export async function setNozzleTank(_prevState, formData) {
   if (startingReading < 0) return fail('A meter reading cannot be negative.');
 
   const supabase = await createClient();
+
+  // Compare against what is stored before writing. The button already refuses
+  // to submit an unchanged row, but that is a claim made by the browser; this
+  // is the one made by the database. A write that changes nothing still bumps
+  // the row and revalidates half the app for no reason.
+  const { data: current, error: readError } = await supabase
+    .from('nozzles')
+    .select('tank_id, starting_reading')
+    .eq('id', nozzleId)
+    .single();
+
+  if (readError) return fail(describe(readError, 'Could not read the nozzle.'));
+
+  if (current.tank_id === tankId && Number(current.starting_reading) === startingReading) {
+    return ok('No change - this nozzle already reads that way.');
+  }
+
   const { error } = await supabase
     .from('nozzles')
     .update({ tank_id: tankId, starting_reading: startingReading })
