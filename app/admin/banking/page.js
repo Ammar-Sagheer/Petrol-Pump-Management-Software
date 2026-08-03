@@ -46,16 +46,20 @@ export default async function BankingPage() {
       <PageHeader
         title="Banking"
         description="Money paid into the bank, and what has been paid out of it for the pump."
-      />
+      >
+        {/* Adding an account is a page-level job done twice and then rarely
+            again, so it belongs up here as one button rather than as a form
+            standing open all day next to the one used every week. */}
+        {accounts.length > 0 ? <BankAccountForm /> : null}
+      </PageHeader>
 
       {accounts.length === 0 ? (
-        <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
-          <BankAccountForm />
-          <EmptyState
-            title="No accounts yet"
-            description="Add the accounts the pump's money passes through. Once one exists you can record cash paid in and transfers paid out."
-          />
-        </div>
+        <EmptyState
+          title="No accounts yet"
+          description="Add the accounts the pump's money passes through. Once one exists you can record cash paid in and transfers paid out."
+        >
+          <BankAccountForm trigger="empty" />
+        </EmptyState>
       ) : (
         <>
           {/* Across every account, because the question the owner actually asks
@@ -81,10 +85,7 @@ export default async function BankingPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
-            <div className="space-y-6">
-              <BankTransactionForm accounts={accounts} />
-              <BankAccountForm />
-            </div>
+            <BankTransactionForm accounts={accounts} />
 
             <div>
               <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
