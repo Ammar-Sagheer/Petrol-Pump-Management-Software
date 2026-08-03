@@ -36,7 +36,7 @@ export default async function SettingsPage() {
 
       {/* ---- pricing ---- */}
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">Fuel prices</h2>
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
         <FuelPriceForm currentRates={rates} />
 
         <div>
@@ -130,7 +130,7 @@ export default async function SettingsPage() {
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
         Staff logins
       </h2>
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
         <StaffAccountForm />
         <StaffList staff={staff} currentProfileId={profile.id} />
       </div>

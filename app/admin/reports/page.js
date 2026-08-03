@@ -218,7 +218,7 @@ export default async function ReportsPage({ searchParams }) {
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
         Expenses
       </h2>
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
         <ExpenseForm />
 
         <div>

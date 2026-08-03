@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import PendingLink from '@/app/_components/ui/PendingLink';
 
 import { todayISO, shiftISODate, formatDate } from '@/app/_lib/date-helpers';
 
@@ -37,13 +37,14 @@ export default function DateNav({ date, basePath, previousDate, nextDate, paramN
   return (
     <div className="flex flex-col items-start gap-1.5 sm:items-end">
       <div className="flex flex-wrap items-center gap-2">
-        <Link
+        <PendingLink
           href={`${basePath}?${paramName}=${previousDate}`}
           className="btn-secondary px-3"
           aria-label={`Go to ${formatDate(previousDate)}`}
+          spinnerOnly
         >
           <span aria-hidden="true">‹</span>
-        </Link>
+        </PendingLink>
 
         <form method="GET" action={basePath} className="flex items-center gap-2">
           <label className="sr-only" htmlFor="date-nav">
@@ -62,19 +63,20 @@ export default function DateNav({ date, basePath, previousDate, nextDate, paramN
           </button>
         </form>
 
-        <Link
+        <PendingLink
           href={`${basePath}?${paramName}=${nextDate}`}
           className="btn-secondary px-3"
           aria-label={`Go to ${formatDate(nextDate)}`}
+          spinnerOnly
         >
           <span aria-hidden="true">›</span>
-        </Link>
+        </PendingLink>
 
         {/* Only worth showing when it would actually do something. */}
         {!isToday ? (
-          <Link href={basePath} className="btn-primary py-2 text-xs">
+          <PendingLink href={basePath} className="btn-primary py-2 text-xs">
             Back to today
-          </Link>
+          </PendingLink>
         ) : null}
       </div>
 

@@ -45,7 +45,7 @@ export default async function CustomerDetailPage({ params }) {
         </Link>
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem] [&>*]:min-w-0">
         <div className="space-y-6">
           {/* ---- balance ---- */}
           <section className="card p-5">

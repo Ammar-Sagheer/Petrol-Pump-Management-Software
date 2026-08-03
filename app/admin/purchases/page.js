@@ -25,7 +25,7 @@ export default async function PurchasesPage() {
         description="Stock coming in from the supplier. Recording a delivery adds it to the tank."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
         <div>
           <PurchaseForm tanks={tanks} />
         </div>

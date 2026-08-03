@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import PendingLink from '@/app/_components/ui/PendingLink';
 import { usePathname } from 'next/navigation';
 
 import { signOut } from '@/app/_lib/actions';
@@ -71,18 +71,18 @@ export default function AdminNavbar({ profile }) {
               const active = isActive(link.href);
               return (
                 <li key={link.href}>
-                  <Link
+                  <PendingLink
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     className={[
-                      'inline-block whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition',
+                      'inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition',
                       active
                         ? 'border-brand-600 text-brand-700'
                         : 'border-transparent text-ink-600 hover:border-ink-300 hover:text-ink-900',
                     ].join(' ')}
                   >
                     {link.label}
-                  </Link>
+                  </PendingLink>
                 </li>
               );
             })}
