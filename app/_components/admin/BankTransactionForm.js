@@ -96,8 +96,6 @@ export default function BankTransactionForm({ accounts }) {
     if (state?.ok) setNotice({ message: state.message });
   }, [state]);
 
-  if (accounts.length === 0) return null;
-
   const isDeposit = txnType === 'deposit';
   const primary = accounts.find((account) => account.id === accountId) ?? accounts[0];
   const others = accounts.filter((account) => account.id !== primary?.id);
@@ -113,14 +111,55 @@ export default function BankTransactionForm({ accounts }) {
     ? planSplit(amountNumber, primary, covers)
     : { parts: [], shortfall: 0 };
 
+  // A tick can also stop being needed without being touched - lower the amount,
+  // or switch which account it is paid from, and one that was carrying part of
+  // it is suddenly carrying nothing. Anything down to zero unticks itself, so
+  // what is ticked is always what is actually paying.
+  const contributingIds = parts.map((part) => part.account.id).join(',');
+  useEffect(() => {
+    if (isDeposit) return;
+    const contributing = new Set(contributingIds ? contributingIds.split(',') : []);
+    setCoverIds((current) => {
+      const next = current.filter((id) => contributing.has(id));
+      // Same array back when nothing changed - a new one every render would
+      // re-run this effect forever.
+      return next.length === current.length ? current : next;
+    });
+  }, [contributingIds, isDeposit]);
+
+  if (accounts.length === 0) return null;
+
   const needsCover = !isDeposit && hasAmount && amountNumber > availableOf(primary);
   const blocked = !isDeposit && hasAmount && shortfall > 0;
   const isSplit = parts.length > 1;
 
+  // What the other accounts have to find between them. An account holding at
+  // least this much settles it on its own.
+  const needed = hasAmount ? Math.max(amountNumber - availableOf(primary), 0) : 0;
+  const isCovered = hasAmount && shortfall === 0;
+
+  /**
+   * Ticking an account should mean "take it from here", not "add another tick".
+   *
+   * Left as a plain multi-select, ticking a second account that was not needed
+   * left it ticked and contributing nothing - two accounts marked as paying,
+   * one of them a no-op. So a tick only stacks when stacking is the only way to
+   * reach the amount:
+   *
+   *   - an account holding enough on its own replaces the selection
+   *   - so does any tick made once the amount is already covered - that is a
+   *     change of mind about where the money comes from, not an addition
+   *   - only while the amount is still short does a tick add to the others
+   */
   function toggleCover(id) {
-    setCoverIds((current) =>
-      current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
-    );
+    setCoverIds((current) => {
+      if (current.includes(id)) return current.filter((value) => value !== id);
+
+      const account = others.find((other) => other.id === id);
+      const settlesItAlone = availableOf(account) >= needed;
+
+      return settlesItAlone || isCovered ? [id] : [...current, id];
+    });
   }
 
   return (
@@ -246,6 +285,7 @@ export default function BankTransactionForm({ accounts }) {
               {others.map((account) => {
                 const ticked = coverIds.includes(account.id);
                 const empty = availableOf(account) <= 0;
+                const settlesItAlone = !empty && availableOf(account) >= needed;
                 return (
                   <li key={account.id}>
                     <label
@@ -264,6 +304,13 @@ export default function BankTransactionForm({ accounts }) {
                                    focus:ring-2 focus:ring-brand-200 disabled:cursor-not-allowed"
                       />
                       <span className="font-medium">{account.account_label}</span>
+                      {/* Says which ones make the choice a straight swap rather
+                          than something that has to be added up. */}
+                      {settlesItAlone ? (
+                        <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-[0.65rem] font-semibold text-brand-800">
+                          covers it
+                        </span>
+                      ) : null}
                       <span className="tabular ml-auto">
                         {empty ? 'nothing to lend' : `${money(account.balance)} available`}
                       </span>
