@@ -61,12 +61,12 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="card flex w-full items-center gap-3 px-4 py-3 text-left transition
+        className="card block w-full px-4 py-3 text-left transition
                    hover:border-brand-300 hover:bg-brand-50/40
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
       >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <span className="text-sm font-bold text-ink-900">{title}</span>
             <FuelBadge fuelType={row.fuel_type} />
             {hasChainProblem ? (
@@ -74,33 +74,50 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
             ) : null}
           </div>
 
-          {isSaved ? (
-            <p className="tabular mt-1 text-xs text-ink-600">
-              <span className="font-semibold text-ink-900">{showLitres(row.litres_sold)}</span>
-              {' · '}
-              <span className="font-semibold text-ink-900">{showMoney(row.sale_amount)}</span>
-              {' · cash '}
-              {showMoney(row.cash_amount)}
-              {Number(row.credit_amount) > 0 ? ` · credit ${showMoney(row.credit_amount)}` : ''}
-            </p>
-          ) : (
-            <p className="tabular mt-1 text-xs text-ink-500">
-              Opens at {litreFormat.format(openingUsed)}
-              {row.rate ? ` · Rs ${row.rate}/L` : ' · no rate set'}
-            </p>
-          )}
+          <span
+            className={`badge shrink-0 ${
+              isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-100 text-amber-900'
+            }`}
+          >
+            {isSaved ? 'Entered' : 'Enter'}
+          </span>
+          <span aria-hidden="true" className="shrink-0 text-lg leading-none text-ink-400">
+            ›
+          </span>
         </div>
 
-        <span
-          className={`badge shrink-0 ${
-            isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-100 text-amber-900'
-          }`}
-        >
-          {isSaved ? 'Entered' : 'Enter'}
-        </span>
-        <span aria-hidden="true" className="shrink-0 text-lg leading-none text-ink-400">
-          ›
-        </span>
+        {/* Every number gets its own label. The old single line read
+            "100 L · Rs 30,000 · cash Rs 30,000", which needs someone to
+            already know which figure is which - and left most of the row
+            empty. Spread across the width, each one says what it is. */}
+        {isSaved ? (
+          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+            <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
+            <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
+            <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
+            <RowFigure
+              label="On credit"
+              value={Number(row.credit_amount) > 0 ? showMoney(row.credit_amount) : '—'}
+              tone={Number(row.credit_amount) > 0 ? 'credit' : 'muted'}
+            />
+          </dl>
+        ) : (
+          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+            <RowFigure
+              label="Meter starts at"
+              value={litreFormat.format(openingUsed)}
+              strong
+            />
+            <RowFigure
+              label="Today’s rate"
+              value={row.rate ? `Rs ${row.rate} / litre` : 'Not set'}
+              tone={row.rate ? undefined : 'warn'}
+            />
+            <div className="col-span-2 self-center text-xs text-ink-500 sm:col-span-2">
+              Tap to enter the closing meter reading.
+            </div>
+          </dl>
+        )}
       </button>
 
       <Dialog
@@ -121,6 +138,31 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
         )}
       </Dialog>
     </>
+  );
+}
+
+/**
+ * One labelled figure in a nozzle row. The label is the point: it is what
+ * turns "100 L" into "Fuel sold: 100 L".
+ */
+function RowFigure({ label, value, strong, tone }) {
+  const valueTone =
+    tone === 'muted' ? 'text-ink-400'
+    : tone === 'warn' ? 'text-amber-700'
+    : tone === 'credit' ? 'text-ink-900'
+    : 'text-ink-900';
+
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[0.65rem] font-medium uppercase tracking-wide text-ink-500">
+        {label}
+      </dt>
+      <dd
+        className={`tabular truncate text-sm ${strong ? 'font-bold' : 'font-semibold'} ${valueTone}`}
+      >
+        {value}
+      </dd>
+    </div>
   );
 }
 
