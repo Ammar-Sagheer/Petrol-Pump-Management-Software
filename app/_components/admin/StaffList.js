@@ -7,121 +7,182 @@ import SubmitButton from '@/app/_components/ui/SubmitButton';
 import Dialog from '@/app/_components/ui/Dialog';
 
 /**
- * The people who can sign in.
+ * The people who can sign in, split into owners and data entry.
  *
- * Deactivating is the everyday tool: the account stops working but stays in the
- * list, and can be switched back on. Deleting is the permanent one, kept behind
- * the owner's own password.
+ * WHY IT IS NOT A TABLE ANY MORE. A table implies you scan down a column to
+ * compare values. There is nothing here to compare - it is a short list of
+ * people, and the one thing that matters about each is what they are allowed to
+ * do. Grouping under two headings answers that at a glance, where a "Role"
+ * column made you read every row to work out who the owners were.
  *
- * You cannot change your own role, switch yourself off, or delete yourself -
- * all three are enforced in the actions, not just hidden here.
+ * The dropdown is gone with it. Picking a role from a select and then pressing
+ * Save is two steps and a guess about whether the guess took effect; the row now
+ * carries one button that says what it will do - "Make owner", "Make data
+ * entry" - and the person moves between the two groups when it works, which is
+ * the confirmation.
+ *
+ * You cannot change your own role, switch yourself off, or delete yourself. All
+ * three are enforced in the actions; here those controls are simply absent.
  */
 export default function StaffList({ staff, currentProfileId }) {
-  if (staff.length === 0) {
-    return <p className="card px-4 py-6 text-center text-sm text-ink-500">No logins yet.</p>;
-  }
+  const owners = staff.filter((person) => person.role === 'super_admin');
+  const dataEntry = staff.filter((person) => person.role !== 'super_admin');
 
   return (
-    <div className="card table-scroll">
-      <table className="w-full min-w-[42rem]">
-        <thead className="border-b border-ink-200 bg-ink-50">
-          <tr>
-            <th className="th">Name</th>
-            <th className="th">Role</th>
-            <th className="th">Status</th>
-            <th className="th">
-              <span className="sr-only">Delete</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-ink-100">
-          {staff.map((person) => {
-            const isSelf = person.id === currentProfileId;
-            return (
-              <tr key={person.id}>
-                <td className="td">
-                  <span className="font-medium">{person.full_name}</span>
-                  {isSelf ? (
-                    <span className="badge ml-2 bg-brand-100 text-brand-800">you</span>
-                  ) : null}
-                </td>
-                <td className="td">
-                  {isSelf ? (
-                    <span className="text-ink-600">
-                      {person.role === 'super_admin' ? 'Owner' : 'Data entry'}
-                    </span>
-                  ) : (
-                    <RoleForm person={person} />
-                  )}
-                </td>
-                <td className="td">
-                  {isSelf ? (
-                    <span className="badge bg-brand-100 text-brand-800">Active</span>
-                  ) : (
-                    <ActiveForm person={person} />
-                  )}
-                </td>
-                <td className="td">
-                  {isSelf ? (
-                    <span className="text-xs text-ink-400">—</span>
-                  ) : (
-                    <DeleteAccount person={person} />
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      <StaffGroup
+        title="Owners"
+        caption="Full access, including money reports and settings."
+        people={owners}
+        currentProfileId={currentProfileId}
+        emptyText="No owners."
+        tone="owner"
+      />
+      <StaffGroup
+        title="Data entry"
+        caption="Daily figures only. Cannot see profit or manage accounts."
+        people={dataEntry}
+        currentProfileId={currentProfileId}
+        emptyText="Nobody yet. Create a login on the left."
+        tone="staff"
+      />
     </div>
   );
 }
 
-function RoleForm({ person }) {
-  const [state, formAction] = useActionState(setStaffRole, null);
+function StaffGroup({ title, caption, people, currentProfileId, emptyText, tone }) {
+  return (
+    <section className="card overflow-hidden">
+      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-ink-200 bg-ink-50 px-4 py-3">
+        <h3 className="text-sm font-bold text-ink-900">{title}</h3>
+        <span className="badge bg-white text-ink-600">{people.length}</span>
+        <p className="w-full text-xs text-ink-500 sm:w-auto sm:flex-1">{caption}</p>
+      </header>
+
+      {people.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-ink-500">{emptyText}</p>
+      ) : (
+        <ul className="divide-y divide-ink-100">
+          {people.map((person) => (
+            <PersonRow
+              key={person.id}
+              person={person}
+              isSelf={person.id === currentProfileId}
+              tone={tone}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function PersonRow({ person, isSelf, tone }) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3">
+      <Avatar name={person.full_name} tone={tone} dimmed={!person.is_active} />
+
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-2">
+          <span
+            className={`truncate text-sm font-semibold ${
+              person.is_active ? 'text-ink-900' : 'text-ink-500'
+            }`}
+          >
+            {person.full_name}
+          </span>
+          {isSelf ? <span className="badge bg-brand-100 text-brand-800">you</span> : null}
+        </p>
+        <p className="mt-0.5 text-xs text-ink-500">
+          {person.is_active ? 'Can sign in' : 'Cannot sign in'}
+        </p>
+      </div>
+
+      {/* Takes its own line on a phone, sits on the right on a wider screen. */}
+      <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+        {isSelf ? (
+          <span className="text-xs text-ink-400">Manage under Account</span>
+        ) : (
+          <>
+            <RoleButton person={person} />
+            <ActiveToggle person={person} />
+            <DeleteAccount person={person} />
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Initials rather than a photo: there are no photos, and a coloured disc gives
+ * each row an anchor for the eye so the list scans as people, not records.
+ */
+function Avatar({ name, tone, dimmed }) {
+  const initials = String(name ?? '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join('');
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <span
+      aria-hidden="true"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+        dimmed
+          ? 'bg-ink-100 text-ink-400'
+          : tone === 'owner'
+            ? 'bg-brand-100 text-brand-800'
+            : 'bg-ink-200 text-ink-700'
+      }`}
+    >
+      {initials || '?'}
+    </span>
+  );
+}
+
+/** One button that says what it will do, instead of a select plus Save. */
+function RoleButton({ person }) {
+  const [state, formAction] = useActionState(setStaffRole, null);
+  const isOwner = person.role === 'super_admin';
+  const nextRole = isOwner ? 'data_entry' : 'super_admin';
+
+  return (
+    <form action={formAction} className="contents">
       <input type="hidden" name="profile_id" value={person.id} />
-      <label className="sr-only" htmlFor={`role-${person.id}`}>
-        Role for {person.full_name}
-      </label>
-      <select
-        id={`role-${person.id}`}
-        name="role"
-        defaultValue={person.role}
-        className="input py-1.5 text-sm"
-      >
-        <option value="data_entry">Data entry</option>
-        <option value="super_admin">Owner</option>
-      </select>
-      {/* Was a plain button, which sat there looking untouched while the save
-          was in flight - so it read as if nothing had happened. */}
+      <input type="hidden" name="role" value={nextRole} />
       <SubmitButton
-        className="btn-secondary px-2.5 py-1.5 text-xs"
-        pendingLabel="Saving…"
+        className="btn-secondary whitespace-nowrap px-2.5 py-1.5 text-xs"
+        pendingLabel="Moving…"
+        title={
+          isOwner
+            ? 'Drop this person down to data entry'
+            : 'Give this person full owner access'
+        }
       >
-        Save
+        {isOwner ? 'Make data entry' : 'Make owner'}
       </SubmitButton>
       {state?.ok === false ? (
-        <span className="text-xs text-red-700">{state.message}</span>
+        <span className="w-full text-right text-xs text-red-700">{state.message}</span>
       ) : null}
-      {state?.ok ? <span className="text-xs text-brand-700">Saved</span> : null}
     </form>
   );
 }
 
-function ActiveForm({ person }) {
+/**
+ * The status pill is the switch. min-w keeps it the same size while it says
+ * "…", so the row does not jump under the pointer mid-click.
+ */
+function ActiveToggle({ person }) {
   const [state, formAction] = useActionState(setStaffActive, null);
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className="contents">
       <input type="hidden" name="profile_id" value={person.id} />
       <input type="hidden" name="is_active" value={person.is_active ? 'false' : 'true'} />
-      {/* min-w keeps the badge the same size while it says "…", so the row
-          does not jump under the pointer mid-click. */}
       <SubmitButton
-        title={person.is_active ? 'Deactivate this login' : 'Re-enable this login'}
+        title={person.is_active ? 'Stop this person signing in' : 'Let this person sign in again'}
         pendingLabel="…"
         className={`badge inline-flex min-w-[4.75rem] justify-center transition ${
           person.is_active
@@ -132,16 +193,15 @@ function ActiveForm({ person }) {
         {person.is_active ? 'Active' : 'Disabled'}
       </SubmitButton>
       {state?.ok === false ? (
-        <span className="mt-1 block text-xs text-red-700">{state.message}</span>
+        <span className="w-full text-right text-xs text-red-700">{state.message}</span>
       ) : null}
     </form>
   );
 }
 
 /**
- * Deleting needs more room than a table cell, and it needs the owner to stop
- * and read - so it opens a dialog rather than turning into an inline
- * "are you sure?" the way the smaller deletes do.
+ * Deleting needs more room than a row allows, and it needs the owner to stop
+ * and read - so it opens a dialog rather than an inline "are you sure?".
  */
 function DeleteAccount({ person }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -152,7 +212,9 @@ function DeleteAccount({ person }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="text-xs font-semibold text-red-700 hover:underline"
+        aria-label={`Delete ${person.full_name}`}
+        title={`Delete ${person.full_name}`}
+        className="rounded-lg px-2 py-1.5 text-xs font-semibold text-ink-500 transition hover:bg-red-50 hover:text-red-700"
       >
         Delete
       </button>
@@ -204,11 +266,7 @@ function DeleteAccount({ person }) {
             <SubmitButton className="btn-danger flex-1" pendingLabel="Deleting…">
               Delete this login
             </SubmitButton>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="btn-secondary"
-            >
+            <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">
               Cancel
             </button>
           </div>
