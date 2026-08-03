@@ -82,7 +82,7 @@ export default async function BankingPage() {
 
           <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
             <div className="space-y-6">
-              <BankTransactionForm accounts={accounts} availableBalance={totals.balance} />
+              <BankTransactionForm accounts={accounts} />
               <BankAccountForm />
             </div>
 
@@ -198,6 +198,16 @@ function AccountCard({ account, transactionCount }) {
           <dd className="tabular font-semibold text-amber-800">{formatPKR(account.total_paid)}</dd>
         </div>
       </dl>
+
+      {/* An account can only be below zero from before this rule existed, or
+          from a deposit being deleted. Either way it is stuck until it is put
+          right, so it says how rather than just showing red. */}
+      {balance < 0 ? (
+        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+          Overdrawn. Nothing can be paid out of this account until it is back to zero — pay money
+          in, or delete the payment that caused it.
+        </p>
+      ) : null}
 
       {account.pruned_count > 0 ? (
         <p className="mt-3 text-xs text-ink-500">

@@ -27,6 +27,33 @@ const PAYMENT_CATEGORIES = [
   'Other',
 ];
 
+/** What an account can be drawn on. An overdrawn one can lend nothing. */
+const availableOf = (account) => Math.max(Number(account?.balance ?? 0), 0);
+
+/**
+ * Works out who pays what: the chosen account first, then the others in the
+ * order they were ticked, each down to what it holds.
+ *
+ * The database does this same sum again from the real balances, and its answer
+ * is the one that gets written. This copy exists so the owner can see the split
+ * forming as he types rather than after pressing Save.
+ */
+function planSplit(amount, primary, covers) {
+  const parts = [];
+  let remaining = amount;
+
+  for (const account of [primary, ...covers]) {
+    if (!account || remaining <= 0) continue;
+    const take = Math.min(remaining, availableOf(account));
+    if (take > 0) {
+      parts.push({ account, take });
+      remaining -= take;
+    }
+  }
+
+  return { parts, shortfall: Math.max(remaining, 0) };
+}
+
 /**
  * Money in, or money out.
  *
@@ -34,36 +61,58 @@ const PAYMENT_CATEGORIES = [
  * are otherwise identical and two near-identical forms side by side is how an
  * amount ends up recorded the wrong way round.
  *
- * The direction is picked first and stated in plain words - "cash paid into the
- * bank" against "transfer out of the bank" - since in and out is the only thing
- * here that cannot be corrected by reading the number back.
+ * No account may go negative. A payment bigger than the account it is being
+ * paid from is not simply refused, though - that is a real situation, and the
+ * answer is to take the rest from another account. Which accounts, and in which
+ * order, is the owner's choice, so it is asked rather than assumed.
  */
-export default function BankTransactionForm({ accounts, availableBalance = 0 }) {
+export default function BankTransactionForm({ accounts }) {
   const formRef = useRef(null);
   const [txnType, setTxnType] = useState('deposit');
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [amount, setAmount] = useState('');
+  // Ticked accounts, kept in the order they were ticked - that is the order
+  // they get drawn on, so it is worth preserving rather than sorting.
+  const [coverIds, setCoverIds] = useState([]);
+
   const [state, formAction] = useActionState(async (prevState, formData) => {
     const result = await createBankTransaction(prevState, formData);
     if (result?.ok) {
       formRef.current?.reset();
       setTxnType('deposit');
+      setAccountId(accounts[0]?.id ?? '');
       setAmount('');
+      setCoverIds([]);
     }
     return result;
   }, null);
 
-  const isDeposit = txnType === 'deposit';
+  if (accounts.length === 0) return null;
 
-  // Money out cannot exceed the money there is, across every account together.
-  // Checked as it is typed as well as on the server: being told at the moment
-  // the figure goes in beats being told after pressing Save, when the number
-  // already looks committed.
+  const isDeposit = txnType === 'deposit';
+  const primary = accounts.find((account) => account.id === accountId) ?? accounts[0];
+  const others = accounts.filter((account) => account.id !== primary?.id);
+
   const amountNumber = Number(amount);
   const hasAmount = amount !== '' && Number.isFinite(amountNumber) && amountNumber > 0;
-  const overdraws = !isDeposit && hasAmount && amountNumber > availableBalance;
-  const shortBy = overdraws ? amountNumber - availableBalance : 0;
 
-  if (accounts.length === 0) return null;
+  const covers = coverIds
+    .map((id) => others.find((account) => account.id === id))
+    .filter(Boolean);
+
+  const { parts, shortfall } = hasAmount
+    ? planSplit(amountNumber, primary, covers)
+    : { parts: [], shortfall: 0 };
+
+  const needsCover = !isDeposit && hasAmount && amountNumber > availableOf(primary);
+  const blocked = !isDeposit && hasAmount && shortfall > 0;
+  const isSplit = parts.length > 1;
+
+  function toggleCover(id) {
+    setCoverIds((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+    );
+  }
 
   return (
     <form ref={formRef} action={formAction} className="card h-fit space-y-4 p-4">
@@ -101,30 +150,46 @@ export default function BankTransactionForm({ accounts, availableBalance = 0 }) 
       </div>
 
       <p className="text-xs text-ink-500">
-        {isDeposit ? (
-          'Cash from the pump paid into the bank.'
-        ) : (
-          <>
-            A transfer out of the bank — fuel, salaries, a bill. There is{' '}
-            <span className={availableBalance > 0 ? 'font-semibold text-ink-700' : 'font-semibold text-red-700'}>
-              {money(availableBalance)}
-            </span>{' '}
-            across every account.
-          </>
-        )}
+        {isDeposit
+          ? 'Cash from the pump paid into the bank.'
+          : 'A transfer out of the bank — fuel, salaries, a bill.'}
       </p>
 
       <div>
         <label className="label" htmlFor="txn_account">
-          Account
+          {isDeposit ? 'Account' : 'Pay from'}
         </label>
-        <select id="txn_account" name="account_id" required className="input">
+        <select
+          id="txn_account"
+          name="account_id"
+          required
+          value={accountId}
+          onChange={(event) => {
+            setAccountId(event.target.value);
+            // The ticked accounts belonged to the old choice. Keeping them would
+            // let the account being paid from also appear as one lending to it.
+            setCoverIds([]);
+          }}
+          className="input"
+        >
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
               {account.account_label} — {account.bank_name}
             </option>
           ))}
         </select>
+        {!isDeposit ? (
+          <p className="mt-1 text-xs text-ink-500">
+            Holds{' '}
+            <span
+              className={
+                availableOf(primary) > 0 ? 'font-semibold text-ink-700' : 'font-semibold text-red-700'
+              }
+            >
+              {money(primary?.balance ?? 0)}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -139,20 +204,86 @@ export default function BankTransactionForm({ accounts, availableBalance = 0 }) 
           required
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
-          aria-invalid={overdraws}
-          aria-describedby={overdraws ? 'txn-amount-error' : undefined}
+          aria-invalid={blocked}
           className={`input-number ${
-            overdraws ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
+            blocked ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
           }`}
           placeholder="0"
         />
-        {overdraws ? (
-          <p id="txn-amount-error" className="mt-1 text-xs font-semibold text-red-700">
-            {money(shortBy)} more than there is. Record the deposit that covers it first, or
-            correct the amount.
-          </p>
-        ) : null}
       </div>
+
+      {/* Only once the amount is actually too big for the chosen account. Asking
+          before then would be a question about a problem nobody has. */}
+      {needsCover ? (
+        <div
+          className={`rounded-lg border px-3 py-3 ${
+            blocked ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
+          }`}
+        >
+          <p className="text-xs font-semibold text-ink-900">
+            More than {primary?.account_label} holds
+          </p>
+          <p className="mt-1 text-xs text-ink-600">
+            No account is allowed to go below zero. Take the rest from:
+          </p>
+
+          {others.length === 0 ? (
+            <p className="mt-2 text-xs font-semibold text-red-700">
+              There is no other account to take it from. Record the deposit that covers it first,
+              or lower the amount.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {others.map((account) => {
+                const ticked = coverIds.includes(account.id);
+                const empty = availableOf(account) <= 0;
+                return (
+                  <li key={account.id}>
+                    <label
+                      className={`flex items-center gap-2 text-xs ${
+                        empty ? 'text-ink-400' : 'text-ink-700'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        name="cover_account_ids"
+                        value={account.id}
+                        checked={ticked}
+                        disabled={empty}
+                        onChange={() => toggleCover(account.id)}
+                        className="h-4 w-4 rounded border-ink-300 text-brand-600
+                                   focus:ring-2 focus:ring-brand-200 disabled:cursor-not-allowed"
+                      />
+                      <span className="font-medium">{account.account_label}</span>
+                      <span className="tabular ml-auto">
+                        {empty ? 'nothing to lend' : `${money(account.balance)} available`}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {/* What will actually be written, in the order it will be taken. */}
+          {parts.length > 0 ? (
+            <dl className="mt-3 space-y-1 border-t border-ink-200/70 pt-2 text-xs">
+              {parts.map(({ account, take }) => (
+                <div key={account.id} className="flex justify-between gap-3">
+                  <dt className="text-ink-600">{account.account_label}</dt>
+                  <dd className="tabular font-semibold text-ink-900">{money(take)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          {shortfall > 0 ? (
+            <p className="mt-2 text-xs font-semibold text-red-700">
+              {money(shortfall)} still not covered.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div>
         <label className="label" htmlFor="txn_date">
@@ -201,9 +332,9 @@ export default function BankTransactionForm({ accounts, availableBalance = 0 }) 
       <FormMessage state={state} />
 
       <SubmitButton
-        disabled={overdraws}
+        disabled={blocked}
         className={
-          overdraws
+          blocked
             ? `inline-flex w-full items-center justify-center rounded-lg border border-red-200
                bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 disabled:cursor-not-allowed`
             : isDeposit
@@ -211,7 +342,13 @@ export default function BankTransactionForm({ accounts, availableBalance = 0 }) 
               : 'btn-secondary w-full'
         }
       >
-        {overdraws ? 'More than the accounts hold' : isDeposit ? 'Record money in' : 'Record money out'}
+        {blocked
+          ? `${money(shortfall)} still not covered`
+          : isDeposit
+            ? 'Record money in'
+            : isSplit
+              ? `Record money out from ${parts.length} accounts`
+              : 'Record money out'}
       </SubmitButton>
     </form>
   );

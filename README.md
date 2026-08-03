@@ -222,14 +222,21 @@ the numbers are fast and cannot be altered client-side.
   that detail is kept forever**; skip a month and those individual rows really
   are gone. The workbook's `Bank` sheet is written from the rows while they still
   exist, which is why the export is the backup rather than a convenience.
-- **Money out cannot exceed money in**, counted across *all* accounts together
-  rather than per account — the two are one pot in practice, so a payment from
-  one covered by cash in the other is fine. Enforced by a trigger on insert, and
-  checked in the form as the amount is typed. Deletes are deliberately *not*
-  checked: deleting a transaction is how a mistake gets corrected, and blocking
-  a correction because the books are already wrong would trap you. So a
-  correction can still leave the total negative — that shows in red, and the
-  next payment is refused until it is put right.
+- **No account may go below zero.** A payment larger than the account it is paid
+  from is refused by a trigger — per account, not across the total.
+- **A payment too big for one account can be split across others.** The owner
+  ticks which accounts cover the rest; they are drawn on in the order he ticks
+  them, chosen account first, each down to what it holds. That is one payment
+  written as several rows, so it goes through `record_bank_payment()` rather
+  than a loop in the app: several inserts that are really one payment must land
+  together or not at all, and only the database can promise that. **The split is
+  computed in the RPC from real balances, never from what the browser posted** —
+  the form works out the same allocation while you type, but only to show you.
+- Deletes are deliberately *not* checked: deleting a transaction is how a
+  mistake gets corrected, and blocking a correction because the books are
+  already wrong would trap you. So a correction can still leave an account
+  negative — that shows in red on its card with a note saying how to fix it, and
+  payments out of it are refused until it is back to zero.
 - **Bank movements are not profit.** Paying cash into the bank is not income and
   transferring it out is not a cost — the sale and the expense were already
   counted when they happened. That is why the Summary sheet keeps them in their
