@@ -28,6 +28,8 @@ export const ROUTE_ACCESS = {
   '/admin/customers': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/reports': [ROLES.SUPER_ADMIN],
   '/admin/settings': [ROLES.SUPER_ADMIN],
+  // Your own login only. Managing other people's stays under /admin/settings.
+  '/admin/account': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
 };
 
 /** Where a role lands after logging in. */

@@ -20,6 +20,7 @@ const LINKS = [
   { href: '/admin/customers', label: 'Customers', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/reports', label: 'Reports', roles: ['super_admin'] },
   { href: '/admin/settings', label: 'Settings', roles: ['super_admin'] },
+  { href: '/admin/account', label: 'Account', roles: ['super_admin', 'data_entry'] },
 ];
 
 export default function AdminNavbar({ profile }) {

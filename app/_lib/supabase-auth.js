@@ -19,6 +19,27 @@
 import 'server-only';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * A throwaway client used for ONE thing: checking that someone typed their
+ * current password correctly, before letting them set a new one.
+ *
+ * It has to be separate from the request-bound client. Calling
+ * signInWithPassword() on that one would rewrite the session cookies as a side
+ * effect of what is meant to be a read-only check - and if the password were
+ * wrong, it could sign the person out mid-form. This one stores nothing:
+ * persistSession is off, so it verifies the credentials and is discarded.
+ *
+ * Anon key, not the service role. Checking a password is exactly what the anon
+ * key is allowed to do, and it fails closed if the details are wrong.
+ */
+export function createPasswordCheckClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
+
 export function createAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

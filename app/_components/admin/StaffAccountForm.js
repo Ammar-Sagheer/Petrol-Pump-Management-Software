@@ -58,7 +58,8 @@ export default function StaffAccountForm() {
           placeholder="At least 8 characters"
         />
         <p className="mt-1 text-xs text-ink-500">
-          Shown as you type so you can pass it on. Ask them to change it once they have signed in.
+          Shown as you type so you can pass it on. Ask them to change it under Account once they
+          have signed in.
         </p>
       </div>
 

@@ -18,7 +18,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { createClient } from './supabase-server';
-import { createAdminClient } from './supabase-auth';
+import { createAdminClient, createPasswordCheckClient } from './supabase-auth';
 import { requireRole, ROLES, roundMoney, landingPageFor } from './helpers';
 
 // ---------------------------------------------------------------------------
@@ -128,6 +128,72 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/admin/login');
+}
+
+/**
+ * Changes your OWN password. Both roles - this is not account management.
+ *
+ * The owner hands out a password when he creates a login, so everyone needs a
+ * way to replace it with something only they know. Nobody can change anyone
+ * else's here: the new password is applied to whoever is signed in, taken from
+ * the session, never from the form.
+ *
+ * The current password is checked first, on purpose. Supabase does not require
+ * it, but without that check anyone who found an unlocked phone with the app
+ * still open could lock the owner out of his own books in two taps.
+ */
+export async function changePassword(_prevState, formData) {
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const currentPassword = String(formData.get('current_password') ?? '');
+  const newPassword = String(formData.get('new_password') ?? '');
+  const confirmPassword = String(formData.get('confirm_password') ?? '');
+
+  if (!currentPassword || !newPassword) {
+    return fail('Fill in your current password and the new one.');
+  }
+  if (newPassword.length < 8) {
+    return fail('The new password must be at least 8 characters.');
+  }
+  if (newPassword !== confirmPassword) {
+    return fail('The two new passwords do not match.');
+  }
+  if (newPassword === currentPassword) {
+    return fail('The new password is the same as the current one.');
+  }
+  if (!profile.email) {
+    return fail('Could not read your email address. Sign out and in again, then retry.');
+  }
+
+  // Check the current password on a throwaway client so this cannot disturb
+  // the session that is running the form.
+  const checkClient = createPasswordCheckClient();
+  const { error: checkError } = await checkClient.auth.signInWithPassword({
+    email: profile.email,
+    password: currentPassword,
+  });
+
+  if (checkError) {
+    if (checkError.status === 400 || checkError.code === 'invalid_credentials') {
+      return fail('Your current password is not right.');
+    }
+    return fail('Could not reach the server just now. Try again in a moment.');
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    // Supabase enforces its own rules too (length, leaked-password checks).
+    return fail(describe(error, 'Could not change the password.'));
+  }
+
+  return ok('Password changed. Use the new one next time you sign in.');
 }
 
 // ---------------------------------------------------------------------------
@@ -794,6 +860,65 @@ export async function setStaffActive(_prevState, formData) {
 
   revalidatePath('/admin/settings');
   return ok(isActive ? 'Account re-enabled.' : 'Account deactivated.');
+}
+
+/**
+ * Deletes a login for good. Owner only, and the owner's own password is
+ * required to go through with it.
+ *
+ * Why the password. Deactivating is reversible; this is not. The realistic
+ * risk is not an attacker, it is the phone left unlocked on the desk in the
+ * office - so the one thing an onlooker does not have is asked for.
+ *
+ * WHAT SURVIVES. The readings, deliveries, expenses and ledger entries this
+ * person recorded all stay exactly as they are; only the "recorded by" name
+ * against them becomes blank, because the account it pointed at is gone. No
+ * money figure moves. Migration 011 is what makes that possible on the ledger,
+ * whose append-only trigger would otherwise refuse the change.
+ *
+ * Deactivating remains the better default and the UI says so - this is for
+ * accounts created by mistake, or people who were never really staff.
+ */
+export async function deleteStaffAccount(_prevState, formData) {
+  const actor = await requireRoleOrFail(ROLES.SUPER_ADMIN);
+  if (actor.error) return actor.error;
+
+  const profileId = text(formData, 'profile_id');
+  const ownerPassword = String(formData.get('owner_password') ?? '');
+
+  if (!profileId) return fail('Missing the account.');
+  if (profileId === actor.profile.id) {
+    return fail('You cannot delete your own account.');
+  }
+  if (!ownerPassword) return fail('Enter your own password to confirm.');
+  if (!actor.profile.email) {
+    return fail('Could not read your email address. Sign out and in again, then retry.');
+  }
+
+  // Same throwaway-client trick as the password change: confirm it is really
+  // the owner at the keyboard, without disturbing the session doing the work.
+  const checkClient = createPasswordCheckClient();
+  const { error: checkError } = await checkClient.auth.signInWithPassword({
+    email: actor.profile.email,
+    password: ownerPassword,
+  });
+
+  if (checkError) {
+    if (checkError.status === 400 || checkError.code === 'invalid_credentials') {
+      return fail('That is not your password. The account has not been deleted.');
+    }
+    return fail('Could not reach the server just now. Nothing has been deleted.');
+  }
+
+  // Deleting the auth user cascades to the profile, which in turn blanks the
+  // created_by on everything they recorded. The rows themselves stay.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(profileId);
+
+  if (error) return fail(describe(error, 'Could not delete the account.'));
+
+  revalidatePath('/admin/settings');
+  return ok('Account deleted. What they recorded has been kept.');
 }
 
 /** requireRole, but returning the failure instead of throwing. */
