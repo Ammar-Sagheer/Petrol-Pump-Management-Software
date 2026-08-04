@@ -24,12 +24,13 @@ do not hand-edit them:
 
 ```sh
 pip install pillow
-python3 scripts/build-icons.py --source public/logo.png \
-    --symbol-only --repair-folds 5 --margin 0.02
+python3 scripts/build-icons.py --source brand/logo-lockup.png --margin 0
 ```
 
-The icons come from `logo.png` itself, so there is one logo and everything is
-derived from it. **The script only reads it — it is never modified.**
+`--margin 0` squares the canvas around the mark without taking anything off it:
+the logo is 1.38:1, so it fills the full width and is letterboxed top and
+bottom. **Nothing is cropped** — which is the point, and why `--bleed` is not
+used here, since that gains height only by shaving the outermost edges.
 
 Spare artwork lives in `brand/`, outside `public/`, so 1.4 MB masters are not
 served to every visitor. `public/` holds only what the site actually sends.
@@ -54,17 +55,27 @@ reasons, and the script explains both in its own header:
 * **File size.** `favicon.ico` was a 1.1 MB PNG with the extension changed. The
   generated one is a real multi-size ICO at ~7 KB.
 
-### Why the icon is the flower and not the whole logo
+### A .ico is not a renamed .png
 
-Because the whole logo cannot be read at 16px. It is 1.37:1, so a square icon is
-capped by its width — 16 wide by 12 tall, shared between the flower and the
-wordmark, and "go" comes out a red smudge rather than letters. Every icon it
-sits next to in a tab strip (Vercel's triangle, Gmail's M, Supabase's lightning)
-is one bold shape filling the square.
+`favicon.ico` has twice been a PNG with the extension changed — once at 1.1 MB,
+once at 339 KB, both times byte-identical to `icon.png` beside it. It mostly
+works, because browsers sniff the content, but it wastes the format: a real ICO
+holds **several sizes in one file**, so the browser picks 16, 32 or 48 instead
+of resampling one big image down every time. The generated one is 6 KB and
+carries all three.
 
-The flower is 1.02:1, so it fills the full 16x16 as a single shape. "go" is not
-lost — it is on the navbar, the login screen and the monthly report, everywhere
-there is room to read it.
+### The canvas has to be square
+
+A browser draws favicons into a square slot. Hand it 859x644 and something has
+to give — letterboxing if you are lucky, cropping if you are not, and it is not
+your choice which. Squaring it here settles it: the mark is centred on a square
+canvas, full width, transparent above and below.
+
+That costs height, unavoidably. At 1.38:1 the logo can be 16 wide by 12 tall and
+no more, with those 12 pixels shared between the flower and the wordmark, so
+"go" reads as a red mark rather than as letters. It resolves at 32px and above.
+`--symbol-only --repair-folds 5` is the alternative — the flower alone, which is
+square and fills all 16x16 — kept in the script and deliberately not used.
 
 ### `--repair-folds 5`
 
