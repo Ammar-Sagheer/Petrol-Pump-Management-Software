@@ -13,6 +13,12 @@ import BrandMark from '@/app/_components/ui/BrandMark';
  * This is presentation only. Hiding a link stops an honest mistake; it stops
  * nothing else. Typing the URL by hand still hits requirePageRole(), and the
  * RLS policies would refuse the data even then.
+ *
+ * Account is deliberately not in this list. It sits with Sign out instead, in
+ * the row above - see the return below - because it is not a working section
+ * of the app the way the rest of these are: nobody scans a nozzle reading and
+ * then reaches for Account next, so it does not belong among the tabs someone
+ * flicks between all day.
  */
 const LINKS = [
   { href: '/admin', label: 'Dashboard', roles: ['super_admin'] },
@@ -23,7 +29,6 @@ const LINKS = [
   { href: '/admin/banking', label: 'Banking', roles: ['super_admin'] },
   { href: '/admin/reports', label: 'Reports', roles: ['super_admin'] },
   { href: '/admin/settings', label: 'Settings', roles: ['super_admin'] },
-  { href: '/admin/account', label: 'Account', roles: ['super_admin', 'data_entry'] },
 ];
 
 export default function AdminNavbar({ profile }) {
@@ -34,6 +39,8 @@ export default function AdminNavbar({ profile }) {
     if (href === '/admin') return pathname === '/admin';
     return pathname === href || pathname.startsWith(`${href}/`);
   }
+
+  const onAccount = isActive('/admin/account');
 
   return (
     <header className="border-b border-ink-200 bg-white">
@@ -53,14 +60,27 @@ export default function AdminNavbar({ profile }) {
             </div>
           </div>
 
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="btn-secondary px-3 py-1.5 text-xs"
+          {/* Account and Sign out, together: both are "about you", not a
+              working section of the app, which is why Account is not in the
+              tab row below - see the note on LINKS. */}
+          <div className="flex shrink-0 items-center gap-2">
+            <PendingLink
+              href="/admin/account"
+              aria-current={onAccount ? 'page' : undefined}
+              className={[
+                'btn-secondary px-3 py-1.5 text-xs',
+                onAccount ? 'border-brand-300 bg-brand-50 text-brand-800' : '',
+              ].join(' ')}
             >
-              Sign out
-            </button>
-          </form>
+              Account
+            </PendingLink>
+
+            <form action={signOut}>
+              <button type="submit" className="btn-secondary px-3 py-1.5 text-xs">
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Scrolls sideways on a phone rather than wrapping into two rows.

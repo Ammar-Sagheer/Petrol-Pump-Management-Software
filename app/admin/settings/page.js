@@ -1,31 +1,22 @@
 import { requirePageRole, ROLES, formatDate, formatPKR, fullResetAllowed } from '@/app/_lib/helpers';
-import {
-  getTanks,
-  getNozzles,
-  getFuelPrices,
-  getCurrentRates,
-  getProfiles,
-} from '@/app/_lib/data-service';
+import { getTanks, getNozzles, getFuelPrices, getCurrentRates } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import FuelPriceForm from '@/app/_components/admin/FuelPriceForm';
 import TankForm from '@/app/_components/admin/TankForm';
 import NozzleSettingsButton from '@/app/_components/admin/NozzleSettingsButton';
-import StaffAccountForm from '@/app/_components/admin/StaffAccountForm';
-import StaffList from '@/app/_components/admin/StaffList';
 import FullResetPanel from '@/app/_components/admin/FullResetPanel';
 
 export const metadata = { title: 'Settings' };
 
 export default async function SettingsPage() {
-  const profile = await requirePageRole(ROLES.SUPER_ADMIN);
+  await requirePageRole(ROLES.SUPER_ADMIN);
 
-  const [tanks, nozzles, prices, rates, staff] = await Promise.all([
+  const [tanks, nozzles, prices, rates] = await Promise.all([
     getTanks(),
     getNozzles(),
     getFuelPrices(),
     getCurrentRates(),
-    getProfiles(),
   ]);
 
   return (
@@ -34,11 +25,10 @@ export default async function SettingsPage() {
         title="Settings"
         description="Prices, hardware and who can sign in. Owner access only."
       >
-        {/* Both set up once and rarely touched again, same reasoning as
-            adding a bank account: they do not deserve a form standing open
-            on the page for the rest of this screen's life. */}
+        {/* Set up once and rarely touched again, same reasoning as adding a
+            bank account: it does not deserve a form standing open on the page
+            for the rest of this screen's life. */}
         <NozzleSettingsButton nozzles={nozzles} tanks={tanks} />
-        <StaffAccountForm />
       </PageHeader>
 
       {/* ---- pricing ---- */}
@@ -103,12 +93,6 @@ export default async function SettingsPage() {
           <TankForm key={tank.id} tank={tank} />
         ))}
       </div>
-
-      {/* ---- staff ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
-        Staff logins
-      </h2>
-      <StaffList staff={staff} currentProfileId={profile.id} />
 
       {/* Testing scaffolding. Gone the moment ALLOW_FULL_RESET is removed from
           the server, with no code change - see fullResetAllowed(). */}

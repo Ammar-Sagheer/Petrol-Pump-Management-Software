@@ -1,26 +1,41 @@
 import { requirePageRole, ROLES } from '@/app/_lib/helpers';
+import { getProfiles } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import ChangePasswordForm from '@/app/_components/admin/ChangePasswordForm';
+import StaffAccountForm from '@/app/_components/admin/StaffAccountForm';
+import StaffList from '@/app/_components/admin/StaffList';
 
 export const metadata = { title: 'Your account' };
 
 /**
- * Your own login, and nothing else.
+ * Your own login, and - for the owner - everyone else's too.
  *
- * Open to both roles deliberately. Managing OTHER people's accounts stays under
- * Settings, owner only - but the create-login form already tells staff to
- * change their password once they have signed in, and until now there was
- * nowhere to do it. A password handed over by someone else is not a password.
+ * The top of the page is open to both roles: managing OTHER people's accounts
+ * is owner only, but the create-login form already tells staff to change their
+ * password once they have signed in, and until now there was nowhere to do it.
+ * A password handed over by someone else is not a password.
+ *
+ * Staff logins used to live under Settings, which was the wrong page for it -
+ * Settings is prices and hardware, this page is already "accounts", and an
+ * owner reads their own login details and everyone else's in the same glance
+ * far more often than they read the two in different tabs.
  */
 export default async function AccountPage() {
   const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  const isOwner = profile.role === ROLES.SUPER_ADMIN;
+
+  const staff = isOwner ? await getProfiles() : null;
 
   return (
     <>
       <PageHeader
         title="Your account"
         description="Your own sign-in details. Nobody else can see or change these."
-      />
+      >
+        {/* Owner only, and set up once per person rather than every visit -
+            the same reasoning that put adding a bank account behind a dialog. */}
+        {isOwner ? <StaffAccountForm /> : null}
+      </PageHeader>
 
       <section className="card mb-6 max-w-md p-4">
         <dl className="space-y-3">
@@ -44,7 +59,8 @@ export default async function AccountPage() {
           </div>
         </dl>
         <p className="mt-4 text-xs text-ink-500">
-          The email and role can only be changed by the owner, under Settings.
+          The email and role can only be changed by the owner
+          {isOwner ? ', in Staff logins below' : ''}.
         </p>
       </section>
 
@@ -52,6 +68,16 @@ export default async function AccountPage() {
         Change password
       </h2>
       <ChangePasswordForm />
+
+      {/* ---- staff ---- */}
+      {isOwner ? (
+        <>
+          <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+            Staff logins
+          </h2>
+          <StaffList staff={staff} currentProfileId={profile.id} />
+        </>
+      ) : null}
     </>
   );
 }
