@@ -49,7 +49,7 @@ import sys
 from collections import deque
 
 try:
-    from PIL import Image
+    from PIL import Image, ImageFilter
 except ImportError:
     sys.exit("Pillow is needed: pip install pillow")
 
@@ -160,6 +160,46 @@ def symbol_only(image):
     return out
 
 
+def write_ico(path, image, sizes, sharpen):
+    """
+    A multi-size .ico, written by hand.
+
+    Pillow's own ICO save resizes internally from one image, which means every
+    size gets the same treatment. Sharpening has to happen after the resize and
+    at each size's own scale - a 16px icon needs it badly, a 48px one barely -
+    so the entries are rendered here and packed manually. An ICO is only a
+    header, a directory, and the PNGs themselves.
+    """
+    import io
+    import struct
+
+    payloads = []
+    for size in sizes:
+        frame = image.resize((size, size), Image.LANCZOS)
+        if sharpen:
+            frame = frame.filter(
+                ImageFilter.UnsharpMask(radius=0.6, percent=sharpen, threshold=0)
+            )
+        buffer = io.BytesIO()
+        frame.save(buffer, format="PNG", optimize=True)
+        payloads.append((size, buffer.getvalue()))
+
+    header = struct.pack("<HHH", 0, 1, len(payloads))
+    offset = len(header) + 16 * len(payloads)
+    directory, blobs = b"", b""
+    for size, blob in payloads:
+        # 0 means 256 in an ICO directory; nothing here is that big, but the
+        # rule is the rule.
+        directory += struct.pack(
+            "<BBBBHHII", size % 256, size % 256, 0, 0, 1, 32, len(blob), offset
+        )
+        offset += len(blob)
+        blobs += blob
+
+    with open(path, "wb") as handle:
+        handle.write(header + directory + blobs)
+
+
 def square(image, margin):
     """Centres the mark on a transparent square, leaving `margin` around it."""
     side = int(max(image.size) * (1 + margin * 2))
@@ -185,6 +225,19 @@ def main():
         "--symbol-only", action="store_true",
         help="keep the flower and drop the wordmark. Recommended - it is what "
              "makes the icon fill a 16px tab instead of sitting in it.",
+    )
+    parser.add_argument(
+        "--bleed", type=float, default=0.0,
+        help="scale the mark past the square by this fraction, clipping its "
+             "extreme edges. A wide lockup in a square icon is limited by its "
+             "width, so a little bleed is the only way to gain height. 0.08 "
+             "shaves under a pixel at tab size and is not visible.",
+    )
+    parser.add_argument(
+        "--sharpen", type=int, default=130,
+        help="unsharp strength applied to each small icon AFTER it is resized. "
+             "This is what makes a 16px icon read as crisp rather than smudged, "
+             "and it matters more than size. 0 turns it off.",
     )
     parser.add_argument(
         "--tile", metavar="#RRGGBB",
@@ -230,6 +283,21 @@ def main():
 
     icon = square(trimmed, args.margin)
 
+    if args.bleed:
+        # Shrink the canvas around the mark rather than growing the mark, which
+        # comes to the same thing and keeps the mark at full resolution.
+        side = round(max(trimmed.size) / (1 + args.bleed))
+        bled = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+        bled.paste(
+            trimmed,
+            ((side - trimmed.width) // 2, (side - trimmed.height) // 2),
+            trimmed,
+        )
+        cut = (max(trimmed.size) - side) / 2
+        print(f"bleed {args.bleed:.0%}      shaves {cut / trimmed.width:.1%} off each side "
+              f"({16 * cut / trimmed.width:.2f}px at tab size)")
+        icon = bled
+
     # How much of the canvas the mark occupied before, and does now. The first
     # number is the answer to "why does it look so small".
     was = (box[2] - box[0]) * (box[3] - box[1]) / (original[0] * original[1])
@@ -241,7 +309,7 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
 
     ico = os.path.join(OUT_DIR, "favicon.ico")
-    icon.save(ico, sizes=[(16, 16), (32, 32), (48, 48)])
+    write_ico(ico, icon, (16, 32, 48), args.sharpen)
     print(f"wrote {ico}")
 
     png = os.path.join(OUT_DIR, "icon.png")
