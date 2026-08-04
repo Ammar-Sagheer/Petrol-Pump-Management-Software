@@ -25,7 +25,7 @@ do not hand-edit them:
 ```sh
 pip install pillow
 python3 scripts/build-icons.py --source path/to/transparent-logo.png \
-    --symbol-only --margin 0.02
+    --margin 0 --bleed 0.08
 ```
 
 There is also a `--tile "#28ac28"` option, which writes `public/logo.png` as the
@@ -48,21 +48,21 @@ reasons, and the script explains both in its own header:
 * **File size.** `favicon.ico` was a 1.1 MB PNG with the extension changed. The
   generated one is a real multi-size ICO at ~7 KB.
 
-### Why the icons are the flower and not the whole logo
+### The whole logo is used, "go" included
 
-Because the whole logo cannot be read at 16px, and no amount of scaling fixes
-it. Put the tab next to any other site — Vercel's triangle, Gmail's M,
-Supabase's lightning — and they are all **one bold shape filling the square**.
-The lockup is two elements in thin outline at 1.37:1, so in a square icon it is
-limited by its width: 16 wide by 13 tall at best, and those 13 pixels are split
-between a green smudge and a red one.
+Worth knowing what that costs, so nobody "fixes" it later by accident. The
+lockup is 1.37:1, so in a square icon it is limited by its width: 16 wide by 12
+tall is the geometric maximum, and those pixels are shared between the flower
+and the wordmark. At 16px "go" reads as a red mark rather than as letters. It
+sharpens up at 32px and above — retina tabs, bookmarks, history.
 
-The flower alone is 1.05:1, so it fills 16x16, and it stays a recognisable shape
-all the way down. It fills 88% of the icon against the lockup's 73%.
+`--margin 0` and `--bleed 0.08` are doing real work here: they take it from 45%
+of the icon to 85%. Do not drop them.
 
-"go" is not lost — it is on the navbar, the login screen and the monthly report,
-everywhere there is room to read it. The tab is the one place it cannot survive.
-Drop `--symbol-only` to put it back.
+`--symbol-only` keeps the flower and drops the wordmark. That fills 88% and
+stays a shape you can name at any size, which is why most brands' tab icons are
+a symbol rather than a lockup. It is **deliberately not used** — the whole logo
+was wanted.
 
 ### Sharpening
 
