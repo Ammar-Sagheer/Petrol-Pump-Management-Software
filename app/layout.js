@@ -1,9 +1,11 @@
 import '@/app/_styles/globals.css';
 
+import { BUSINESS_NAME } from '@/app/_lib/brand';
+
 export const metadata = {
   title: {
-    default: 'Pump Manager',
-    template: '%s · Pump Manager',
+    default: BUSINESS_NAME,
+    template: `%s · ${BUSINESS_NAME}`,
   },
   description: 'Daily readings, stock and customer credit for the petrol pump.',
 };

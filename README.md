@@ -1,7 +1,13 @@
-# Pump Manager
+# Mubeen Petroleum Service
 
 Daily management for the petrol pump: nozzle readings, fuel purchases, stock
-gain/loss, customer credit and monthly profit.
+gain/loss, customer credit, banking and monthly profit.
+
+**Naming and logo** live in `app/_lib/brand.js`. Change `BUSINESS_NAME` there and
+the navbar, the login screen, every browser tab title and the monthly workbook
+all follow. The logo is whatever sits at `public/logo.png` — drop a file in and
+it appears; take it away and the initials tile comes back. No code change either
+way.
 
 Built with Next.js (App Router, plain JavaScript), Tailwind CSS v4 and Supabase
 (Postgres + RLS + Auth). Deploys to Vercel.

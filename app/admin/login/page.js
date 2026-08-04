@@ -1,4 +1,6 @@
 import LoginForm from '@/app/_components/admin/LoginForm';
+import BrandMark from '@/app/_components/ui/BrandMark';
+import { BUSINESS_NAME } from '@/app/_lib/brand';
 
 /**
  * There is no signup link, and there never should be. Accounts are created by
@@ -11,14 +13,9 @@ export default async function LoginPage({ searchParams }) {
   return (
     <div className="card p-6">
       <div className="mb-6 flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white"
-        >
-          PM
-        </span>
+        <BrandMark className="h-12 w-12" />
         <div>
-          <h1 className="text-lg font-bold text-ink-900">Pump Manager</h1>
+          <h1 className="text-lg font-bold text-ink-900">{BUSINESS_NAME}</h1>
           <p className="text-sm text-ink-500">Sign in to continue</p>
         </div>
       </div>

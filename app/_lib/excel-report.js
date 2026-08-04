@@ -21,6 +21,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import JSZip from 'jszip';
 
+import { BUSINESS_NAME } from './brand';
+
 const TEMPLATE_PATH = path.join(process.cwd(), 'app', '_lib', 'report-template.xlsx');
 
 /**
@@ -175,6 +177,7 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
 
   // ---- Summary: label / value pairs, written as plain rows ----
   const summaryRows = [
+    [BUSINESS_NAME, ''],
     ['Monthly Report', ''],
     ['Period', `${MONTHS[month - 1]} ${year}`],
     ['Generated', generatedOn ?? ''],

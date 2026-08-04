@@ -4,6 +4,8 @@ import PendingLink from '@/app/_components/ui/PendingLink';
 import { usePathname } from 'next/navigation';
 
 import { signOut } from '@/app/_lib/actions';
+import { BUSINESS_NAME } from '@/app/_lib/brand';
+import BrandMark from '@/app/_components/ui/BrandMark';
 
 /**
  * The links a data_entry user cannot open are not rendered at all.
@@ -38,14 +40,9 @@ export default function AdminNavbar({ profile }) {
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white"
-            >
-              PM
-            </span>
+            <BrandMark className="h-9 w-9" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-ink-900">Pump Manager</p>
+              <p className="truncate text-sm font-semibold text-ink-900">{BUSINESS_NAME}</p>
               <p className="truncate text-xs text-ink-500">
                 {profile.full_name}
                 <span className="mx-1.5" aria-hidden="true">
