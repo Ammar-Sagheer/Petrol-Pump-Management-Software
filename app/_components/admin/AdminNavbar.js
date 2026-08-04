@@ -103,7 +103,10 @@ export default function AdminNavbar({ profile }) {
             </PendingLink>
 
             <form action={signOut}>
-              <button type="submit" className="btn-secondary px-3 py-1.5 text-xs">
+              <button
+                type="submit"
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+              >
                 Sign out
               </button>
             </form>
