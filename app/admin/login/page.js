@@ -12,8 +12,13 @@ export default async function LoginPage({ searchParams }) {
 
   return (
     <div className="card p-6">
-      <div className="mb-6 flex items-center gap-3">
-        <BrandMark className="h-12 w-12" />
+      {/* Stacked and centred rather than beside the name. The card is only
+          max-w-sm, so a logo big enough to be worth showing was squeezing
+          "Mubeen Petroleum Service" onto two lines and leaving both cramped.
+          Above the name it can be the size it deserves and the heading gets the
+          full width back. */}
+      <div className="mb-6 flex flex-col items-center gap-3 text-center">
+        <BrandMark className="h-16" />
         <div>
           <h1 className="text-lg font-bold text-ink-900">{BUSINESS_NAME}</h1>
           <p className="text-sm text-ink-500">Sign in to continue</p>

@@ -40,7 +40,7 @@ export default function AdminNavbar({ profile }) {
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <BrandMark className="h-9 w-9" />
+            <BrandMark className="h-11" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink-900">{BUSINESS_NAME}</p>
               <p className="truncate text-xs text-ink-500">
