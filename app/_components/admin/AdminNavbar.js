@@ -63,18 +63,22 @@ export default function AdminNavbar({ profile }) {
           </form>
         </div>
 
-        {/* Scrolls sideways on a phone rather than wrapping into two rows. */}
+        {/* Scrolls sideways on a phone rather than wrapping into two rows.
+            From lg up there is always room for every tab at once, so instead
+            of a left-packed row leaving dead space to the right of the last
+            one, each tab takes an equal share of the full width - the row
+            reaches the same right edge the buttons above it do. */}
         <nav aria-label="Sections" className="-mx-4 overflow-x-auto px-4">
-          <ul className="flex min-w-max gap-1 pb-px">
+          <ul className="flex min-w-max gap-1 pb-px lg:w-full lg:min-w-0 lg:gap-0">
             {visibleLinks.map((link) => {
               const active = isActive(link.href);
               return (
-                <li key={link.href}>
+                <li key={link.href} className="lg:flex-1">
                   <PendingLink
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     className={[
-                      'inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition',
+                      'inline-flex items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition lg:w-full',
                       active
                         ? 'border-brand-600 text-brand-700'
                         : 'border-transparent text-ink-600 hover:border-ink-300 hover:text-ink-900',
