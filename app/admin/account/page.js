@@ -1,7 +1,7 @@
 import { requirePageRole, ROLES } from '@/app/_lib/helpers';
 import { getProfiles } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
-import ChangePasswordForm from '@/app/_components/admin/ChangePasswordForm';
+import ChangePasswordSection from '@/app/_components/admin/ChangePasswordSection';
 import StaffAccountForm from '@/app/_components/admin/StaffAccountForm';
 import StaffList from '@/app/_components/admin/StaffList';
 
@@ -64,10 +64,7 @@ export default async function AccountPage() {
         </p>
       </section>
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
-        Change password
-      </h2>
-      <ChangePasswordForm />
+      <ChangePasswordSection />
 
       {/* ---- staff ---- */}
       {isOwner ? (
