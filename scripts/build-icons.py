@@ -30,6 +30,16 @@ WHAT IT WRITES
     app/icon.png        512, what Next links for higher-resolution uses
     app/apple-icon.png  180, the home-screen icon on iOS
 
+and with --tile, the in-app logo as well:
+
+    public/logo.png     the mark on a coloured tile, for the navbar and login
+
+The tab icon and the in-app logo want opposite things, which is why they are
+separate outputs from the same source. A tab icon sits on the browser's own
+chrome, light or dark depending on the theme, so it has to be transparent. The
+in-app logo sits on a white header, where a transparent mark floats and a solid
+tile reads as a logo.
+
 All three come from one source, so they cannot drift apart. Next.js picks these
 up from app/ by filename convention - there is nothing to wire up.
 """
@@ -177,6 +187,16 @@ def main():
              "makes the icon fill a 16px tab instead of sitting in it.",
     )
     parser.add_argument(
+        "--tile", metavar="#RRGGBB",
+        help="also write public/logo.png as the mark centred on a tile of this "
+             "colour, for use inside the app.",
+    )
+    parser.add_argument(
+        "--tile-inset", type=float, default=0.06,
+        help="breathing room inside the tile, as a fraction. Default 0.06 - "
+             "tighter and the mark touches the corners, looser and it floats.",
+    )
+    parser.add_argument(
         "--margin", type=float, default=0.04,
         help="breathing room around the mark, as a fraction. Default 0.04 - "
              "small on purpose, since the point is to fill the tab.",
@@ -234,6 +254,26 @@ def main():
     flattened.paste(icon, (0, 0), icon)
     flattened.convert("RGB").resize((180, 180), Image.LANCZOS).save(apple, optimize=True)
     print(f"wrote {apple}")
+
+    if args.tile:
+        colour = args.tile.lstrip("#")
+        if len(colour) != 6:
+            sys.exit("--tile wants a colour like #28ac28")
+        rgb = tuple(int(colour[i:i + 2], 16) for i in (0, 2, 4))
+
+        side = 320
+        tile = Image.new("RGBA", (side, side), (*rgb, 255))
+        room = int(side * (1 - args.tile_inset * 2))
+        scale = min(room / trimmed.width, room / trimmed.height)
+        fitted = trimmed.resize(
+            (round(trimmed.width * scale), round(trimmed.height * scale)), Image.LANCZOS
+        )
+        tile.paste(fitted, ((side - fitted.width) // 2, (side - fitted.height) // 2), fitted)
+
+        logo = os.path.join("public", "logo.png")
+        os.makedirs("public", exist_ok=True)
+        tile.save(logo, optimize=True)
+        print(f"wrote {logo}  (mark fills {fitted.width * fitted.height / side ** 2:.0%} of the tile)")
 
 
 if __name__ == "__main__":

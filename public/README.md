@@ -5,13 +5,17 @@ Files here are served from the site root: `public/logo.png` is `/logo.png`.
 ## logo.png
 
 The mark shown in the navbar and on the login screen, next to the business name.
+Supplied by hand — save the green version here.
 
-Use the **transparent** version. The header is white, so a logo with its own
-background renders as a coloured tile sitting on it rather than as a logo.
+Use the green one on purpose: this sits on a white header, where a transparent
+mark floats and a solid tile reads as a logo. The tab icon is the opposite case
+and is transparent, because it sits on browser chrome that changes colour with
+the theme. The two wanting opposite things is why they are separate files.
 
-Keep it small — it is displayed at 36px in the navbar and 48px on login, so a
-few hundred pixels wide is ample. The 1.1 MB original was being downloaded in
-full on every page load to be drawn at 36px.
+Keep it small. It is displayed at 36px in the navbar and 48px on login, so a few
+hundred pixels wide is ample — the 1.1 MB original was being downloaded in full
+on every page load to be drawn at 36px. Trimming the empty margin around the
+mark helps too: it takes nothing off the logo and lets it fill the space.
 
 ## Browser icons
 
@@ -20,8 +24,15 @@ do not hand-edit them:
 
 ```sh
 pip install pillow
-python3 scripts/build-icons.py --source path/to/logo.png --margin 0
+python3 scripts/build-icons.py --source path/to/transparent-logo.png \
+    --margin 0 --tile "#28ac28"
 ```
+
+There is also a `--tile "#28ac28"` option, which writes `public/logo.png` as the
+mark centred on a coloured tile. Not used — the logo is supplied by hand — but
+it is there if you would rather generate it. Give it the **transparent** source
+either way: the tile colour is added by the script, and a logo with a background
+already baked in cannot be un-backgrounded.
 
 Next.js picks all three up from `app/` by filename; there is nothing to wire up.
 
