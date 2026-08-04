@@ -19,6 +19,13 @@ export const metadata = { title: 'Your account' };
  * Settings is prices and hardware, this page is already "accounts", and an
  * owner reads their own login details and everyone else's in the same glance
  * far more often than they read the two in different tabs.
+ *
+ * For the owner the two sit side by side rather than stacked: your own
+ * details and the password form are a narrow column of short fields, which
+ * left the rest of a normal-width screen sitting empty below the page header.
+ * Staff logins takes that space instead of the row below it. Below lg there is
+ * no spare width to put there, so it drops back to one column in the order it
+ * is written here - your own account first, then everyone else's.
  */
 export default async function AccountPage() {
   const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
@@ -26,18 +33,9 @@ export default async function AccountPage() {
 
   const staff = isOwner ? await getProfiles() : null;
 
-  return (
+  const ownAccount = (
     <>
-      <PageHeader
-        title="Your account"
-        description="Your own sign-in details. Nobody else can see or change these."
-      >
-        {/* Owner only, and set up once per person rather than every visit -
-            the same reasoning that put adding a bank account behind a dialog. */}
-        {isOwner ? <StaffAccountForm /> : null}
-      </PageHeader>
-
-      <section className="card mb-6 max-w-md p-4">
+      <section className="card max-w-md p-4">
         <dl className="space-y-3">
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">Name</dt>
@@ -60,21 +58,39 @@ export default async function AccountPage() {
         </dl>
         <p className="mt-4 text-xs text-ink-500">
           The email and role can only be changed by the owner
-          {isOwner ? ', in Staff logins below' : ''}.
+          {isOwner ? ', in Staff logins' : ''}.
         </p>
       </section>
 
       <ChangePasswordSection />
+    </>
+  );
 
-      {/* ---- staff ---- */}
+  return (
+    <>
+      <PageHeader
+        title="Your account"
+        description="Your own sign-in details. Nobody else can see or change these."
+      >
+        {/* Owner only, and set up once per person rather than every visit -
+            the same reasoning that put adding a bank account behind a dialog. */}
+        {isOwner ? <StaffAccountForm /> : null}
+      </PageHeader>
+
       {isOwner ? (
-        <>
-          <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
-            Staff logins
-          </h2>
-          <StaffList staff={staff} currentProfileId={profile.id} />
-        </>
-      ) : null}
+        <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
+          <div className="space-y-6">{ownAccount}</div>
+
+          <div>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+              Staff logins
+            </h2>
+            <StaffList staff={staff} currentProfileId={profile.id} />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">{ownAccount}</div>
+      )}
     </>
   );
 }
