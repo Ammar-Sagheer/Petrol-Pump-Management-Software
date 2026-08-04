@@ -23,18 +23,15 @@ export default async function PurchasesPage() {
       <PageHeader
         title="Fuel purchases"
         description="Stock coming in from the supplier. Recording a delivery adds it to the tank."
-      />
-
-      {/* Above the table rather than beside it, unlike the other admin pages
-          that pair a form with a table in a 22rem/1fr grid. Those tables all
-          fit comfortably in the leftover space; this one has seven columns
-          and genuinely needs close to the full page width, so it gets it -
-          see the min-w on the table below. */}
-      <div className="max-w-md">
+      >
+        {/* Behind a dialog rather than sitting open on the page: a delivery
+            is logged once a day at most, and the table below already needs
+            the page's full width for its seven columns - see the comment on
+            PurchaseForm itself. */}
         <PurchaseForm tanks={tanks} />
-      </div>
+      </PageHeader>
 
-      <div className="mt-6">
+      <div>
         {isOwner && pendingTotal > 0 ? (
           <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <span className="font-semibold">{formatPKR(pendingTotal)}</span> still owed to
@@ -45,14 +42,14 @@ export default async function PurchasesPage() {
         {purchases.length === 0 ? (
           <EmptyState
             title="No deliveries recorded yet"
-            description="Record a delivery above and it will show up here, and be added to the tank's stock."
+            description="Record a delivery and it will show up here, and be added to the tank's stock."
           />
         ) : (
           <div className="card table-scroll">
             {/* Wider than the other tables: seven columns once the owner's
-                delete action is included. The form sits above rather than
-                beside this table - see the comment on PurchaseForm's wrapper
-                below - so there is no fixed-width column eating into this. */}
+                delete action is included. Recording a delivery is a dialog
+                now rather than a form beside the table - see PurchaseForm -
+                so there is no fixed-width column eating into this. */}
             <table className="w-full min-w-[52rem]">
               <thead className="border-b border-ink-200 bg-ink-50">
                 <tr>
