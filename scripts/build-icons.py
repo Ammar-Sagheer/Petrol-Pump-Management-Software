@@ -56,6 +56,10 @@ except ImportError:
 SOURCE = os.path.join("public", "logo.png")
 OUT_DIR = "app"
 
+# Default floor for "is this pixel part of the mark". Overridable, because a
+# soft drop shadow is technically visible pixels and will hold the bounding box
+# open well past the artwork - the flower here is square, but its shadow made it
+# measure 0.76:1 and would have cost a quarter of the icon.
 ALPHA_FLOOR = 24
 # How far a colour has to be from the background colour to count as ink. Wide
 # enough to survive the gradient in a flat-looking backdrop, narrow enough that
@@ -63,7 +67,7 @@ ALPHA_FLOOR = 24
 COLOUR_TOLERANCE = 90
 
 
-def content_box(image):
+def content_box(image, alpha_floor=ALPHA_FLOOR):
     """
     The bounding box of the actual mark.
 
@@ -80,7 +84,7 @@ def content_box(image):
     alpha = rgba.getchannel("A")
 
     if alpha.getextrema()[0] < 255:
-        box = alpha.point(lambda a: 255 if a > ALPHA_FLOOR else 0).getbbox()
+        box = alpha.point(lambda a: 255 if a > alpha_floor else 0).getbbox()
         if box:
             return box
 
@@ -222,6 +226,12 @@ def main():
              "its own and leave the wordmark out.",
     )
     parser.add_argument(
+        "--alpha-floor", type=int, default=ALPHA_FLOOR,
+        help="how opaque a pixel must be to count as part of the mark when "
+             "trimming. Raise it to trim off a soft drop shadow, which is "
+             "decorative at full size and only muddies a 16px icon.",
+    )
+    parser.add_argument(
         "--symbol-only", action="store_true",
         help="keep the flower and drop the wordmark. Recommended - it is what "
              "makes the icon fill a 16px tab instead of sitting in it.",
@@ -275,7 +285,7 @@ def main():
     if args.symbol_only:
         image = symbol_only(image)
 
-    box = content_box(image)
+    box = content_box(image, args.alpha_floor)
     trimmed = image.crop(box)
 
     if not trimmed.width or not trimmed.height:

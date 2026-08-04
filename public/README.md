@@ -24,9 +24,13 @@ do not hand-edit them:
 
 ```sh
 pip install pillow
-python3 scripts/build-icons.py --source path/to/transparent-logo.png \
-    --margin 0 --bleed 0.08
+python3 scripts/build-icons.py --source brand/only-flower.png \
+    --alpha-floor 60 --margin 0.02
 ```
+
+The source is the **flower on its own**, kept in `brand/` — outside `public/`, so
+a 1.4 MB master is not served to every visitor. `public/` holds only what the
+site actually sends.
 
 There is also a `--tile "#28ac28"` option, which writes `public/logo.png` as the
 mark centred on a coloured tile. Not used — the logo is supplied by hand — but
@@ -48,21 +52,32 @@ reasons, and the script explains both in its own header:
 * **File size.** `favicon.ico` was a 1.1 MB PNG with the extension changed. The
   generated one is a real multi-size ICO at ~7 KB.
 
-### The whole logo is used, "go" included
+### Why the icon is the flower and not the whole logo
 
-Worth knowing what that costs, so nobody "fixes" it later by accident. The
-lockup is 1.37:1, so in a square icon it is limited by its width: 16 wide by 12
-tall is the geometric maximum, and those pixels are shared between the flower
-and the wordmark. At 16px "go" reads as a red mark rather than as letters. It
-sharpens up at 32px and above — retina tabs, bookmarks, history.
+Because the whole logo cannot be read at 16px. It is 1.37:1, so a square icon is
+capped by its width — 16 wide by 12 tall, shared between the flower and the
+wordmark, and "go" comes out a red smudge rather than letters. Every icon it
+sits next to in a tab strip (Vercel's triangle, Gmail's M, Supabase's lightning)
+is one bold shape filling the square.
 
-`--margin 0` and `--bleed 0.08` are doing real work here: they take it from 45%
-of the icon to 85%. Do not drop them.
+The flower is 1.02:1, so it fills the full 16x16 as a single shape. "go" is not
+lost — it is on the navbar, the login screen and the monthly report, everywhere
+there is room to read it.
 
-`--symbol-only` keeps the flower and drops the wordmark. That fills 88% and
-stays a shape you can name at any size, which is why most brands' tab icons are
-a symbol rather than a lockup. It is **deliberately not used** — the whole logo
-was wanted.
+### `--alpha-floor 60`
+
+Not optional here. The flower has a soft drop shadow, and a shadow is still
+visible pixels: trimming at the default floor measured the artwork as 0.76:1
+instead of 1.02:1 and would have given away a quarter of the icon to empty
+space. 60 trims at the shadow and keeps the flower.
+
+### Sharpening
+
+Each ICO size is sharpened **after** it is resized, at its own scale, which is
+why the icons are packed by hand rather than by Pillow's `save(sizes=...)` —
+that resizes internally from one image and treats every size the same. A 16px
+icon needs it badly and a 48px one barely. It does more for legibility than size
+does.
 
 ### Sharpening
 
