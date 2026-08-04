@@ -49,7 +49,7 @@ import sys
 from collections import deque
 
 try:
-    from PIL import Image, ImageFilter
+    from PIL import Image, ImageChops, ImageFilter
 except ImportError:
     sys.exit("Pillow is needed: pip install pillow")
 
@@ -101,6 +101,29 @@ def content_box(image, alpha_floor=ALPHA_FLOOR):
     ])
 
     return ink.getbbox() or (0, 0, w, h)
+
+
+def wordmark_mask(image):
+    """
+    Where the red wordmark was, grown a little.
+
+    Grown because the glyphs were drawn with a white outline which comes off
+    with them, so the hole is slightly bigger than the red ink itself and the
+    seam needs repairing too.
+    """
+    rgba = image.convert("RGBA")
+    w, h = rgba.size
+    px = rgba.load()
+
+    mask = Image.new("L", (w, h), 0)
+    mp = mask.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a > ALPHA_FLOOR and r > 120 and r - g > 60 and r - b > 60:
+                mp[x, y] = 255
+
+    return mask.filter(ImageFilter.MaxFilter(9))
 
 
 def symbol_only(image):
@@ -162,6 +185,64 @@ def symbol_only(image):
         x, y = i % w, i // w
         op[x, y] = px[x, y]
     return out
+
+
+def repair_symmetry(symbol, damage, folds):
+    """
+    Rebuilds the part of the symbol the wordmark was sitting on top of.
+
+    Taking the "go" off leaves a hole: the "g" overlapped a petal, so removing
+    its ink removes that piece of the flower with it and one petal comes out
+    with a bite missing.
+
+    The flower has `folds` petals arranged rotationally, which means the missing
+    piece still exists on the mark - it is just sitting at some multiple of
+    360/folds degrees away. So the symbol is rotated onto itself and the hole is
+    filled from whichever rotation has ink there.
+
+    Only inside `damage`, deliberately. Unioning all the rotations everywhere
+    rebuilds the hole but also nicks the intact petal tips, because the rotation
+    is a resample and never lands exactly on the original pixels. Confining it
+    to where the wordmark actually was leaves the other four petals untouched.
+    """
+    rgba = symbol.convert("RGBA")
+    w, h = rgba.size
+
+    # Rotate about the mark's own centre of mass, not the middle of its box -
+    # a bitten petal drags the bounding box off centre, and rotating about the
+    # wrong point smears the repair.
+    alpha = rgba.getchannel("A")
+    total = sx = sy = 0
+    for y in range(h):
+        row = alpha.crop((0, y, w, y + 1)).tobytes()
+        for x, a in enumerate(row):
+            if a > 128:
+                total += 1
+                sx += x
+                sy += y
+    if not total:
+        return symbol
+    cx, cy = sx / total, sy / total
+
+    radius = int(max(w, h) * 0.75)
+    def centred(img):
+        canvas = Image.new(img.mode, (2 * radius, 2 * radius),
+                           (0, 0, 0, 0) if img.mode == "RGBA" else 0)
+        canvas.paste(img, (round(radius - cx), round(radius - cy)))
+        return canvas
+
+    big, hole = centred(rgba), centred(damage)
+    out = big.copy()
+    for k in range(1, folds):
+        turned = big.rotate(360 * k / folds, resample=Image.BICUBIC,
+                            center=(radius, radius))
+        gain = ImageChops.subtract(
+            turned.getchannel("A"), out.getchannel("A")
+        ).point(lambda v: 255 if v > 8 else 0)
+        out = Image.composite(turned, out, ImageChops.multiply(gain, hole))
+
+    box = out.getchannel("A").getbbox()
+    return out.crop(box) if box else out
 
 
 def write_ico(path, image, sizes, sharpen):
@@ -226,6 +307,12 @@ def main():
              "its own and leave the wordmark out.",
     )
     parser.add_argument(
+        "--repair-folds", type=int, default=0, metavar="N",
+        help="with --symbol-only: rebuild the piece of the symbol the wordmark "
+             "was covering, using the symbol's own N-fold rotational symmetry. "
+             "5 for this flower.",
+    )
+    parser.add_argument(
         "--alpha-floor", type=int, default=ALPHA_FLOOR,
         help="how opaque a pixel must be to count as part of the mark when "
              "trimming. Raise it to trim off a soft drop shadow, which is "
@@ -283,7 +370,11 @@ def main():
         ))
 
     if args.symbol_only:
+        wordmark = wordmark_mask(image)
         image = symbol_only(image)
+        if args.repair_folds:
+            image = repair_symmetry(image, wordmark, args.repair_folds)
+            print(f"repaired         {args.repair_folds}-fold, where the wordmark overlapped")
 
     box = content_box(image, args.alpha_floor)
     trimmed = image.crop(box)
@@ -322,15 +413,22 @@ def main():
     write_ico(ico, icon, (16, 32, 48), args.sharpen)
     print(f"wrote {ico}")
 
+    # Never upscale. Blowing a 279px mark up to 512 only invents soft pixels;
+    # a smaller, sharp icon is worth more than a larger, mushy one.
+    png_size = min(512, icon.width)
     png = os.path.join(OUT_DIR, "icon.png")
-    icon.resize((512, 512), Image.LANCZOS).save(png, optimize=True)
-    print(f"wrote {png}")
+    icon.resize((png_size, png_size), Image.LANCZOS).save(png, optimize=True)
+    print(f"wrote {png}  ({png_size}px" +
+          ("" if png_size == 512 else ", capped at the source rather than upscaled") + ")")
 
     apple = os.path.join(OUT_DIR, "apple-icon.png")
     # iOS draws no transparency, so flatten onto white rather than black.
     flattened = Image.new("RGBA", icon.size, (255, 255, 255, 255))
     flattened.paste(icon, (0, 0), icon)
-    flattened.convert("RGB").resize((180, 180), Image.LANCZOS).save(apple, optimize=True)
+    apple_size = min(180, icon.width)
+    flattened.convert("RGB").resize((apple_size, apple_size), Image.LANCZOS).save(
+        apple, optimize=True
+    )
     print(f"wrote {apple}")
 
     if args.tile:

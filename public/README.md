@@ -24,13 +24,15 @@ do not hand-edit them:
 
 ```sh
 pip install pillow
-python3 scripts/build-icons.py --source brand/only-flower.png \
-    --alpha-floor 60 --margin 0.02
+python3 scripts/build-icons.py --source public/logo.png \
+    --symbol-only --repair-folds 5 --margin 0.02
 ```
 
-The source is the **flower on its own**, kept in `brand/` — outside `public/`, so
-a 1.4 MB master is not served to every visitor. `public/` holds only what the
-site actually sends.
+The icons come from `logo.png` itself, so there is one logo and everything is
+derived from it. **The script only reads it — it is never modified.**
+
+Spare artwork lives in `brand/`, outside `public/`, so 1.4 MB masters are not
+served to every visitor. `public/` holds only what the site actually sends.
 
 There is also a `--tile "#28ac28"` option, which writes `public/logo.png` as the
 mark centred on a coloured tile. Not used — the logo is supplied by hand — but
@@ -64,12 +66,26 @@ The flower is 1.02:1, so it fills the full 16x16 as a single shape. "go" is not
 lost — it is on the navbar, the login screen and the monthly report, everywhere
 there is room to read it.
 
-### `--alpha-floor 60`
+### `--repair-folds 5`
 
-Not optional here. The flower has a soft drop shadow, and a shadow is still
-visible pixels: trimming at the default floor measured the artwork as 0.76:1
-instead of 1.02:1 and would have given away a quarter of the icon to empty
-space. 60 trims at the shadow and keeps the flower.
+Taking "go" off leaves a hole. The "g" overlapped a petal, so removing its ink
+removes that piece of the flower with it, and one petal comes out with a bite
+missing.
+
+The flower has five petals arranged rotationally, which means the missing piece
+still exists on the mark — it is just sitting 72° away. So the symbol is rotated
+onto itself and the hole is filled from whichever rotation has ink there.
+
+Only inside the hole, deliberately: unioning all five rotations everywhere does
+rebuild the bite, but it also nicks the intact petal tips, because a rotation is
+a resample and never lands exactly back on the original pixels.
+
+### `--alpha-floor`
+
+Raise it when the source has a soft drop shadow. A shadow is still visible
+pixels, so the default trim measures the artwork larger than it looks — on one
+of the flower masters it read as 0.76:1 instead of 1.02:1, which would have
+given away a quarter of the icon to empty space.
 
 ### Sharpening
 
