@@ -146,3 +146,45 @@ A connected sequence of changes reorganizing where things live, driven by
 - **Sign out button** given `.btn-danger` styling (red, matching the
   Account button's size) to read as a distinct, deliberate action rather
   than blending in with neighbouring buttons.
+
+## Date navigation, rates and deliveries
+
+- **The date box navigates on pick; the Go button is gone.** Choosing a date
+  IS the instruction - having to press something else afterwards was a step
+  people forgot. Lives in `DateJump.js` because it needs to be a Client
+  Component; the rest of `DateNav` stays on the server. Two details worth
+  keeping: a native date box fires `change` while the year is still being
+  typed (0006-08-06 on the way to 2026-08-06), so only a complete, plausible
+  date navigates; and clicking anywhere on the box opens the calendar via
+  `showPicker()`, rather than only the small icon at its right edge.
+- **Per-litre rates show their paisa.** `formatPKR` rounds to whole rupees,
+  which turned a Rs 339.48 pump price into "Rs 339" on Settings, Purchases
+  and the readings rows. `formatRate` in the new `app/_lib/format-helpers.js`
+  handles anything per-litre - see `docs/UI_CONVENTIONS.md`.
+- **A fuel rate can be removed.** A fuel and a date carry one rate, enforced
+  by a unique constraint, so a mistyped rate could not be corrected by saving
+  again over the top - the wrong price simply stood for the whole day. Note
+  what removing one does NOT do: readings already saved keep the rate they
+  were sold at (a copy lives on the reading row), so those days still have to
+  be cleared and re-entered. The confirmation says so.
+- **Nozzle wiring saves once, not six times.** Describing how the pump is
+  plumbed is one job done once in its life, so the dialog now has one Save
+  rather than a button per row. One button also means one write:
+  `set_nozzle_wiring()` (migration 022) does all six in a single UPDATE,
+  because six separate statements can fail after the third and leave half the
+  nozzles pointing at the new tanks and half at the old - and `tank_id`
+  decides which tank a sale draws down.
+- **A delivery is recorded by its invoice total, not its rate per litre**
+  (migration 023). The delivery note states litres and an amount payable;
+  that amount is what leaves the bank and what profit is computed from, so it
+  is the fact and the rate is arithmetic on it. `total_cost` and `rate` swapped
+  roles in the schema - `total_cost` is now stored and `rate` generated from
+  it. The old way could not represent an invoice exactly: `rate` was
+  `numeric(10,2)`, so on a 20,000 litre load every storable total was a
+  multiple of Rs 200, and an invoice of Rs 4,800,010 was silently kept as
+  Rs 4,800,000. Existing rows converted exactly, since `total_cost` already
+  held `round(litres x rate, 2)`.
+  - The derived rate keeps 4 decimals in the database but is displayed to 2,
+    so a table row can read 20,000 L at Rs 240.00 totalling Rs 4,800,010 -
+    which does not multiply out. The total is the recorded figure; the rate is
+    labelled as derived.

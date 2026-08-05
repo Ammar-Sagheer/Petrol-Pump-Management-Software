@@ -26,6 +26,7 @@ import {
   landingPageFor,
   fullResetAllowed,
   formatLitres,
+  formatRate,
 } from './helpers';
 
 // ---------------------------------------------------------------------------
@@ -467,7 +468,7 @@ export async function createPurchase(_prevState, formData) {
   const tankId = text(formData, 'tank_id');
   const purchaseDate = text(formData, 'purchase_date');
   const quantity = number(formData, 'quantity_litres');
-  const rate = number(formData, 'rate');
+  const totalCost = number(formData, 'total_cost');
   const supplierName = text(formData, 'supplier_name');
   const invoiceNumber = text(formData, 'invoice_number');
   const paymentStatus = text(formData, 'payment_status') || 'pending';
@@ -475,7 +476,7 @@ export async function createPurchase(_prevState, formData) {
   if (!tankId) return fail('Choose which tank the fuel went into.');
   if (!purchaseDate) return fail('Enter the delivery date.');
   if (quantity === null || quantity <= 0) return fail('Enter how many litres were delivered.');
-  if (rate === null || rate <= 0) return fail('Enter the rate per litre.');
+  if (totalCost === null || totalCost <= 0) return fail('Enter the amount on the delivery note.');
   if (!supplierName) return fail('Enter the supplier or OMC name.');
   if (!['paid', 'pending'].includes(paymentStatus)) return fail('Invalid payment status.');
 
@@ -484,7 +485,9 @@ export async function createPurchase(_prevState, formData) {
     tank_id: tankId,
     purchase_date: purchaseDate,
     quantity_litres: quantity,
-    rate,
+    // The amount on the note is what gets stored; the rate per litre is a
+    // generated column derived from it - see migration 023.
+    total_cost: roundMoney(totalCost),
     supplier_name: supplierName,
     invoice_number: invoiceNumber || null,
     payment_status: paymentStatus,
@@ -763,7 +766,106 @@ export async function setFuelPrice(_prevState, formData) {
 
   revalidatePath('/admin/settings');
   revalidatePath('/admin/readings');
-  return ok(`${fuelType === 'petrol' ? 'Petrol' : 'Diesel'} rate set to Rs ${rate} per litre.`);
+  return ok(`${fuelType === 'petrol' ? 'Petrol' : 'Diesel'} rate set to ${formatRate(rate)} per litre.`);
+}
+
+/**
+ * Removes a rate. Owner only, and the only way to correct a mistyped one.
+ *
+ * A fuel and a date can carry one rate, enforced by a unique constraint - so
+ * typing 339.48 when you meant 393.48 cannot be fixed by saving again over the
+ * top. Without this the wrong price stands for the whole day and every reading
+ * entered against it is wrong.
+ *
+ * WHAT IT DOES NOT UNDO. Readings already saved keep the rate they were sold
+ * at - a copy sits on the reading row itself, which is what stops a later price
+ * change quietly rewriting last week's takings. So removing a rate fixes what
+ * is entered from here on and leaves what is already entered alone; those days
+ * have to be cleared and re-entered. The button says so before it acts.
+ */
+export async function deleteFuelPrice(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const priceId = text(formData, 'price_id');
+  if (!priceId) return fail('Missing the rate.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('fuel_prices').delete().eq('id', priceId);
+
+  if (error) return fail(describe(error, 'Could not remove the rate.'));
+
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin/readings');
+  revalidatePath('/admin');
+  return ok('Rate removed. Set the correct one now.');
+}
+
+/**
+ * All six nozzles at once - how the pump is plumbed, saved as one thing.
+ *
+ * Describing the wiring is a single job done once when the pump goes onto the
+ * system, so it gets one button rather than six. The rows arrive as three
+ * parallel lists because a form serialises repeated field names in the order
+ * they appear in the markup, which is what lines index 2 of one list up with
+ * index 2 of the next.
+ *
+ * Everything is validated before anything is sent: a half-valid submission
+ * should be refused whole, not applied as far as the first bad row. The write
+ * itself is one UPDATE inside set_nozzle_wiring() for the same reason - see
+ * migration 022.
+ */
+export async function setNozzleWiring(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const ids = formData.getAll('nozzle_id').map((value) => String(value));
+  const tankIds = formData.getAll('tank_id').map((value) => String(value));
+  const readings = formData.getAll('starting_reading').map((value) => String(value));
+
+  if (ids.length === 0) return fail('Nothing to save.');
+  if (ids.length !== tankIds.length || ids.length !== readings.length) {
+    return fail('That form arrived incomplete. Reopen it and try again.');
+  }
+
+  const rows = [];
+  for (let index = 0; index < ids.length; index += 1) {
+    const startingReading = Number(readings[index]);
+
+    if (!ids[index] || !tankIds[index]) {
+      return fail('Every nozzle needs a tank. Check the list and try again.');
+    }
+    if (readings[index].trim() === '' || !Number.isFinite(startingReading)) {
+      return fail('Every nozzle needs a starting meter reading, even if it is 0.');
+    }
+    if (startingReading < 0) {
+      return fail('A meter reading cannot be negative.');
+    }
+
+    rows.push({
+      nozzle_id: ids[index],
+      tank_id: tankIds[index],
+      starting_reading: roundMoney(startingReading),
+    });
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('set_nozzle_wiring', { p_rows: rows });
+
+  if (error) return fail(describe(error, 'Could not save the nozzle wiring.'));
+
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin/readings');
+  revalidatePath('/admin');
+
+  const saved = Number(data ?? rows.length);
+  return ok(`Saved. ${saved} ${saved === 1 ? 'nozzle' : 'nozzles'} updated.`);
 }
 
 export async function updateTank(_prevState, formData) {
@@ -829,51 +931,6 @@ export async function updateTank(_prevState, formData) {
   revalidatePath('/admin/settings');
   revalidatePath('/admin');
   return ok('Tank updated.');
-}
-
-export async function setNozzleTank(_prevState, formData) {
-  try {
-    await requireRole(ROLES.SUPER_ADMIN);
-  } catch (error) {
-    return fail(error.message);
-  }
-
-  const nozzleId = text(formData, 'nozzle_id');
-  const tankId = text(formData, 'tank_id');
-  const startingReading = number(formData, 'starting_reading');
-
-  if (!nozzleId || !tankId) return fail('Missing the nozzle or tank.');
-  if (startingReading === null) return fail('Enter the meter reading this nozzle starts from.');
-  if (startingReading < 0) return fail('A meter reading cannot be negative.');
-
-  const supabase = await createClient();
-
-  // Compare against what is stored before writing. The button already refuses
-  // to submit an unchanged row, but that is a claim made by the browser; this
-  // is the one made by the database. A write that changes nothing still bumps
-  // the row and revalidates half the app for no reason.
-  const { data: current, error: readError } = await supabase
-    .from('nozzles')
-    .select('tank_id, starting_reading')
-    .eq('id', nozzleId)
-    .single();
-
-  if (readError) return fail(describe(readError, 'Could not read the nozzle.'));
-
-  if (current.tank_id === tankId && Number(current.starting_reading) === startingReading) {
-    return ok('No change - this nozzle already reads that way.');
-  }
-
-  const { error } = await supabase
-    .from('nozzles')
-    .update({ tank_id: tankId, starting_reading: startingReading })
-    .eq('id', nozzleId);
-
-  if (error) return fail(describe(error, 'Could not update the nozzle.'));
-
-  revalidatePath('/admin/settings');
-  revalidatePath('/admin/readings');
-  return ok('Nozzle updated.');
 }
 
 export async function createExpense(_prevState, formData) {

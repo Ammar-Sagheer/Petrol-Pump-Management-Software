@@ -47,6 +47,18 @@ several look simplifiable and were already tried that way once.
 - `<FormMessage state={state} />` renders that shape directly: red for
   `ok: false`, brand-green for success. Put it directly above the submit
   button.
+- **Money and rates are formatted by helper, never inline.** `formatPKR`
+  rounds to whole rupees — right for a day's takings, wrong for anything
+  per-litre. `formatRate` (`app/_lib/format-helpers.js`) always shows two
+  decimals, so Rs 339.48 does not display as "Rs 339" and Rs 339.50 does not
+  display as "Rs 339.5". `format-helpers.js` exists for the same reason
+  `date-helpers.js` does: `helpers.js` reads request cookies and so cannot
+  enter a client bundle, which previously left client components formatting
+  inline and drifting. Server code imports both through `helpers.js`.
+- `<Spinner>` (`app/_components/ui/Spinner.js`) — the shared pending
+  indicator. `border-current` means it inherits the colour of whatever it
+  sits in, so there is no per-context variant. Used by `PendingLink` and by
+  the date box in `DateJump`.
 - `<NumberInput>` (`app/_components/ui/NumberInput.js`) — use instead of a
   bare `<input type="number">` everywhere. It blocks the scroll-wheel and
   arrow-key value changes that silently corrupt a typed money/litres/meter
