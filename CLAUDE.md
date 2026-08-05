@@ -51,9 +51,11 @@ laptop width, is a real regression even though nothing "broke".
   wrapped text somewhere else. This has happened in this repo — see the
   Purchases-table entries in `docs/CHANGELOG.md`. Always render the change
   with realistic (not lorem-ipsum-short) data and look at it.
-- **Playwright is set up and the browser is pre-installed** — launch with
-  `executablePath: '/opt/pw-browsers/chromium'`, do not run
-  `playwright install`. Screenshot at more than one viewport width when a
+- **Playwright is set up and the browser is pre-installed** — do not run
+  `playwright install`. Launch with an explicit `executablePath`; the browser
+  lives under `/opt/pw-browsers/` (the versioned folder, e.g.
+  `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`, is what actually
+  resolves — check the directory rather than assuming the unversioned path). Screenshot at more than one viewport width when a
   change touches layout (at minimum a small-laptop width like 1024–1152px
   and a phone width around 400px); several bugs in this app's history only
   showed up at the narrow end.

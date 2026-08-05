@@ -59,8 +59,8 @@ by hand, once:
     where id = (select id from auth.users where email = 'his-email@example.com');
    ```
 
-From then on every other login is created inside the app, under **Settings →
-Staff logins**. Never add accounts by hand again.
+From then on every other login is created inside the app, under **Account →
+Add login**. Never add accounts by hand again.
 
 ### 4. Set the fuel prices
 
@@ -77,6 +77,7 @@ Fuel prices** and set petrol and diesel.
 | Record purchases and dips | yes | yes |
 | Add customers, record payments | yes | yes |
 | See sales totals, profit, reports | yes | **no** |
+| See the bank accounts and their balances | yes | **no** |
 | Change prices, tanks, nozzles | yes | **no** |
 | Correct or delete past entries | yes | **no** |
 | Manage staff logins | yes | **no** |
@@ -104,7 +105,13 @@ enforced in three independent places:
    while it is still easy to fix.
 6. Save. Each customer's balance updates by itself.
 
-Deliveries go under **Purchases**, and the dip stick reading under **Stock**.
+Deliveries go under **Purchases** — enter the litres and the amount on the
+delivery note; the rate per litre is worked out for you. The dip stick reading
+goes under **Stock**.
+
+Every screen with a date has arrows either side of a date box; picking a date in
+the box goes straight to that day. If a day was entered against the wrong date,
+the owner can wipe it with **Clear this day** on Readings and type it again.
 
 ---
 
@@ -122,11 +129,24 @@ amount of application code can get around them.
 - **The customer ledger is append-only.** No update, no delete, for anybody,
   including the owner and including the service-role key. A mistake is corrected
   by posting a new entry pointing the other way, so the history always adds up.
-  This is enforced by a database trigger, not just by permissions.
-- **A reading whose slips already reached a ledger cannot be deleted.** Cancel
-  the debt with an offsetting entry instead.
+  This is enforced by a database trigger, not just by permissions. Two narrow
+  exceptions exist and only these two: `created_by` and `credit_sale_id` may be
+  set to null when the profile or credit slip they point at is deleted. Every
+  other column must be byte-for-byte identical, so neither can be used as a way
+  in to change an amount, a date or a customer.
+- **Deleting a reading reverses its credit slips, it does not erase them.** The
+  customer's original debit stays on the ledger and an offsetting credit is
+  posted beside it, so the balance comes back to correct while the history still
+  reads as what happened. Same for clearing a whole day.
 - **Tank stock is recalculated from history**, never incremented, so the cached
   figure cannot drift away from the purchases, sales and dips that produced it.
+- **A tank cannot be given more opening stock than it holds.**
+- **No bank account may go below zero** — checked per account, not across the
+  total. A payment too large for one account is split across the others the
+  owner picks, computed in the database from real balances.
+- **A delivery's invoice total is what gets stored**; its rate per litre is
+  generated from it. The amount on the note is the fact - see "Things worth
+  knowing".
 
 If the app and the database ever disagree, the database is right.
 
@@ -161,8 +181,10 @@ app/
     purchases/             fuel deliveries
     stock-checks/          dip readings and gain/loss
     customers/             list, new, and [id] detail with ledger
-    reports/               30-day trend, monthly profit, expenses
-    settings/              prices, tanks, nozzles, staff logins
+    banking/               the owner's bank accounts - owner only
+    reports/               monthly profit, charts, expenses, Excel export
+    settings/              prices, tanks, nozzle wiring
+    account/               your own login, and staff logins for the owner
   _components/
     admin/                 admin-only components
     ui/                    shared building blocks
@@ -173,9 +195,15 @@ app/
     data-service.js        every read query
     actions.js             every Server Action
     helpers.js             requireRole(), formatting, calculations
+    date-helpers.js        dates, safe on the server AND in the browser
+    format-helpers.js      formatRate() - same reason as date-helpers
+    brand.js               business name; the logo is public/logo.png
+    excel-report.js        builds the monthly workbook from the template
   _styles/globals.css
 proxy.js                   session refresh + signed-in gate
+scripts/                   build-report-template.py, build-icons.py
 supabase/migrations/       the schema, in order
+docs/                      UI_CONVENTIONS.md, CHANGELOG.md
 ```
 
 `_components`, `_lib` and `_styles` are underscore-prefixed on purpose — that is
@@ -196,6 +224,22 @@ Applied in order:
 | `005_reporting_rpcs.sql` | Aggregate reporting functions |
 | `006_lock_down_function_grants.sql` | Revokes the default PUBLIC execute grant |
 | `007_reading_sheet_rpc.sql` | The daily reading screen, in one query |
+| `008_pump_timezone.sql` | `pump_today()` - the database's idea of today, pinned to the pump |
+| `009_reading_chain_context.sql` | Returns the neighbouring readings, so a broken chain can be flagged before saving |
+| `010_month_export_rpc.sql` | Everything the monthly Excel workbook needs, in one call |
+| `011_delete_staff_account.sql` | Lets a login be deleted, not just switched off |
+| `012_nozzle_starting_reading.sql` | Where each meter stood when the pump joined the app |
+| `013_correct_nozzle_fuel_layout.sql` | Unit 1 diesel, units 2 and 3 petrol - corrects 004's guess |
+| `014_clear_day_and_reset.sql` | Clear one day; empty the books (testing only) |
+| `015_delete_reading_reverses_slips.sql` | Deleting a reading posts offsetting ledger entries |
+| `016_reset_all_data_safeupdate.sql` | Satisfies the WHERE-clause guard when emptying |
+| `017_tank_opening_stock_within_capacity.sql` | A tank cannot be given more than it holds |
+| `018_bank_accounts.sql` | Bank accounts, deposits, payments, 60-row retention |
+| `019_month_export_with_banking.sql` | Adds the bank movements to the export |
+| `020_bank_no_overdraw.sql` | Money out may not exceed money there is |
+| `021_bank_split_payments.sql` | Per-account zero floor; one payment across several accounts |
+| `022_set_nozzle_wiring.sql` | All six nozzles saved in one UPDATE |
+| `023_purchase_total_is_the_input.sql` | Invoice total stored; rate per litre generated from it |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -204,9 +248,26 @@ the numbers are fast and cannot be altered client-side.
 
 ## Things worth knowing
 
-- **Nozzle wiring.** Each of the 3 units is set up with nozzle A on petrol and
-  nozzle B on diesel. If the real plumbing differs, change it under **Settings →
-  Nozzles** — no migration needed. It decides which tank a sale draws down.
+- **Nozzle wiring.** Unit 1 runs both nozzles on diesel; units 2 and 3 run both
+  on petrol. Migration 004 originally guessed one of each per unit and 013
+  corrects it. Change it under **Settings → Edit nozzle wiring**, which also
+  holds each nozzle's starting meter reading — no migration needed. The tank
+  decides which stock a sale draws down, so a wrong one silently empties the
+  wrong tank.
+- **Starting meter readings matter on day one.** A pump that has been trading
+  has meters reading hundreds of thousands of litres when it goes onto this
+  app. Set them before entering the first day, or that day books the meter's
+  whole lifetime as one day of sales.
+- **A delivery is entered by its invoice total, not its rate per litre.** The
+  note states litres and an amount payable; the amount is what leaves the bank
+  and what profit is computed from, so it is stored as typed and the rate is
+  generated from it. The rate is held to 4 decimals and shown to 2, so a row can
+  read 20,000 L at Rs 240.00 totalling Rs 4,800,010 and not multiply out - the
+  total is the record, the rate is derived.
+- **A fuel rate can be removed** under Settings. One rate per fuel per date is
+  enforced by a unique constraint, so a mistyped rate cannot be corrected by
+  saving over the top. Removing it does not touch readings already saved: those
+  keep the rate they were sold at and have to be cleared and re-entered.
 - **Shifts.** Readings are recorded once per nozzle per day. The `shift` column
   already accepts `day` and `night`, so splitting the day later is a UI change,
   not a data migration.

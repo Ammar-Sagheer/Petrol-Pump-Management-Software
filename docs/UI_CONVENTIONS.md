@@ -145,6 +145,14 @@ return (
 `showResult` matters: it keeps a stale error/success message from a
 previous open from flashing before the new submission's own state lands.
 
+**A dialog holding a table of rows gets ONE submit, not one per row.**
+`NozzleSettingsButton.js` is the example: six nozzles, one "Save wiring".
+Repeated field names (`nozzle_id`, `tank_id`, `starting_reading`) serialise in
+markup order, so the action pairs them up by index. One button is also one
+write — `set_nozzle_wiring()` does all six rows in a single UPDATE, because
+six separate statements can fail part-way and leave the rows disagreeing with
+each other.
+
 The trigger button for a dialog form usually goes in `<PageHeader>`'s
 `children` slot (see below), so it sits beside the title rather than inline
 in the page body.
@@ -216,6 +224,14 @@ worth the fragility next to just removing the competing column.
 - `<EmptyState title description>{children}</EmptyState>`
   (`app/_components/ui/EmptyState.js`) — centered card for "nothing here
   yet", used instead of rendering an empty table.
+- `<DateNav>` (`app/_components/admin/DateNav.js`) — previous/next arrows, a
+  date box and "Back to today", used by Readings, Dashboard and Stock. Anything
+  passed as `children` joins the end of its button row, so a page action for
+  the day on screen shares that row's baseline. The box itself is
+  `DateJump.js`, a Client Component: **picking a date navigates immediately**,
+  there is no Go button, and clicking anywhere on the box opens the calendar
+  (`showPicker()`) rather than only its icon. It ignores incomplete dates
+  because a native date box fires `change` while the year is still being typed.
 - `<PendingLink>` (`app/_components/ui/PendingLink.js`) — use instead of
   `next/link`'s `<Link>` for any admin navigation. Every admin page fetches
   server-side, so a plain link leaves the screen looking frozen for a

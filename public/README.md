@@ -105,11 +105,3 @@ why the icons are packed by hand rather than by Pillow's `save(sizes=...)` —
 that resizes internally from one image and treats every size the same. A 16px
 icon needs it badly and a 48px one barely. It does more for legibility than size
 does.
-
-### Sharpening
-
-Each ICO size is sharpened **after** it is resized, at its own scale, which is
-why the icons are packed by hand rather than by Pillow's `save(sizes=...)` —
-that resizes internally from one image and treats every size the same. A 16px
-icon needs the sharpening badly and a 48px one barely. It makes more difference
-to legibility than size does.
