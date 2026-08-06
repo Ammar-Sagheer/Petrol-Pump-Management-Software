@@ -101,9 +101,16 @@ def build():
         ("Cash taken", 0),
         ("Given on credit", 0),
         ("", ""),
+        ("LUBRICANTS", ""),
+        ("Litres sold", 0),
+        ("Sales", 0),
+        ("Cash taken", 0),
+        ("Given on credit", 0),
+        ("", ""),
         ("COSTS", ""),
         ("Fuel bought (litres)", 0),
         ("Fuel bought (cost)", 0),
+        ("Lubricants bought (cost)", 0),
         ("Still owed to suppliers", 0),
         ("Expenses", 0),
         ("", ""),
@@ -117,21 +124,27 @@ def build():
         cell.font = BODY_FONT
 
     # ------------------------------------------------------------------ Daily
+    #
+    # The two lubricant columns go on the END, after the columns the charts
+    # read. The charts point at fixed ranges by column number (E for sales, F:G
+    # for the cash/credit split, C:D for the fuel split), so anything inserted
+    # among those would silently repoint them at the wrong figures.
     daily = wb.create_sheet("Daily")
     style_header(
         daily,
         1,
-        ["Date", "Litres sold", "Petrol (L)", "Diesel (L)", "Sales", "Cash", "Credit"],
-        [14, 14, 14, 14, 16, 16, 16],
+        ["Date", "Litres sold", "Petrol (L)", "Diesel (L)", "Sales", "Cash", "Credit",
+         "Lubricant (L)", "Lubricant sales"],
+        [14, 14, 14, 14, 16, 16, 16, 15, 17],
     )
     for row in range(2, DAILY_ROWS + 2):
         date_cell = daily.cell(row=row, column=1)
         date_cell.font = BODY_FONT
         date_cell.number_format = DATE_FMT
-        for column in range(2, 8):
+        for column in range(2, 10):
             cell = daily.cell(row=row, column=column)
             cell.font = BODY_FONT
-            cell.number_format = LITRES if column <= 4 else MONEY
+            cell.number_format = LITRES if column in (2, 3, 4, 8) else MONEY
 
     # ----------------------------------------------------------------- Charts
     # Own sheet, and the ONLY sheet the app must never rewrite - it carries the
@@ -247,6 +260,23 @@ def build():
         [14, 22, 22, 16, 16, 22, 34],
     )
     prototype_row(bank, 2, [DATE_FMT, None, None, MONEY, MONEY, None, None])
+
+    # Lubricants goes after Bank, for the reason given above it: new sheets
+    # always go last, or every sheet after the insertion point is renumbered and
+    # the app starts rewriting the wrong ones.
+    #
+    # Every counter sale in the month, one row each - a 4 litre carton and a
+    # quarter litre poured loose look the same here, because they are the same
+    # stock measured the same way.
+    lubricants = wb.create_sheet("Lubricants")
+    style_header(
+        lubricants,
+        1,
+        ["Date", "Lubricant", "Litres", "Rate", "Amount", "Cash", "Credit", "Customer", "Note"],
+        [14, 30, 12, 14, 16, 16, 16, 24, 30],
+    )
+    prototype_row(lubricants, 2,
+                  [DATE_FMT, None, LITRES, MONEY, MONEY, MONEY, MONEY, None, None])
 
     out = os.path.join("app", "_lib", "report-template.xlsx")
     os.makedirs(os.path.dirname(out), exist_ok=True)

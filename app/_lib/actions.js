@@ -26,6 +26,7 @@ import {
   landingPageFor,
   fullResetAllowed,
   formatLitres,
+  formatPKR,
   formatRate,
 } from './helpers';
 
@@ -75,6 +76,15 @@ function describe(error, fallback) {
   }
   if (message.includes('append-only')) {
     return 'The ledger cannot be edited. Post a new offsetting entry instead.';
+  }
+  if (message.includes('lubricants_active_name_unique')) {
+    return 'A lubricant with that name is already on the list. Use a different name, or edit the one that is there.';
+  }
+  if (message.includes('lubricant_sales_split_matches_amount')) {
+    return 'Cash plus credit does not equal the amount of the sale. Check the figures and try again.';
+  }
+  if (message.includes('lubricant_sales_credit_needs_customer')) {
+    return 'Choose the customer this was given to on credit.';
   }
   return message || fallback;
 }
@@ -443,14 +453,15 @@ export async function resetEverything(_prevState, formData) {
   if (error) return fail(describe(error, 'Could not reset the data.'));
 
   ['/admin', '/admin/readings', '/admin/purchases', '/admin/stock-checks',
-   '/admin/customers', '/admin/expenses', '/admin/reports',
+   '/admin/customers', '/admin/lubricants', '/admin/expenses', '/admin/reports',
    '/admin/settings'].forEach(revalidatePath);
 
   const n = (key) => Number(data?.[key] ?? 0);
   return ok(
     `Everything cleared: ${n('readings')} readings, ${n('customers')} customers, ` +
-      `${n('purchases')} deliveries, ${n('expenses')} expenses. ` +
-      'Logins, tanks and nozzle starting readings were kept.',
+      `${n('purchases')} deliveries, ${n('lubricant_sales')} lubricant sales, ` +
+      `${n('expenses')} expenses. Logins, tanks, nozzle starting readings and the ` +
+      'lubricant product list were kept.',
   );
 }
 
@@ -504,10 +515,24 @@ export async function createPurchase(_prevState, formData) {
   return ok(`Saved. ${quantity} L added to stock.`);
 }
 
+/*
+ * Fuel and lubricant purchases sit in one list on screen, so the two actions
+ * below serve both. `kind` says which table the row came from; anything other
+ * than 'lubricant' is treated as fuel, so an old form that never sent the field
+ * keeps working.
+ */
+const PURCHASE_TABLES = {
+  fuel: { table: 'fuel_purchases', noun: 'delivery' },
+  lubricant: { table: 'lubricant_purchases', noun: 'lubricant purchase' },
+};
+
+const purchaseTable = (formData) =>
+  PURCHASE_TABLES[text(formData, 'kind')] ?? PURCHASE_TABLES.fuel;
+
 /**
- * Removes a delivery. Owner only, and the way to correct a mistyped quantity -
- * delete the wrong one and record it again, rather than leaving the tank
- * carrying fuel that never arrived. Tank stock is recalculated by trigger.
+ * Removes a purchase. Owner only, and the way to correct a mistyped quantity -
+ * delete the wrong one and record it again, rather than leaving stock carrying
+ * something that never arrived. Stock is recalculated by trigger either way.
  */
 export async function deletePurchase(_prevState, formData) {
   try {
@@ -517,17 +542,23 @@ export async function deletePurchase(_prevState, formData) {
   }
 
   const purchaseId = text(formData, 'purchase_id');
-  if (!purchaseId) return fail('Missing the delivery.');
+  const { table, noun } = purchaseTable(formData);
+  if (!purchaseId) return fail(`Missing the ${noun}.`);
 
   const supabase = await createClient();
-  const { error } = await supabase.from('fuel_purchases').delete().eq('id', purchaseId);
+  const { error } = await supabase.from(table).delete().eq('id', purchaseId);
 
-  if (error) return fail(describe(error, 'Could not delete the delivery.'));
+  if (error) return fail(describe(error, `Could not delete the ${noun}.`));
 
   revalidatePath('/admin/purchases');
   revalidatePath('/admin');
   revalidatePath('/admin/stock-checks');
-  return ok('Delivery deleted. Tank stock has been recalculated.');
+  revalidatePath('/admin/lubricants');
+  return ok(
+    noun === 'delivery'
+      ? 'Delivery deleted. Tank stock has been recalculated.'
+      : 'Purchase deleted. Lubricant stock has been recalculated.',
+  );
 }
 
 export async function setPurchasePaymentStatus(_prevState, formData) {
@@ -539,13 +570,14 @@ export async function setPurchasePaymentStatus(_prevState, formData) {
 
   const purchaseId = text(formData, 'purchase_id');
   const paymentStatus = text(formData, 'payment_status');
+  const { table } = purchaseTable(formData);
 
   if (!purchaseId) return fail('Missing the purchase.');
   if (!['paid', 'pending'].includes(paymentStatus)) return fail('Invalid payment status.');
 
   const supabase = await createClient();
   const { error } = await supabase
-    .from('fuel_purchases')
+    .from(table)
     .update({ payment_status: paymentStatus })
     .eq('id', purchaseId);
 
@@ -553,6 +585,322 @@ export async function setPurchasePaymentStatus(_prevState, formData) {
 
   revalidatePath('/admin/purchases');
   return ok(paymentStatus === 'paid' ? 'Marked as paid.' : 'Marked as pending.');
+}
+
+// ---------------------------------------------------------------------------
+// Lubricants
+//
+// Three things live here: the product list, stock coming in from the
+// distributor, and sales over the counter.
+//
+// Who may do what follows the same line as everywhere else. Recording a sale or
+// a delivery is daily work, so staff do both. The product list is
+// configuration - which brands are stocked, what they are priced at, what was
+// on the shelf to begin with - so it belongs to the owner, like the tanks.
+// ---------------------------------------------------------------------------
+
+/** Litres, rounded the way Postgres rounds them. Two decimals fits 0.25 L. */
+const roundLitres = (value) => roundMoney(value);
+
+export async function createLubricant(_prevState, formData) {
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const name = text(formData, 'name');
+  const packSize = number(formData, 'pack_size_litres');
+  const saleRate = number(formData, 'sale_rate_per_litre');
+  const openingStock = number(formData, 'opening_stock_litres');
+  const openingDate = text(formData, 'opening_stock_date');
+
+  if (!name) return fail('Enter the lubricant’s name.');
+  if (packSize === null || packSize <= 0) return fail('Enter the pack size in litres.');
+  if (saleRate !== null && saleRate <= 0) return fail('The selling rate must be above zero.');
+  if (openingStock !== null && openingStock < 0) {
+    return fail('The opening stock cannot be negative.');
+  }
+  if (!openingDate) return fail('Enter the date the opening stock counts from.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('lubricants').insert({
+    name,
+    pack_size_litres: packSize,
+    sale_rate_per_litre: saleRate,
+    opening_stock_litres: openingStock ?? 0,
+    opening_stock_date: openingDate,
+    created_by: profile.id,
+  });
+
+  if (error) return fail(describe(error, 'Could not add the lubricant.'));
+
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin/purchases');
+  return ok(`${name} added. It can be sold and restocked from now on.`);
+}
+
+export async function updateLubricant(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const lubricantId = text(formData, 'lubricant_id');
+  const name = text(formData, 'name');
+  const packSize = number(formData, 'pack_size_litres');
+  const saleRate = number(formData, 'sale_rate_per_litre');
+  const openingStock = number(formData, 'opening_stock_litres');
+  const openingDate = text(formData, 'opening_stock_date');
+
+  if (!lubricantId) return fail('Missing the lubricant.');
+  if (!name) return fail('Enter the lubricant’s name.');
+  if (packSize === null || packSize <= 0) return fail('Enter the pack size in litres.');
+  if (saleRate !== null && saleRate <= 0) return fail('The selling rate must be above zero.');
+  if (openingStock === null || openingStock < 0) return fail('Enter the opening stock.');
+  if (!openingDate) return fail('Enter the date the opening stock counts from.');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('lubricants')
+    .update({
+      name,
+      pack_size_litres: packSize,
+      sale_rate_per_litre: saleRate,
+      opening_stock_litres: openingStock,
+      opening_stock_date: openingDate,
+    })
+    .eq('id', lubricantId);
+
+  if (error) return fail(describe(error, 'Could not update the lubricant.'));
+
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin');
+  return ok(`${name} updated.`);
+}
+
+/**
+ * Removes a lubricant from the shelf.
+ *
+ * The database decides which of the two possible meanings applies: a product
+ * that was never bought or sold is deleted outright, while one with history is
+ * retired so the months it appears in keep adding up. The message says which
+ * happened rather than leaving the owner to work it out - see delete_lubricant
+ * in migration 024.
+ */
+export async function deleteLubricant(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const lubricantId = text(formData, 'lubricant_id');
+  if (!lubricantId) return fail('Missing the lubricant.');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('delete_lubricant', {
+    p_lubricant_id: lubricantId,
+  });
+
+  if (error) return fail(describe(error, 'Could not remove the lubricant.'));
+
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin/purchases');
+  revalidatePath('/admin');
+
+  const name = data?.name ?? 'The lubricant';
+
+  if (data?.removed) return ok(`${name} removed. It was never bought or sold.`);
+
+  return ok(
+    `${name} retired. It will not appear on the sale form again, and its past ` +
+      'sales and purchases stay on the books.',
+  );
+}
+
+/** Puts a retired product back on the shelf. */
+export async function setLubricantActive(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const lubricantId = text(formData, 'lubricant_id');
+  const isActive = text(formData, 'is_active') === 'true';
+
+  if (!lubricantId) return fail('Missing the lubricant.');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('lubricants')
+    .update({ is_active: isActive })
+    .eq('id', lubricantId);
+
+  if (error) return fail(describe(error, 'Could not update the lubricant.'));
+
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  return ok(isActive ? 'Back on the shelf.' : 'Retired.');
+}
+
+/**
+ * Stock in from the distributor. Same shape as a fuel delivery, and the same
+ * rule about which figure is the fact: the invoice total is typed and the rate
+ * per litre is derived from it.
+ */
+export async function createLubricantPurchase(_prevState, formData) {
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const lubricantId = text(formData, 'lubricant_id');
+  const purchaseDate = text(formData, 'purchase_date');
+  const quantity = number(formData, 'quantity_litres');
+  const totalCost = number(formData, 'total_cost');
+  const supplierName = text(formData, 'supplier_name');
+  const invoiceNumber = text(formData, 'invoice_number');
+  const paymentStatus = text(formData, 'payment_status') || 'pending';
+
+  if (!lubricantId) return fail('Choose which lubricant was delivered.');
+  if (!purchaseDate) return fail('Enter the delivery date.');
+  if (quantity === null || quantity <= 0) return fail('Enter how many litres were delivered.');
+  if (totalCost === null || totalCost <= 0) return fail('Enter the amount on the invoice.');
+  if (!supplierName) return fail('Enter the supplier name.');
+  if (!['paid', 'pending'].includes(paymentStatus)) return fail('Invalid payment status.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('lubricant_purchases').insert({
+    lubricant_id: lubricantId,
+    purchase_date: purchaseDate,
+    quantity_litres: roundLitres(quantity),
+    total_cost: roundMoney(totalCost),
+    supplier_name: supplierName,
+    invoice_number: invoiceNumber || null,
+    payment_status: paymentStatus,
+    created_by: profile.id,
+  });
+
+  if (error) return fail(describe(error, 'Could not save the purchase.'));
+
+  revalidatePath('/admin/purchases');
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin');
+
+  return ok(`Saved. ${formatLitres(quantity)} added to the shelf.`);
+}
+
+/**
+ * One sale over the counter.
+ *
+ * Cash is derived here - amount minus whatever was put on credit - rather than
+ * taken from the form, for the same reason it is on the reading screen: cash
+ * should never be able to be quietly wrong. A sale with any credit on it must
+ * name the customer, and the database refuses it otherwise.
+ */
+export async function createLubricantSale(_prevState, formData) {
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const lubricantId = text(formData, 'lubricant_id');
+  const saleDate = text(formData, 'sale_date');
+  const litres = number(formData, 'litres');
+  const amount = number(formData, 'amount');
+  const creditAmount = number(formData, 'credit_amount') ?? 0;
+  const customerId = text(formData, 'customer_id');
+  const note = text(formData, 'note');
+
+  if (!lubricantId) return fail('Choose which lubricant was sold.');
+  if (!saleDate) return fail('Missing the date.');
+  if (litres === null || litres <= 0) return fail('Enter how many litres were sold.');
+  if (amount === null || amount <= 0) return fail('Enter what the customer was charged.');
+  if (creditAmount < 0) return fail('The credit amount cannot be negative.');
+
+  const total = roundMoney(amount);
+  const credit = roundMoney(creditAmount);
+
+  if (credit > total) {
+    return fail('The amount on credit is more than the sale itself. Check the figures.');
+  }
+  if (credit > 0 && !customerId) {
+    return fail('Choose the customer this was given to on credit.');
+  }
+
+  const cash = roundMoney(total - credit);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('lubricant_sales').insert({
+    lubricant_id: lubricantId,
+    sale_date: saleDate,
+    litres: roundLitres(litres),
+    amount: total,
+    cash_amount: cash,
+    credit_amount: credit,
+    // A cash sale may still name the customer, but only a credit sale needs to.
+    customer_id: customerId || null,
+    note: note || null,
+    created_by: profile.id,
+  });
+
+  if (error) return fail(describe(error, 'Could not save the sale.'));
+
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin');
+  if (credit > 0) revalidatePath('/admin/customers');
+
+  return ok(
+    credit > 0
+      ? `Saved. ${formatLitres(litres)} sold, ${formatPKR(credit)} of it on credit and posted to the ledger.`
+      : `Saved. ${formatLitres(litres)} sold for cash.`,
+  );
+}
+
+/**
+ * Removes a sale. Owner only, like deleting a nozzle reading, and for the same
+ * reason: the credit on it has already moved a customer's balance. The database
+ * posts the offsetting entry before the row goes, so the ledger keeps showing
+ * both what happened and what undid it.
+ */
+export async function deleteLubricantSale(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const saleId = text(formData, 'sale_id');
+  if (!saleId) return fail('Missing the sale.');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('delete_lubricant_sale', { p_sale_id: saleId });
+
+  if (error) return fail(describe(error, 'Could not delete the sale.'));
+
+  revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
+
+  return ok(
+    data?.credit_reversed
+      ? 'Sale deleted, and the credit on it reversed on the customer’s ledger.'
+      : 'Sale deleted. Stock has been recalculated.',
+  );
 }
 
 // ---------------------------------------------------------------------------

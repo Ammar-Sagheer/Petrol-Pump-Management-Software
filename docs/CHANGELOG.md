@@ -224,3 +224,90 @@ A connected sequence of changes reorganizing where things live, driven by
 - **Expenses sits with Banking in the nav, not beside Reports** — both are
   money the owner alone sees, and both are written to as routine work.
   Reports and Settings keep the far-right `edge` group to themselves.
+
+## Lubricants
+
+- **A lubricant shelf was added as its own trade**, not as a third
+  `fuel_type`. Petrol and diesel live in two fixed tanks and are sold
+  through metered nozzles, so a day's sale is *derived* from meter
+  readings; oil is a changing list of products sold one tin at a time, so
+  a sale is *typed* as a sale. Reusing the fuel machinery would have meant
+  inventing a nozzle per brand and editing an enum every time the owner
+  switched supplier. Three tables instead: `lubricants` (the products),
+  `lubricant_purchases` (restocking) and `lubricant_sales` (the counter).
+- **Everything is measured in litres, packs and loose oil alike.** A pump
+  that sells sealed 4 L cartons *and* 250 ml poured from an open drum is
+  selling the same stock either way, and one unit is what keeps the stock
+  figure honest across both. The product's `pack_size_litres` is therefore
+  only a shortcut on the sale form — a button that fills the litres box —
+  never a separate kind of entry. Quick amounts of 0.25 / 0.5 / 1 L sit
+  beside it for the loose pours that actually happen.
+- **The amount is typed and the rate per litre is generated**, the same
+  swap migration 023 made for fuel deliveries. It is what lets a 4 L
+  carton at Rs 4,500 and a quarter litre at Rs 400 both be recorded
+  without anyone dividing by hand — and those two do not imply the same
+  rate, which is exactly why the rate could not be the input. The sale
+  form prefills the amount from the product's rate and then leaves it
+  alone once touched: a carton is usually priced below the sum of its
+  litres, and a prefill that overwrote a typed figure would be worse than
+  none.
+- **Credit goes on the same customer ledger as fuel.** A new
+  `ledger_entries.lubricant_sale_id` mirrors `credit_sale_id` — unique, so
+  a sale cannot post twice, `on delete set null` so removing a sale
+  releases the reference rather than taking the debt with it. The
+  append-only trigger gained the column as a third narrow exception, on
+  the same terms as the other two. Deleting a sale posts the offsetting
+  credit *before* the delete, in one transaction, exactly as
+  `delete_reading` does.
+- **`fuel_type` is left null on a lubricant debit.** The ledger's own
+  check constraint allows it on a debit, and it keeps the customer
+  statement's petrol/diesel breakdown describing only fuel while the
+  balance still counts everything. The note on the entry carries the
+  product name instead.
+- **Removing a product means one of two things and the database decides.**
+  Never bought and never sold: deleted, since there is nothing to
+  preserve. Traded at any point: retired, because deleting it would tear a
+  hole in months already reported and exported. `delete_lubricant()`
+  returns which of the two happened so the screen can say so rather than
+  leaving the owner guessing. The unique index on the name is partial
+  (`where is_active`), so retiring a brand releases its name for a
+  replacement — which is the thing the owner actually asked for.
+- **Purchases became one list rather than two.** Fuel and lubricants are
+  different deliveries from different suppliers, but at month end they are
+  one question — what went out on stock and how much is still owed — so
+  they share a table with an Item column and a colour-coded badge.
+  `deletePurchase` and `setPurchasePaymentStatus` take a `kind` field to
+  know which table the row came from; it defaults to fuel, so nothing that
+  does not send it changed behaviour.
+- **Profit now counts both trades**: `fuel sales + lubricant sales − fuel
+  bought − lubricants bought − expenses`. A pump selling Rs 200,000 of oil
+  a month and reporting none of it is not reporting its profit, so this is
+  a correction rather than an addition. The cash-basis caveat is unchanged
+  and now covers both, which is why closing stock is reported for the
+  shelf as well as the tanks.
+- **The charts stayed fuel-only and were relabelled to say so.** Oil is a
+  rounding error next to fuel by value, so a stacked lubricant series
+  would have been an invisible sliver that cost the chart its legend-free
+  simplicity. The day-by-day table carries a Lubricants column instead,
+  where the figure can actually be read.
+- **`get_sales_trend` had to be dropped and recreated**, not replaced —
+  Postgres will not change a set-returning function's output columns in
+  place. Its per-day figures now come from lateral aggregates rather than
+  one group-by: joining lubricant sales onto the same rows as nozzle
+  readings would have multiplied each against the other.
+- **The workbook gained a `Lubricants` sheet and two Daily columns.** The
+  sheet was created last in `build-report-template.py`, as the file's own
+  warning demands, so nothing was renumbered; the Daily columns went on
+  the end, after everything the three charts point at by fixed range.
+  Lubricant purchases are folded into the existing Purchases sheet so the
+  workbook matches the screen. Verified by regenerating the template,
+  building a workbook from sample data and reopening it: nine sheets,
+  three native charts intact, `Daily!E2:E32` still the sales range.
+- **`clear_day` was deliberately left alone.** It exists for the one
+  mistake that cannot be unpicked row by row — a whole day of meters
+  entered against the wrong date — while deliveries, expenses and now
+  lubricant sales are each deleted on their own screen where you can see
+  what you are removing. A counter sale is one row, so it belongs in that
+  second group. `reset_all_data` *does* clear the trading, and keeps the
+  product list with its stock zeroed, on the same reasoning that keeps the
+  tanks.
