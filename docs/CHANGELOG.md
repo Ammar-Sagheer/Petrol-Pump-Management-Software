@@ -188,3 +188,39 @@ A connected sequence of changes reorganizing where things live, driven by
     so a table row can read 20,000 L at Rs 240.00 totalling Rs 4,800,010 -
     which does not multiply out. The total is the recorded figure; the rate is
     labelled as derived.
+
+## Expenses became its own page
+
+- **Expenses moved off the bottom of Reports to `/admin/expenses`**, with a
+  nav tab of its own. Reasoning: Reports is read once a month, but an
+  expense is written down the day it is paid — and reaching the form meant
+  scrolling past the headline tiles, the closing-stock table, two charts
+  and a day-by-day table first. The two jobs had opposite rhythms sharing
+  one screen; only one of them was at the top.
+- **The new page is filtered by month, and its table follows that filter.**
+  On Reports the by-category card was the chosen month while the table
+  below it was the last 50 expenses regardless of month, so the two
+  disagreed and the category list could not be checked by reading down the
+  table. `getExpenses()` now takes optional `from`/`to` dates and the page
+  passes the month on screen to both, so total, breakdown and rows always
+  describe the same set. Categories are listed biggest-first — the
+  question the breakdown answers is which cost dominates the month.
+- **The category totals are summed in the page, not by the report RPC.**
+  `get_monthly_report()` computes sales, purchases, stock and profit for
+  the whole month; calling it just to get expenses grouped by category
+  would be most of a monthly report's work for one small list. The page
+  already has the month's rows in hand and reduces over them.
+- **The form stays open on the page rather than going behind a dialog** —
+  the exception to the rule in `docs/UI_CONVENTIONS.md`, and deliberately.
+  A dialog is for what is set up once (an account, a tank); recording an
+  expense is the reason this page is opened at all, and the four-column
+  table beside it fits the `1fr` track with room to spare. Verified at
+  1024/1152/1440px and 400px: no page-level sideways scroll, table
+  scrolling inside its own card on a phone as usual.
+- **Reports keeps the Expenses total**, since profit is computed from it,
+  and the tile now carries a link through to the new page for the month on
+  screen. Removing the figure entirely would have left profit with a term
+  that appears nowhere on the page.
+- **Expenses sits with Banking in the nav, not beside Reports** — both are
+  money the owner alone sees, and both are written to as routine work.
+  Reports and Settings keep the far-right `edge` group to themselves.

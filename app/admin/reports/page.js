@@ -8,14 +8,13 @@ import {
   formatLitres,
   formatPKR,
 } from '@/app/_lib/helpers';
-import { getMonthlyReport, getSalesTrend, getExpenses } from '@/app/_lib/data-service';
+import { getMonthlyReport, getSalesTrend } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
 import CashCreditChart from '@/app/_components/admin/CashCreditChart';
-import ExpenseForm from '@/app/_components/admin/ExpenseForm';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
-import DeleteExpenseButton from '@/app/_components/admin/DeleteExpenseButton';
+import PendingLink from '@/app/_components/ui/PendingLink';
 
 export const metadata = { title: 'Reports' };
 
@@ -44,10 +43,9 @@ export default async function ReportsPage({ searchParams }) {
   // - and disagreed with the Excel download, which was always month-based.
   const { from: monthFrom, to: monthTo } = monthRange(year, month);
 
-  const [report, trend, expenses] = await Promise.all([
+  const [report, trend] = await Promise.all([
     getMonthlyReport(year, month),
     getSalesTrend(monthFrom, monthTo),
-    getExpenses({ limit: 50 }),
   ]);
 
   const sales = report.sales ?? {};
@@ -100,7 +98,21 @@ export default async function ReportsPage({ searchParams }) {
       <StatGrid>
         <StatTile label="Sales" value={formatPKR(sales.sale_amount)} sub={formatLitres(sales.litres_sold)} />
         <StatTile label="Fuel bought" value={formatPKR(purchases.total_cost)} sub={formatLitres(purchases.quantity_litres)} />
-        <StatTile label="Expenses" value={formatPKR(report.expenses_total)} />
+        {/* The total only. Recording an expense, and the breakdown by
+            category, moved to /admin/expenses - so the tile carries the link
+            rather than leaving the figure with no way through to its detail. */}
+        <StatTile
+          label="Expenses"
+          value={formatPKR(report.expenses_total)}
+          sub={
+            <PendingLink
+              href={`/admin/expenses?month=${monthParam}`}
+              className="inline-flex items-center gap-1.5 font-semibold text-brand-700 underline"
+            >
+              See or add expenses
+            </PendingLink>
+          }
+        />
         <StatTile
           label="Profit"
           value={formatPKR(profit)}
@@ -243,73 +255,6 @@ export default async function ReportsPage({ searchParams }) {
         </div>
       </details>
 
-      {/* ---- expenses ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
-        Expenses
-      </h2>
-      <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
-        <ExpenseForm />
-
-        <div>
-          {(report.expenses_by_category ?? []).length > 0 ? (
-            <div className="card mb-4 p-4">
-              <h3 className="mb-3 text-sm font-bold text-ink-900">
-                This month, by category
-              </h3>
-              <ul className="space-y-2">
-                {report.expenses_by_category.map((row) => (
-                  <li key={row.category} className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="text-ink-700">{row.category}</span>
-                    <span className="tabular font-semibold text-ink-900">
-                      {formatPKR(row.amount)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {expenses.length === 0 ? (
-            <p className="card px-4 py-6 text-center text-sm text-ink-500">
-              No expenses recorded yet.
-            </p>
-          ) : (
-            <div className="card table-scroll">
-              <table className="w-full min-w-[34rem]">
-                <thead className="border-b border-ink-200 bg-ink-50">
-                  <tr>
-                    <th className="th">Date</th>
-                    <th className="th">Category</th>
-                    <th className="th">Note</th>
-                    <th className="th text-right">Amount</th>
-                    {/* The column still needs to occupy a cell, so the label
-                        is hidden rather than the header itself. */}
-                    <th className="th">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink-100">
-                  {expenses.map((expense) => (
-                    <tr key={expense.id}>
-                      <td className="td whitespace-nowrap">{formatDate(expense.expense_date)}</td>
-                      <td className="td font-medium">{expense.category}</td>
-                      <td className="td text-ink-600">{expense.note ?? '—'}</td>
-                      <td className="td-num font-semibold">{formatPKR(expense.amount)}</td>
-                      <td className="td">
-                        <DeleteExpenseButton
-                          expenseId={expense.id}
-                          summary={`${expense.category} ${formatPKR(expense.amount)}`}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
     </>
   );
 }

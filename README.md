@@ -77,6 +77,7 @@ Fuel prices** and set petrol and diesel.
 | Record purchases and dips | yes | yes |
 | Add customers, record payments | yes | yes |
 | See sales totals, profit, reports | yes | **no** |
+| Record and see expenses | yes | **no** |
 | See the bank accounts and their balances | yes | **no** |
 | Change prices, tanks, nozzles | yes | **no** |
 | Correct or delete past entries | yes | **no** |
@@ -182,7 +183,8 @@ app/
     stock-checks/          dip readings and gain/loss
     customers/             list, new, and [id] detail with ledger
     banking/               the owner's bank accounts - owner only
-    reports/               monthly profit, charts, expenses, Excel export
+    expenses/              what the pump spends, by month - owner only
+    reports/               monthly profit, charts, Excel export
     settings/              prices, tanks, nozzle wiring
     account/               your own login, and staff logins for the owner
   _components/

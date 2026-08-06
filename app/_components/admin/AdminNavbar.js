@@ -22,8 +22,12 @@ import BrandMark from '@/app/_components/ui/BrandMark';
  *
  * `edge: true` marks Reports and Settings, the two looked at occasionally
  * rather than worked in all day. They are pinned to the far right of the row,
- * apart from the six operational tabs someone actually flicks between - see
- * how `edge` is used in the render below.
+ * apart from the operational tabs someone actually flicks between - see how
+ * `edge` is used in the render below.
+ *
+ * Expenses sits with Banking rather than beside Reports: it is where money
+ * going out is written down the day it is paid, which is daily work, not a
+ * monthly read.
  */
 const LINKS = [
   { href: '/admin', label: 'Dashboard', roles: ['super_admin'] },
@@ -32,6 +36,7 @@ const LINKS = [
   { href: '/admin/stock-checks', label: 'Stock', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/customers', label: 'Customers', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/banking', label: 'Banking', roles: ['super_admin'] },
+  { href: '/admin/expenses', label: 'Expenses', roles: ['super_admin'] },
   { href: '/admin/reports', label: 'Reports', roles: ['super_admin'], edge: true },
   { href: '/admin/settings', label: 'Settings', roles: ['super_admin'], edge: true },
 ];
@@ -113,7 +118,7 @@ export default function AdminNavbar({ profile }) {
         {/* Scrolls sideways on a phone rather than wrapping into two rows.
             From lg up, Reports and Settings sit pinned to the far right -
             ml-auto on their list soaks up whatever space is left in the row -
-            apart from the six tabs worked in all day, which stay left-packed
+            apart from the tabs worked in all day, which stay left-packed
             with a little more breathing room between them. Below lg there is
             no spare width to make that grouping mean anything, so both groups
             sit in their natural left-to-right order instead. */}
