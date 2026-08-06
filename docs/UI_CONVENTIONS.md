@@ -92,6 +92,13 @@ Concretely, that space cost showed up twice in this app's history:
   form's own width column left dead whitespace once the seven-column
   purchases table beside/below it needed the rest of the page.
 
+**When to leave a form open on the page instead**: when filling it in is the
+reason the page is opened at all, and the table beside it still fits the
+`1fr` track (see "Layout: form beside a table"). `ExpenseForm` on
+`/admin/expenses` is the reference case — an expense is recorded the day it
+is paid, so putting it behind a button would add a click to the page's main
+job to save space its neighbouring table does not need.
+
 The **canonical implementation** to copy is `BankAccountForm.js`
 (`app/_components/admin/BankAccountForm.js`) or `PurchaseForm.js`
 (`app/_components/admin/PurchaseForm.js`, the more recent one):
@@ -224,6 +231,15 @@ worth the fragility next to just removing the competing column.
 - `<EmptyState title description>{children}</EmptyState>`
   (`app/_components/ui/EmptyState.js`) — centered card for "nothing here
   yet", used instead of rendering an empty table.
+- **A month-scoped page filters from `<PageHeader>`'s children**: a plain
+  `method="GET"` form with `<input type="month" name="month">` and a "Show"
+  button, posting back to the page's own path, with the page validating
+  `/^\d{4}-\d{2}$/` and falling back to the current month. Used by Reports
+  and Expenses. No Client Component and no Server Action needed — it is a
+  query string, so the browser can submit it and a shared link keeps the
+  month. Everything the page shows should follow it, including any table:
+  a card scoped to the chosen month above a table showing all time reads as
+  a contradiction, which is what the expenses block on Reports used to do.
 - `<DateNav>` (`app/_components/admin/DateNav.js`) — previous/next arrows, a
   date box and "Back to today", used by Readings, Dashboard and Stock. Anything
   passed as `children` joins the end of its button row, so a page action for

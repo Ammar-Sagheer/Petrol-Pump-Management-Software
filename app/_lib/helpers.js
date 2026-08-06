@@ -28,6 +28,7 @@ export const ROUTE_ACCESS = {
   '/admin/customers': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   // The owner's own bank money, not pump operations.
   '/admin/banking': [ROLES.SUPER_ADMIN],
+  '/admin/expenses': [ROLES.SUPER_ADMIN],
   '/admin/reports': [ROLES.SUPER_ADMIN],
   '/admin/settings': [ROLES.SUPER_ADMIN],
   // Your own login only. Managing other people's stays under /admin/settings.

@@ -258,14 +258,22 @@ export async function getMonthlyReport(year, month) {
 // Expenses and staff accounts (super_admin only - RLS enforces it)
 // ---------------------------------------------------------------------------
 
-export async function getExpenses({ limit = 100 } = {}) {
+/**
+ * The recorded expenses, newest first.
+ *
+ * `from`/`to` are inclusive ISO dates - the Expenses page passes the month on
+ * screen, so its table and its totals describe the same set of rows. Left out,
+ * it returns the most recent ones regardless of month.
+ */
+export async function getExpenses({ from, to, limit = 100 } = {}) {
   const supabase = await createClient();
+
+  let query = supabase.from('expenses').select('*');
+  if (from) query = query.gte('expense_date', from);
+  if (to) query = query.lte('expense_date', to);
+
   return unwrap(
-    await supabase
-      .from('expenses')
-      .select('*')
-      .order('expense_date', { ascending: false })
-      .limit(limit),
+    await query.order('expense_date', { ascending: false }).limit(limit),
     'the expenses',
   );
 }

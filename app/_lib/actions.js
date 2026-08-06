@@ -443,7 +443,8 @@ export async function resetEverything(_prevState, formData) {
   if (error) return fail(describe(error, 'Could not reset the data.'));
 
   ['/admin', '/admin/readings', '/admin/purchases', '/admin/stock-checks',
-   '/admin/customers', '/admin/reports', '/admin/settings'].forEach(revalidatePath);
+   '/admin/customers', '/admin/expenses', '/admin/reports',
+   '/admin/settings'].forEach(revalidatePath);
 
   const n = (key) => Number(data?.[key] ?? 0);
   return ok(
@@ -961,6 +962,8 @@ export async function createExpense(_prevState, formData) {
 
   if (error) return fail(describe(error, 'Could not save the expense.'));
 
+  // Reports too: its Expenses total and the profit below it both move.
+  revalidatePath('/admin/expenses');
   revalidatePath('/admin/reports');
   return ok('Expense recorded.');
 }
@@ -984,6 +987,7 @@ export async function deleteExpense(_prevState, formData) {
 
   if (error) return fail(describe(error, 'Could not delete the expense.'));
 
+  revalidatePath('/admin/expenses');
   revalidatePath('/admin/reports');
   return ok('Expense deleted.');
 }
