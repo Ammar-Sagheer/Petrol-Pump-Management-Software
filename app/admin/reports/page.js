@@ -50,7 +50,20 @@ export default async function ReportsPage({ searchParams }) {
 
   const sales = report.sales ?? {};
   const purchases = report.purchases ?? {};
+  const lubricantSales = report.lubricant_sales ?? {};
+  const lubricantPurchases = report.lubricant_purchases ?? {};
+  const lubricantsByProduct = report.lubricants_by_product ?? [];
   const profit = Number(report.profit ?? 0);
+
+  // Fuel and lubricants, added up. The tiles report the business; the sections
+  // under them are where each trade is shown on its own.
+  const totalSales = Number(report.total_sales ?? 0);
+  const totalStockCost = Number(report.total_stock_cost ?? 0);
+  const totalCash = Number(sales.cash_amount ?? 0) + Number(lubricantSales.cash_amount ?? 0);
+  const totalCredit = Number(sales.credit_amount ?? 0) + Number(lubricantSales.credit_amount ?? 0);
+  const totalPending =
+    Number(purchases.pending_amount ?? 0) + Number(lubricantPurchases.pending_amount ?? 0);
+  const lubricantAmount = Number(lubricantSales.amount ?? 0);
 
   return (
     <>
@@ -96,8 +109,24 @@ export default async function ReportsPage({ searchParams }) {
       </h2>
 
       <StatGrid>
-        <StatTile label="Sales" value={formatPKR(sales.sale_amount)} sub={formatLitres(sales.litres_sold)} />
-        <StatTile label="Fuel bought" value={formatPKR(purchases.total_cost)} sub={formatLitres(purchases.quantity_litres)} />
+        <StatTile
+          label="Sales"
+          value={formatPKR(totalSales)}
+          sub={
+            lubricantAmount > 0
+              ? `${formatPKR(sales.sale_amount)} fuel · ${formatPKR(lubricantAmount)} lubricants`
+              : formatLitres(sales.litres_sold)
+          }
+        />
+        <StatTile
+          label="Stock bought"
+          value={formatPKR(totalStockCost)}
+          sub={
+            Number(lubricantPurchases.total_cost ?? 0) > 0
+              ? `${formatPKR(purchases.total_cost)} fuel · ${formatPKR(lubricantPurchases.total_cost)} lubricants`
+              : formatLitres(purchases.quantity_litres)
+          }
+        />
         {/* The total only. Recording an expense, and the breakdown by
             category, moved to /admin/expenses - so the tile carries the link
             rather than leaving the figure with no way through to its detail. */}
@@ -117,29 +146,26 @@ export default async function ReportsPage({ searchParams }) {
           label="Profit"
           value={formatPKR(profit)}
           tone={profit >= 0 ? 'positive' : 'negative'}
-          sub="sales − fuel − expenses"
+          sub="sales − stock bought − expenses"
         />
       </StatGrid>
 
       <p className="mt-3 rounded-lg border border-ink-200 bg-white px-4 py-3 text-xs text-ink-600">
-        Profit here counts fuel <span className="font-semibold">bought</span> this month, not fuel
-        sold from stock. A big delivery near month end therefore makes profit look low — that money
-        is sitting in the tank, which is what the closing stock figure below shows.
+        Sales and profit here cover both trades — fuel through the nozzles and lubricants over the
+        counter. Profit counts stock <span className="font-semibold">bought</span> this month, not
+        stock sold from the tank or the shelf. A big delivery near month end therefore makes profit
+        look low — that money is sitting in stock, which is what the closing figures below show.
       </p>
 
       {/* ---- cash / credit + pending ---- */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Cash taken</p>
-          <p className="tabular mt-1 text-xl font-bold text-ink-900">
-            {formatPKR(sales.cash_amount)}
-          </p>
+          <p className="tabular mt-1 text-xl font-bold text-ink-900">{formatPKR(totalCash)}</p>
         </div>
         <div className="card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Given on credit</p>
-          <p className="tabular mt-1 text-xl font-bold text-ink-900">
-            {formatPKR(sales.credit_amount)}
-          </p>
+          <p className="tabular mt-1 text-xl font-bold text-ink-900">{formatPKR(totalCredit)}</p>
         </div>
         <div className="card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
@@ -147,13 +173,95 @@ export default async function ReportsPage({ searchParams }) {
           </p>
           <p
             className={`tabular mt-1 text-xl font-bold ${
-              Number(purchases.pending_amount ?? 0) > 0 ? 'text-red-700' : 'text-ink-900'
+              totalPending > 0 ? 'text-red-700' : 'text-ink-900'
             }`}
           >
-            {formatPKR(purchases.pending_amount)}
+            {formatPKR(totalPending)}
           </p>
         </div>
       </div>
+
+      {/* ---- lubricants ---- */}
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+        Lubricants
+      </h2>
+
+      {lubricantsByProduct.length === 0 ? (
+        <p className="card px-4 py-6 text-center text-sm text-ink-500">
+          No lubricants were bought or sold in this month.
+        </p>
+      ) : (
+        <>
+          <div className="mb-4 grid gap-4 sm:grid-cols-4">
+            <div className="card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Sold</p>
+              <p className="tabular mt-1 text-xl font-bold text-ink-900">
+                {formatPKR(lubricantAmount)}
+              </p>
+              <p className="mt-0.5 text-xs text-ink-500">
+                {formatLitres(lubricantSales.litres)} over{' '}
+                {Number(lubricantSales.sales_count ?? 0)} sales
+              </p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Cash</p>
+              <p className="tabular mt-1 text-xl font-bold text-ink-900">
+                {formatPKR(lubricantSales.cash_amount)}
+              </p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">On credit</p>
+              <p className="tabular mt-1 text-xl font-bold text-ink-900">
+                {formatPKR(lubricantSales.credit_amount)}
+              </p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+                Stock bought
+              </p>
+              <p className="tabular mt-1 text-xl font-bold text-ink-900">
+                {formatPKR(lubricantPurchases.total_cost)}
+              </p>
+              <p className="mt-0.5 text-xs text-ink-500">
+                {formatLitres(lubricantPurchases.quantity_litres)}
+              </p>
+            </div>
+          </div>
+
+          <div className="card table-scroll">
+            <table className="w-full min-w-[44rem]">
+              <thead className="border-b border-ink-200 bg-ink-50">
+                <tr>
+                  <th className="th">Lubricant</th>
+                  <th className="th text-right">Litres sold</th>
+                  <th className="th text-right">Sales</th>
+                  <th className="th text-right">Cash</th>
+                  <th className="th text-right">Credit</th>
+                  <th className="th text-right">Restocked</th>
+                  <th className="th text-right">Left at month end</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {lubricantsByProduct.map((product) => (
+                  <tr key={product.lubricant_id}>
+                    <td className="td font-medium">{product.name}</td>
+                    <td className="td-num">{formatLitres(product.litres_sold)}</td>
+                    <td className="td-num font-semibold">{formatPKR(product.amount)}</td>
+                    <td className="td-num">{formatPKR(product.cash_amount)}</td>
+                    <td className="td-num">{formatPKR(product.credit_amount)}</td>
+                    <td className="td-num text-ink-600">
+                      {Number(product.bought_litres) > 0
+                        ? `${formatLitres(product.bought_litres)} · ${formatPKR(product.bought_cost)}`
+                        : '—'}
+                    </td>
+                    <td className="td-num font-semibold">{formatLitres(product.closing_litres)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* ---- closing stock ---- */}
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
@@ -210,11 +318,11 @@ export default async function ReportsPage({ searchParams }) {
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink-900">Daily sales</h3>
+          <h3 className="mb-3 text-sm font-bold text-ink-900">Daily fuel sales</h3>
           <SalesTrendChart data={trend} height={280} />
         </section>
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink-900">Cash vs credit</h3>
+          <h3 className="mb-3 text-sm font-bold text-ink-900">Fuel: cash vs credit</h3>
           <CashCreditChart data={trend} height={280} />
         </section>
       </div>
@@ -226,16 +334,17 @@ export default async function ReportsPage({ searchParams }) {
           Show these days as a table
         </summary>
         <div className="table-scroll mt-4">
-          <table className="w-full min-w-[38rem]">
+          <table className="w-full min-w-[46rem]">
             <thead className="border-b border-ink-200 bg-ink-50">
               <tr>
                 <th className="th">Date</th>
                 <th className="th text-right">Litres</th>
                 <th className="th text-right">Petrol</th>
                 <th className="th text-right">Diesel</th>
-                <th className="th text-right">Sales</th>
+                <th className="th text-right">Fuel sales</th>
                 <th className="th text-right">Cash</th>
                 <th className="th text-right">Credit</th>
+                <th className="th text-right">Lubricants</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
@@ -248,6 +357,14 @@ export default async function ReportsPage({ searchParams }) {
                   <td className="td-num font-semibold">{formatPKR(row.sale_amount)}</td>
                   <td className="td-num">{formatPKR(row.cash_amount)}</td>
                   <td className="td-num">{formatPKR(row.credit_amount)}</td>
+                  {/* Litres and money together in one column: a lubricant day
+                      is a handful of tins, so two columns of mostly blanks
+                      would cost more width than the figures are worth. */}
+                  <td className="td-num text-ink-600">
+                    {Number(row.lubricant_amount) > 0
+                      ? `${formatLitres(row.lubricant_litres)} · ${formatPKR(row.lubricant_amount)}`
+                      : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

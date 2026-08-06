@@ -149,6 +149,60 @@ export async function getPurchases({ limit = 100 } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Lubricants
+//
+// The shelf of engine oil and the rest: the products, what comes in from the
+// distributor, and what goes out over the counter. Everything is measured in
+// litres, whether it left as a sealed 4 L carton or as 250 ml poured loose.
+// ---------------------------------------------------------------------------
+
+/** The product list. Retired products are left out unless asked for. */
+export async function getLubricants({ includeRetired = false } = {}) {
+  const supabase = await createClient();
+
+  let query = supabase.from('lubricants').select('*');
+  if (!includeRetired) query = query.eq('is_active', true);
+
+  return unwrap(await query.order('name'), 'the lubricants');
+}
+
+/**
+ * The shelf as at a date: bought, sold and what is left, per product.
+ *
+ * Aggregated in Postgres like every other stock figure, so the Stock page and
+ * the monthly report cannot arrive at different answers.
+ */
+export async function getLubricantStock(date) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_lubricant_stock', { p_date: date ?? todayISO() }),
+    'the lubricant stock',
+  );
+}
+
+/** One day of counter sales with its totals - the whole Lubricants screen. */
+export async function getLubricantDay(date) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_lubricant_day', { p_date: date ?? todayISO() }),
+    "the day's lubricant sales",
+  );
+}
+
+export async function getLubricantPurchases({ limit = 100 } = {}) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('lubricant_purchases')
+      .select('*, lubricant:lubricants(id, name, pack_size_litres)')
+      .order('purchase_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    'the lubricant purchases',
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Stock checks
 // ---------------------------------------------------------------------------
 

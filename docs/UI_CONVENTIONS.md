@@ -248,6 +248,25 @@ worth the fragility next to just removing the competing column.
   there is no Go button, and clicking anywhere on the box opens the calendar
   (`showPicker()`) rather than only its icon. It ignores incomplete dates
   because a native date box fires `change` while the year is still being typed.
+- **When the day's controls outgrow the header, give them their own row.**
+  `<DateNav>` normally rides in `<PageHeader>`'s children, which is right for
+  a date row plus at most one action. Lubricants carries two actions on top
+  of the arrows and the date box, and `<DateNav>`'s "Back to today" appears
+  only when the date is *not* today — enough extra width to tip the whole
+  group over `PageHeader`'s wrap threshold, so the header jumped between one
+  row and two as you stepped from today to yesterday and back. The fix is a
+  `flex flex-wrap items-start justify-between` row of its own beneath the
+  header, date controls left and actions right: it cannot wrap against the
+  title, so nothing moves as the date changes. Reach for this only when a
+  page really has that much in the row; a single trigger button still belongs
+  in `PageHeader`.
+- **A badge and the name it labels go on one line.** In the Purchases table
+  the lubricant's name first sat under its badge, which made every lubricant
+  row taller than the fuel rows either side of it and left the brand reading
+  as a footnote to its own purchase. `flex items-center gap-2` with a
+  `min-w-[13rem]` on the cell keeps the common name beside its badge on one
+  line at 1024px while still letting a genuinely long one wrap rather than
+  forcing a horizontal scrollbar.
 - `<PendingLink>` (`app/_components/ui/PendingLink.js`) — use instead of
   `next/link`'s `<Link>` for any admin navigation. Every admin page fetches
   server-side, so a plain link leaves the screen looking frozen for a

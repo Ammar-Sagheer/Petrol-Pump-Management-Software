@@ -6,24 +6,37 @@ import {
   formatDate,
   formatLitres,
 } from '@/app/_lib/helpers';
-import { getExpectedStockForAllTanks, getStockChecks } from '@/app/_lib/data-service';
+import {
+  getExpectedStockForAllTanks,
+  getStockChecks,
+  getLubricantStock,
+} from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import EmptyState from '@/app/_components/ui/EmptyState';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
+import PendingLink from '@/app/_components/ui/PendingLink';
 import DateNav from '@/app/_components/admin/DateNav';
 import StockCheckForm from '@/app/_components/admin/StockCheckForm';
 
-export const metadata = { title: 'Stock checks' };
+export const metadata = { title: 'Stock' };
 
 /**
- * Compares what the books say should be in each tank against what the dip stick
- * actually measures.
+ * Everything the pump is holding: the two tanks, and the lubricant shelf.
+ *
+ * For the tanks this compares what the books say should be down there against
+ * what the dip stick actually measures.
  *
  *   expected = last measured dip + fuel delivered since - litres sold since
  *
  * The expected figure is always computed in the database, never sent up from
  * the browser, so the gain/loss number cannot be talked into saying something
  * convenient.
+ *
+ * The lubricant shelf has no dip stick - a sealed carton is either there or it
+ * is not - so it appears here as a book figure only: opening stock, plus what
+ * was bought, minus what was sold. It is here rather than only on the Lubricants
+ * page because "what stock am I holding" is one question, and answering half of
+ * it on a different tab is how a reorder gets forgotten.
  */
 export default async function StockChecksPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
@@ -34,9 +47,10 @@ export default async function StockChecksPage({ searchParams }) {
       ? params.date
       : todayISO();
 
-  const [tanks, checks] = await Promise.all([
+  const [tanks, checks, lubricants] = await Promise.all([
     getExpectedStockForAllTanks(date),
     getStockChecks(),
+    getLubricantStock(date),
   ]);
 
   const checksOnDate = new Map(
@@ -46,8 +60,8 @@ export default async function StockChecksPage({ searchParams }) {
   return (
     <>
       <PageHeader
-        title="Stock checks"
-        description={`Dip readings for ${formatDate(date)}, against what the books expect.`}
+        title="Stock"
+        description={`What is in the tanks and on the shelf as at ${formatDate(date)}.`}
       >
         <DateNav
           date={date}
@@ -56,6 +70,10 @@ export default async function StockChecksPage({ searchParams }) {
           nextDate={shiftISODate(date, 1)}
         />
       </PageHeader>
+
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+        Tanks — dip against the books
+      </h2>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2">
         {tanks.map((tank) => (
@@ -67,6 +85,82 @@ export default async function StockChecksPage({ searchParams }) {
           />
         ))}
       </div>
+
+      {/* ---- the lubricant shelf ---- */}
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+        Lubricant shelf
+      </h2>
+
+      {lubricants.length === 0 ? (
+        <EmptyState
+          title="No lubricants set up yet"
+          description="Add the brands the pump stocks from the Lubricants section. Their stock will then be listed here alongside the tanks."
+        />
+      ) : (
+        <>
+          <div className="card table-scroll">
+            <table className="w-full min-w-[38rem]">
+              <thead className="border-b border-ink-200 bg-ink-50">
+                <tr>
+                  <th className="th">Lubricant</th>
+                  <th className="th text-right">Opening</th>
+                  <th className="th text-right">Bought</th>
+                  <th className="th text-right">Sold</th>
+                  <th className="th text-right">In stock</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {lubricants.map((row) => {
+                  const left = Number(row.stock_litres ?? 0);
+                  const pack = Number(row.pack_size_litres ?? 0);
+                  return (
+                    <tr key={row.id}>
+                      <td className="td">
+                        <span className="font-medium">{row.name}</span>
+                        <span className="ml-2 text-xs text-ink-500">
+                          {formatLitres(pack)} pack
+                        </span>
+                        {row.is_active ? null : (
+                          <span className="badge ml-2 bg-ink-100 text-ink-600">retired</span>
+                        )}
+                      </td>
+                      <td className="td-num text-ink-500">
+                        {formatLitres(row.opening_stock_litres)}
+                      </td>
+                      <td className="td-num">{formatLitres(row.purchased_litres)}</td>
+                      <td className="td-num">{formatLitres(row.sold_litres)}</td>
+                      {/* Below a single pack is worth flagging: that is the
+                          point at which the next customer cannot be served. */}
+                      <td
+                        className={[
+                          'td-num font-bold',
+                          left <= 0
+                            ? 'text-red-700'
+                            : left < pack
+                              ? 'text-amber-800'
+                              : 'text-ink-900',
+                        ].join(' ')}
+                      >
+                        {formatLitres(left)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mb-8 mt-3 rounded-lg border border-ink-200 bg-white px-4 py-3 text-xs text-ink-600">
+            A book figure, not a measured one — there is no dip stick for a shelf of tins. It is
+            opening stock plus everything bought, minus everything sold, up to {formatDate(date)}.
+            Sales are recorded under{' '}
+            <PendingLink href="/admin/lubricants" className="font-semibold text-brand-700 underline">
+              Lubricants
+            </PendingLink>
+            .
+          </p>
+        </>
+      )}
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
         Previous checks

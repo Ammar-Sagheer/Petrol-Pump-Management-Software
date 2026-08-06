@@ -38,10 +38,18 @@ export default async function DashboardPage({ searchParams }) {
   const byFuel = summary.by_fuel_type ?? [];
   const tanks = summary.tanks ?? [];
   const purchases = summary.purchases ?? {};
+  const lubricants = summary.lubricants ?? {};
+  const lubricantsSold = summary.lubricants_by_product ?? [];
+  const lubricantStock = summary.lubricant_stock ?? [];
 
-  const saleAmount = Number(totals.sale_amount ?? 0);
-  const cashAmount = Number(totals.cash_amount ?? 0);
-  const creditAmount = Number(totals.credit_amount ?? 0);
+  // The tiles at the top are the whole day's takings, fuel and oil together -
+  // that is what was in the drawer at closing time. The sections below are
+  // where each trade is broken out.
+  const fuelAmount = Number(totals.sale_amount ?? 0);
+  const lubricantAmount = Number(lubricants.amount ?? 0);
+  const saleAmount = fuelAmount + lubricantAmount;
+  const cashAmount = Number(totals.cash_amount ?? 0) + Number(lubricants.cash_amount ?? 0);
+  const creditAmount = Number(totals.credit_amount ?? 0) + Number(lubricants.credit_amount ?? 0);
   const creditShare = saleAmount > 0 ? Math.round((creditAmount / saleAmount) * 100) : 0;
 
   return (
@@ -56,8 +64,24 @@ export default async function DashboardPage({ searchParams }) {
       </PageHeader>
 
       <StatGrid>
-        <StatTile label="Litres sold" value={formatLitres(totals.litres_sold)} />
-        <StatTile label="Total sales" value={formatPKR(saleAmount)} />
+        <StatTile
+          label="Fuel sold"
+          value={formatLitres(totals.litres_sold)}
+          sub={
+            Number(lubricants.litres ?? 0) > 0
+              ? `plus ${formatLitres(lubricants.litres)} of lubricants`
+              : null
+          }
+        />
+        <StatTile
+          label="Total sales"
+          value={formatPKR(saleAmount)}
+          sub={
+            lubricantAmount > 0
+              ? `${formatPKR(fuelAmount)} fuel · ${formatPKR(lubricantAmount)} lubricants`
+              : null
+          }
+        />
         <StatTile
           label="Cash"
           value={formatPKR(cashAmount)}
@@ -220,17 +244,112 @@ export default async function DashboardPage({ searchParams }) {
         </p>
       ) : null}
 
+      {/* ---- lubricants ---- */}
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+        Lubricants
+      </h2>
+
+      {lubricantStock.length === 0 ? (
+        <p className="card px-4 py-6 text-center text-sm text-ink-500">
+          No lubricants set up yet.{' '}
+          <Link href="/admin/lubricants" className="font-semibold text-brand-700 hover:underline">
+            Add the ones the pump stocks
+          </Link>
+        </p>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="card p-4">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-sm font-bold text-ink-900">Sold on this day</h3>
+              <span className="tabular text-lg font-bold text-ink-900">
+                {formatPKR(lubricants.amount)}
+              </span>
+            </div>
+
+            {Number(lubricants.sales_count ?? 0) === 0 ? (
+              <p className="mt-3 border-t border-ink-200/60 pt-3 text-xs text-ink-500">
+                Nothing sold over the counter on this date.{' '}
+                <Link
+                  href={`/admin/lubricants?date=${date}`}
+                  className="font-semibold text-brand-700 hover:underline"
+                >
+                  Record a sale
+                </Link>
+              </p>
+            ) : (
+              <>
+                <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3 text-xs">
+                  <div>
+                    <dt className="text-ink-500">Litres</dt>
+                    <dd className="tabular font-semibold text-ink-900">
+                      {formatLitres(lubricants.litres)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink-500">Cash</dt>
+                    <dd className="tabular font-semibold text-ink-900">
+                      {formatPKR(lubricants.cash_amount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink-500">Credit</dt>
+                    <dd className="tabular font-semibold text-ink-900">
+                      {formatPKR(lubricants.credit_amount)}
+                    </dd>
+                  </div>
+                </dl>
+
+                <ul className="mt-3 space-y-1.5 border-t border-ink-200/60 pt-3 text-xs">
+                  {lubricantsSold.map((product) => (
+                    <li key={product.name} className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-ink-700">{product.name}</span>
+                      <span className="tabular shrink-0 font-semibold text-ink-900">
+                        {formatLitres(product.litres)} · {formatPKR(product.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+
+          {/* The shelf, so a product about to run out is noticed from the
+              dashboard rather than when a customer asks for it. */}
+          <div className="card p-4">
+            <h3 className="text-sm font-bold text-ink-900">On the shelf</h3>
+            <ul className="mt-3 space-y-1.5 border-t border-ink-200/60 pt-3 text-xs">
+              {lubricantStock.map((product) => {
+                const left = Number(product.stock_litres ?? 0);
+                return (
+                  <li key={product.id} className="flex items-baseline justify-between gap-3">
+                    <span className="truncate text-ink-700">{product.name}</span>
+                    <span
+                      className={[
+                        'tabular shrink-0 font-semibold',
+                        left <= 0 ? 'text-red-700' : 'text-ink-900',
+                      ].join(' ')}
+                    >
+                      {formatLitres(left)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* ---- trends ---- */}
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
         Last {TREND_DAYS} days
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink-900">Daily sales</h3>
+          <h3 className="mb-3 text-sm font-bold text-ink-900">Daily fuel sales</h3>
           <SalesTrendChart data={trend} />
         </section>
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink-900">Cash vs credit</h3>
+          <h3 className="mb-3 text-sm font-bold text-ink-900">Fuel: cash vs credit</h3>
           <CashCreditChart data={trend} />
         </section>
       </div>

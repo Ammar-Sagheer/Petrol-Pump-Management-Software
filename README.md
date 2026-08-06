@@ -1,7 +1,7 @@
 # Mubeen Petroleum Service
 
-Daily management for the petrol pump: nozzle readings, fuel purchases, stock
-gain/loss, customer credit, banking and monthly profit.
+Daily management for the petrol pump: nozzle readings, fuel purchases,
+lubricant sales, stock gain/loss, customer credit, banking and monthly profit.
 
 **Naming and logo** live in `app/_lib/brand.js`. Change `BUSINESS_NAME` there and
 the navbar, the login screen, every browser tab title and the monthly workbook
@@ -74,12 +74,14 @@ Fuel prices** and set petrol and diesel.
 | | `super_admin` (owner) | `data_entry` (staff) |
 |---|---|---|
 | Enter daily readings | yes | yes |
+| Record lubricant sales | yes | yes |
 | Record purchases and dips | yes | yes |
 | Add customers, record payments | yes | yes |
 | See sales totals, profit, reports | yes | **no** |
 | Record and see expenses | yes | **no** |
 | See the bank accounts and their balances | yes | **no** |
 | Change prices, tanks, nozzles | yes | **no** |
+| Add or remove a lubricant from the shelf | yes | **no** |
 | Correct or delete past entries | yes | **no** |
 | Manage staff logins | yes | **no** |
 
@@ -106,9 +108,14 @@ enforced in three independent places:
    while it is still easy to fix.
 6. Save. Each customer's balance updates by itself.
 
-Deliveries go under **Purchases** — enter the litres and the amount on the
-delivery note; the rate per litre is worked out for you. The dip stick reading
-goes under **Stock**.
+Oil sold over the counter goes under **Lubricants**, one sale at a time as it
+happens: pick the product, tap the pack size or type the litres, and say whether
+it was cash or credit. Credit lands on the same customer ledger as fuel.
+
+Deliveries go under **Purchases** — fuel into the tanks and lubricants onto the
+shelf, in one list. Enter the litres and the amount on the delivery note; the
+rate per litre is worked out for you. The dip stick reading, and what is left on
+the lubricant shelf, both sit under **Stock**.
 
 Every screen with a date has arrows either side of a date box; picking a date in
 the box goes straight to that day. If a day was entered against the wrong date,
@@ -131,16 +138,24 @@ amount of application code can get around them.
   including the owner and including the service-role key. A mistake is corrected
   by posting a new entry pointing the other way, so the history always adds up.
   This is enforced by a database trigger, not just by permissions. Two narrow
-  exceptions exist and only these two: `created_by` and `credit_sale_id` may be
-  set to null when the profile or credit slip they point at is deleted. Every
-  other column must be byte-for-byte identical, so neither can be used as a way
-  in to change an amount, a date or a customer.
+  exceptions exist and only these: `created_by`, `credit_sale_id` and
+  `lubricant_sale_id` may be set to null when the profile, credit slip or
+  lubricant sale they point at is deleted. Every other column must be
+  byte-for-byte identical, so none can be used as a way in to change an amount,
+  a date or a customer.
 - **Deleting a reading reverses its credit slips, it does not erase them.** The
   customer's original debit stays on the ledger and an offsetting credit is
   posted beside it, so the balance comes back to correct while the history still
   reads as what happened. Same for clearing a whole day.
-- **Tank stock is recalculated from history**, never incremented, so the cached
-  figure cannot drift away from the purchases, sales and dips that produced it.
+- **Deleting a lubricant sale reverses its credit the same way**, in the same
+  transaction as the delete, so a customer is never left owing money for a tin
+  the books no longer show them taking.
+- **A lubricant sale must balance and must be attributable.** Cash plus credit
+  has to equal the amount charged, and any credit on it has to name the customer
+  it is owed by.
+- **Tank and lubricant stock are recalculated from history**, never incremented,
+  so the cached figures cannot drift away from the purchases, sales and dips
+  that produced them.
 - **A tank cannot be given more opening stock than it holds.**
 - **No bank account may go below zero** — checked per account, not across the
   total. A payment too large for one account is split across the others the
@@ -179,8 +194,9 @@ app/
     login/                 sign in (no signup)
     page.js                dashboard - owner only
     readings/              the daily entry screen
-    purchases/             fuel deliveries
-    stock-checks/          dip readings and gain/loss
+    lubricants/            counter sales, and the shelf
+    purchases/             fuel deliveries and lubricant restocks
+    stock-checks/          dip readings, gain/loss, and lubricant stock
     customers/             list, new, and [id] detail with ledger
     banking/               the owner's bank accounts - owner only
     expenses/              what the pump spends, by month - owner only
@@ -242,6 +258,8 @@ Applied in order:
 | `021_bank_split_payments.sql` | Per-account zero floor; one payment across several accounts |
 | `022_set_nozzle_wiring.sql` | All six nozzles saved in one UPDATE |
 | `023_purchase_total_is_the_input.sql` | Invoice total stored; rate per litre generated from it |
+| `024_lubricants.sql` | The lubricant shelf: products, purchases, counter sales, credit to the ledger |
+| `025_lubricants_in_reports.sql` | Lubricants in the dashboard, the trend, the monthly report and the export |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -280,9 +298,23 @@ the numbers are fast and cannot be altered client-side.
   one `PUMP_TIMEZONE` line if the pump ever moves.
 - **Number grouping** is `140,000` style. For the lakh style (`1,40,000`), change
   `'en-US'` to `'en-IN'` in the two formatters in `app/_lib/helpers.js`.
-- **Monthly profit** counts fuel *bought* in the month, not fuel sold from stock.
-  A big delivery near month end makes profit look low — that money is sitting in
-  the tank, which is what the closing stock figure shows.
+- **Lubricant stock is always in litres**, whether it leaves as a sealed 4 litre
+  carton or as 250 ml poured loose from an open drum. The pack size on a product
+  is only a shortcut on the sale form — it fills the litres box in one tap — so
+  a pump that sells both records both without switching to a different kind of
+  entry. A purchase is entered in litres too: twelve 4 litre cartons is 48, and
+  the form does that multiplication in front of you rather than letting 12 be
+  typed.
+- **Removing a lubricant means one of two things, and the database picks.** A
+  product never bought or sold is deleted outright — it was a typo. One with
+  history is *retired*: it stops appearing on the sale form, its past sales and
+  purchases keep counting in every month they belong to, and its name is
+  released so a replacement brand can reuse it. Retired products stay listed
+  under **Manage lubricants** with a **Bring back** button.
+- **Monthly profit** counts stock *bought* in the month — fuel and lubricants
+  alike — not stock sold from the tank or the shelf. A big delivery near month
+  end makes profit look low — that money is sitting in stock, which is what the
+  closing stock figures show.
 - **Banking keeps only the last 60 transactions per account.** Older ones are
   deleted automatically as new ones arrive. The *balances are never wrong* —
   each removed amount is folded into `pruned_deposits` / `pruned_payments` on the

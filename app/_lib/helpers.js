@@ -23,6 +23,7 @@ export const ROLES = {
 export const ROUTE_ACCESS = {
   '/admin': [ROLES.SUPER_ADMIN],
   '/admin/readings': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
+  '/admin/lubricants': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/purchases': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/stock-checks': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/customers': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],

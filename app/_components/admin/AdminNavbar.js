@@ -28,10 +28,15 @@ import BrandMark from '@/app/_components/ui/BrandMark';
  * Expenses sits with Banking rather than beside Reports: it is where money
  * going out is written down the day it is paid, which is daily work, not a
  * monthly read.
+ *
+ * Lubricants follows Readings for the same reason the two sit together in the
+ * evening: they are the two halves of what the pump sold today, one read off
+ * the meters and one written down over the counter.
  */
 const LINKS = [
   { href: '/admin', label: 'Dashboard', roles: ['super_admin'] },
   { href: '/admin/readings', label: 'Readings', roles: ['super_admin', 'data_entry'] },
+  { href: '/admin/lubricants', label: 'Lubricants', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/purchases', label: 'Purchases', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/stock-checks', label: 'Stock', roles: ['super_admin', 'data_entry'] },
   { href: '/admin/customers', label: 'Customers', roles: ['super_admin', 'data_entry'] },
