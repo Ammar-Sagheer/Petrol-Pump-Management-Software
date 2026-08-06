@@ -57,21 +57,32 @@ export default async function ReadingsPage({ searchParams }) {
       <PageHeader
         title="Daily readings"
         description={`Meter readings for ${formatDate(date)}. Opening figures carry over from the previous day.`}
-      >
+      />
+
+      {/* The day's controls on a row of their own, as on Lubricants - see
+          docs/UI_CONVENTIONS.md. This row holds less than that one does and
+          survives a laptop width either way, but it is the same latent
+          problem: DateNav's "Back to today" appears only when the date is not
+          today, so on a narrow enough screen the group wrapped under the title
+          on one day and sat beside it on the next, moving the date box and the
+          Clear button between one step and the next. Given its own row it
+          cannot wrap against the title at all, and this is the screen someone
+          works through every evening - the last place a control should move. */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <DateNav
           date={date}
           basePath="/admin/readings"
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
-        >
-          {/* Owner only. Entering a day against the wrong date is the mistake
-              this exists for, and it poisons every day after it because each
-              opening comes from the day before. */}
-          {profile.role === ROLES.SUPER_ADMIN ? (
-            <ClearDayButton date={date} dateLabel={formatDate(date)} entryCount={done.length} />
-          ) : null}
-        </DateNav>
-      </PageHeader>
+        />
+
+        {/* Owner only. Entering a day against the wrong date is the mistake
+            this exists for, and it poisons every day after it because each
+            opening comes from the day before. */}
+        {profile.role === ROLES.SUPER_ADMIN ? (
+          <ClearDayButton date={date} dateLabel={formatDate(date)} entryCount={done.length} />
+        ) : null}
+      </div>
 
       {missingRate ? (
         <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

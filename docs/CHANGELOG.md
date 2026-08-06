@@ -330,3 +330,10 @@ A connected sequence of changes reorganizing where things live, driven by
   A very long name still wraps, deliberately: forcing it onto one line
   would put a horizontal scrollbar on the table at laptop widths, which is
   the worse trade and one this repo has already made once.
+- **Readings got the same header treatment**, on the same reasoning rather
+  than because it had visibly broken: it carries "Clear this day" beside
+  the same conditional "Back to today", so it was one wide button or one
+  narrow screen away from the identical jump. It is also the screen worked
+  through every evening, which makes it the last place a control should
+  move between one day and the next. Checked as owner and as staff, on
+  today and an older date, at 1440/1152/1024 and 400px.
