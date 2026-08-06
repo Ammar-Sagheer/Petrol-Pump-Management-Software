@@ -311,3 +311,22 @@ A connected sequence of changes reorganizing where things live, driven by
   second group. `reset_all_data` *does* clear the trading, and keeps the
   product list with its stock zeroed, on the same reasoning that keeps the
   tanks.
+
+### Lubricants: two layout fixes after first use
+
+- **The Lubricants header jumped a row when the date changed.** Its
+  `<DateNav>` carried both page actions as children, and "Back to today"
+  only renders when the date is not today — so today fit on one line with
+  the title and yesterday wrapped underneath it. Stepping back a day moved
+  every control. The date controls and the actions now share a row of their
+  own below the header, which cannot wrap against the title at all.
+  Screenshotted at 1440/1152/1024 and 400px on both today and an older
+  date: identical placement in every pair, no page-level sideways scroll.
+- **A lubricant's name sat under its badge in the Purchases table**, which
+  made those rows taller than the fuel rows around them and left the brand
+  looking secondary — when the brand is the whole content of that cell for
+  a lubricant. Badge and name are inline now, with a `min-w-[13rem]` on the
+  cell so an ordinary name ("Carient 20W-50") stays on one line at 1024px.
+  A very long name still wraps, deliberately: forcing it onto one line
+  would put a horizontal scrollbar on the table at laptop widths, which is
+  the worse trade and one this repo has already made once.

@@ -70,13 +70,29 @@ export default async function LubricantsPage({ searchParams }) {
       <PageHeader
         title="Lubricants"
         description={`Counter sales for ${formatDate(date)}. Stock is kept in litres, packs and loose oil alike.`}
-      >
+      />
+
+      {/* The day's controls and the day's actions share a row of their own,
+          rather than riding along in PageHeader's children the way a single
+          button does.
+
+          Why: this page carries more in that row than any other - two arrows,
+          a date box, two actions - and "Back to today" appears only when the
+          date is not today. Passed to PageHeader, that one conditional button
+          was enough to tip the whole group over the wrap threshold, so the
+          header jumped between one row and two as you stepped from today to
+          yesterday and back. Given its own row the group cannot wrap against
+          the title at all, and the controls stay exactly where they were on
+          the previous day. Checked at 1440/1152/1024 and 400px, on today and
+          on an older date. */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <DateNav
           date={date}
           basePath="/admin/lubricants"
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
-        >
+        />
+        <div className="flex flex-wrap items-center gap-2">
           {isOwner ? <LubricantManager lubricants={products} /> : null}
           <LubricantSaleForm
             lubricants={sellable}
@@ -84,8 +100,8 @@ export default async function LubricantsPage({ searchParams }) {
             date={date}
             dateLabel={formatDate(date)}
           />
-        </DateNav>
-      </PageHeader>
+        </div>
+      </div>
 
       {sellable.length === 0 ? (
         <EmptyState

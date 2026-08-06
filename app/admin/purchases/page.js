@@ -144,16 +144,20 @@ export default async function PurchasesPage() {
                 {rows.map((row) => (
                   <tr key={`${row.kind}-${row.id}`}>
                     <td className="td whitespace-nowrap">{formatDate(row.date)}</td>
-                    <td className="td">
-                      <FuelBadge fuelType={row.badge} />
-                      {/* The tank has its fuel on the badge already; a lubricant
-                          needs its name, which is the only thing telling one
-                          product from another. */}
-                      {row.kind === 'lubricant' ? (
-                        <span className="mt-0.5 block text-xs font-medium text-ink-700">
-                          {row.item}
-                        </span>
-                      ) : null}
+                    {/* Badge and name on ONE line. The name sat under the badge
+                        at first, which made every lubricant row taller than the
+                        fuel rows either side of it and left the brand looking
+                        like a footnote to its own purchase - when the brand is
+                        the only thing telling one product from another. Inline,
+                        the rows keep a single height and the name reads as the
+                        item, which is what the column is for. */}
+                    <td className="td min-w-[13rem]">
+                      <span className="flex items-center gap-2">
+                        <FuelBadge fuelType={row.badge} />
+                        {row.kind === 'lubricant' ? (
+                          <span className="font-medium">{row.item}</span>
+                        ) : null}
+                      </span>
                     </td>
                     <td className="td">
                       <span className="font-medium">{row.supplier}</span>
