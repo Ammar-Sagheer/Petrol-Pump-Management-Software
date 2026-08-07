@@ -48,6 +48,9 @@ const LINKS = [
   { href: '/admin/expenses', label: 'Expenses', icon: 'expenses', roles: ['super_admin'] },
   { href: '/admin/reports', label: 'Reports', icon: 'reports', roles: ['super_admin'] },
   { href: '/admin/settings', label: 'Settings', icon: 'settings', roles: ['super_admin'] },
+  // Last, and open to both roles - the person most likely to need it is a new
+  // member of staff on their first evening, not the owner.
+  { href: '/admin/guide', label: 'Guide', icon: 'guide', roles: ['super_admin', 'data_entry'] },
 ];
 
 export default function AdminSidebar({ profile }) {

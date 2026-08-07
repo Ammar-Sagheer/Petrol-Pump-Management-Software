@@ -203,6 +203,7 @@ app/
     reports/               monthly profit, charts, Excel export
     settings/              prices, tanks, nozzle wiring
     account/               your own login, and staff logins for the owner
+    guide/                 how to use the app, English and Urdu (?lang=ur)
   _components/
     admin/                 admin-only components
     ui/                    shared building blocks
@@ -216,6 +217,7 @@ app/
     date-helpers.js        dates, safe on the server AND in the browser
     format-helpers.js      formatRate() - same reason as date-helpers
     brand.js               business name; the logo is public/logo.png
+    guide-content.js       the guide's text, both languages, as data
     excel-report.js        builds the monthly workbook from the template
   _styles/globals.css
 proxy.js                   session refresh + signed-in gate

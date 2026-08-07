@@ -1,7 +1,7 @@
 /**
  * The app's icons, drawn inline rather than pulled from a package.
  *
- * WHY NOT AN ICON LIBRARY. There are fifteen icons in here. Lucide or Heroicons
+ * WHY NOT AN ICON LIBRARY. There are sixteen icons in here. Lucide or Heroicons
  * would add a dependency and a bundle for that, and every icon in a library is
  * a decision someone else made about what a "tank" looks like. Drawing them
  * here keeps the set small, keeps them on the same 24px grid and the same
@@ -105,6 +105,14 @@ const PATHS = {
     <>
       <path d="M4 20h4L18.5 9.5a2.05 2.05 0 0 0-2.9-2.9L5 17.2z" />
       <path d="m15 8 3 3" />
+    </>
+  ),
+  // Guide: an open book.
+  guide: (
+    <>
+      <path d="M12 6.8C10.4 5.5 8.4 4.9 5.5 4.9c-.8 0-1.5.6-1.5 1.4v10.4c0 .8.7 1.4 1.5 1.4 2.9 0 4.9.6 6.5 1.9" />
+      <path d="M12 6.8c1.6-1.3 3.6-1.9 6.5-1.9.8 0 1.5.6 1.5 1.4v10.4c0 .8-.7 1.4-1.5 1.4-2.9 0-4.9.6-6.5 1.9" />
+      <path d="M12 6.8V20" />
     </>
   ),
   chevronRight: <path d="m9.5 5.5 6.5 6.5-6.5 6.5" />,
