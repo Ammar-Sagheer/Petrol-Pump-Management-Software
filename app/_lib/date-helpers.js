@@ -61,6 +61,22 @@ export function shiftISODate(iso, days) {
 }
 
 /**
+ * How many days from `from` to `to` inclusive, so a single day counts as 1.
+ *
+ * Both are treated as plain calendar dates at UTC midnight, the same as
+ * shiftISODate, which keeps this free of daylight-saving arithmetic - the
+ * business day is pinned to Asia/Karachi and never shifts, but the host's
+ * clock might.
+ */
+export function daysBetween(from, to) {
+  const parse = (iso) => {
+    const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((parse(to) - parse(from)) / 86400000) + 1;
+}
+
+/**
  * The first and last calendar day of a month, as ISO strings.
  *
  * `Date.UTC(year, month, 0)` is day zero of the FOLLOWING month, which is the

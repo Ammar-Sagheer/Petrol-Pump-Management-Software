@@ -73,7 +73,7 @@ export default async function BankingPage() {
             <Stat label="Paid out, all time" value={formatPKR(totals.paid)} />
           </section>
 
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">Accounts</h2>
+          <h2 className="section-heading">Accounts</h2>
           <div className="mb-8 grid gap-4 sm:grid-cols-2">
             {accounts.map((account) => (
               <AccountCard
@@ -88,7 +88,7 @@ export default async function BankingPage() {
             <BankTransactionForm accounts={accounts} />
 
             <div>
-              <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+              <h2 className="section-heading">
                 Transactions
               </h2>
 

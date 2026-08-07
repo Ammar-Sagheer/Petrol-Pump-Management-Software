@@ -121,7 +121,7 @@ export default async function CustomerDetailPage({ params }) {
 
           {/* ---- history ---- */}
           <section>
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+            <h2 className="section-heading">
               Transaction history
             </h2>
             <CustomerLedgerTable entries={entries} />

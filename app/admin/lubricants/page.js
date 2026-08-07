@@ -128,7 +128,7 @@ export default async function LubricantsPage({ searchParams }) {
             </StatGrid>
           </div>
 
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+          <h2 className="section-heading">
             Sold on {formatDate(date)}
           </h2>
 
@@ -207,7 +207,7 @@ export default async function LubricantsPage({ searchParams }) {
               because it is what someone recording a sale needs to know, and
               sending them to another tab to find it is how a sale gets typed
               against a product that ran out last week. */}
-          <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+          <h2 className="section-heading">
             On the shelf
           </h2>
           <div className="card table-scroll">
