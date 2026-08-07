@@ -149,6 +149,25 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   /*
+   * The heading that names a block on a page - "Tank stock", "Previous
+   * checks", "Fuel prices".
+   *
+   * The spacing is part of the class on purpose. Written out by hand it had
+   * drifted: of nineteen of these, nine carried a top margin and ten did not,
+   * so a heading like "Previous checks" sat flush against the card above it
+   * while the identical heading two pages away had room to breathe.
+   *
+   * `first:mt-0` is what makes one class cover both cases. A heading that
+   * opens a column or a section is the first child of its container and wants
+   * no space above it; one that follows a block of content is not, and gets
+   * the full gap. Adjacent margins collapse, so a preceding `mb-6` does not
+   * add to this - the larger of the two wins.
+   */
+  .section-heading {
+    @apply mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600 first:mt-0;
+  }
+
+  /*
    * A small caption over a figure - "FUEL SOLD" over "412.25 L". This pattern
    * is everywhere: the stat strips on Readings, Lubricants and the Dashboard,
    * the figures on a nozzle row, the cash/credit summary in the entry dialog.

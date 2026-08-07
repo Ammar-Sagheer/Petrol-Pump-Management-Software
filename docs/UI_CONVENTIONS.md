@@ -286,6 +286,29 @@ the wrong question.
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
 
+## Long tables get their own paged page
+
+A table that grows without bound does not belong sitting open on a page that
+is read for something else. Two of them now follow the same shape, and a
+third should copy it rather than invent another:
+
+- The page it lives on keeps a **bounded, recent slice** — seven days of fuel
+  rates on Settings, the chosen month of daily sales on Reports — and links
+  to the full history.
+- The history is its own route with a pager: `/admin/settings/fuel-prices`
+  and `/admin/reports/daily`. The page number is a **query string**, so Back
+  works through it and any page can be linked to or reloaded.
+- The table itself is a shared component (`FuelPriceTable`,
+  `DailySalesTable`) used by both, so the columns cannot drift apart between
+  the summary and the history.
+- Page by whatever the data is really counted in. Rates page by row; daily
+  sales page by **date window**, because `get_sales_trend` fills in every day
+  between two bounds including the ones with no trade, so a page is 25 days
+  rather than 25 rows and the page count falls out of the distance between
+  the first trading day and today.
+- A dead pager button is a `<span>`, not a link styled to look disabled — a
+  disabled-looking link is still focusable and still navigates.
+
 ## Icons
 
 - `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, drawn inline
@@ -309,6 +332,13 @@ the wrong question.
   button, sometimes more than one) right-aligned beside it, wrapping on
   narrow screens. This is where "Add account", "Record a delivery",
   "Nozzle settings" etc. live — not inline in the page body.
+- `<h2 className="section-heading">` for the heading that names a block on a
+  page. The spacing is in the class deliberately: written out by hand it had
+  drifted, and of nineteen headings nine had a top margin and ten did not, so
+  "Previous checks" sat flush against the card above it while the same
+  heading elsewhere had room. `first:mt-0` covers both cases — a heading that
+  opens a column or section is its container's first child and wants no gap;
+  one that follows content is not, and gets the full one.
 - `<EmptyState title description>{children}</EmptyState>`
   (`app/_components/ui/EmptyState.js`) — centered card for "nothing here
   yet", used instead of rendering an empty table.

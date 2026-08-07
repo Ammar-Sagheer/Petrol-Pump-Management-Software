@@ -340,6 +340,27 @@ export async function getSalesTrend(from, to) {
   );
 }
 
+/**
+ * The first day the pump traded, or null if it never has.
+ *
+ * The daily history pages backwards from today, so it needs to know where to
+ * stop - otherwise the pager would run on into empty days forever. Fuel and
+ * lubricants are both asked, because a day selling only oil is still a day.
+ */
+export async function getFirstTradingDay() {
+  const supabase = await createClient();
+
+  const [readings, lubricants] = await Promise.all([
+    supabase.from('nozzle_readings').select('reading_date').order('reading_date').limit(1),
+    supabase.from('lubricant_sales').select('sale_date').order('sale_date').limit(1),
+  ]);
+
+  const days = [readings.data?.[0]?.reading_date, lubricants.data?.[0]?.sale_date].filter(Boolean);
+  if (days.length === 0) return null;
+
+  return days.sort()[0];
+}
+
 export async function getMonthlyReport(year, month) {
   const supabase = await createClient();
   return unwrap(

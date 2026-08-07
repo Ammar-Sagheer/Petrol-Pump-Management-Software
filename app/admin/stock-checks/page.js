@@ -75,7 +75,7 @@ export default async function StockChecksPage({ searchParams }) {
         />
       </div>
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Tanks — dip against the books
       </h2>
 
@@ -91,7 +91,7 @@ export default async function StockChecksPage({ searchParams }) {
       </div>
 
       {/* ---- the lubricant shelf ---- */}
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Lubricant shelf
       </h2>
 
@@ -166,7 +166,7 @@ export default async function StockChecksPage({ searchParams }) {
         </>
       )}
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Previous checks
       </h2>
 

@@ -102,7 +102,7 @@ export default async function DashboardPage({ searchParams }) {
       </StatGrid>
 
       {/* ---- by fuel type ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         By fuel type
       </h2>
       {byFuel.length === 0 ? (
@@ -157,7 +157,7 @@ export default async function DashboardPage({ searchParams }) {
       )}
 
       {/* ---- tanks ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Tank stock
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -251,7 +251,7 @@ export default async function DashboardPage({ searchParams }) {
       ) : null}
 
       {/* ---- lubricants ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Lubricants
       </h2>
 
@@ -346,7 +346,7 @@ export default async function DashboardPage({ searchParams }) {
       )}
 
       {/* ---- trends ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Last {TREND_DAYS} days
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">

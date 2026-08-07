@@ -9,6 +9,8 @@ import {
   formatPKR,
 } from '@/app/_lib/helpers';
 import { getMonthlyReport, getSalesTrend } from '@/app/_lib/data-service';
+import DailySalesTable from '@/app/_components/admin/DailySalesTable';
+import Icon from '@/app/_components/ui/Icon';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
@@ -104,7 +106,7 @@ export default async function ReportsPage({ searchParams }) {
       ) : null}
 
       {/* ---- monthly headline ---- */}
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         {formatDate(report.from)} – {formatDate(report.to)}
       </h2>
 
@@ -182,7 +184,7 @@ export default async function ReportsPage({ searchParams }) {
       </div>
 
       {/* ---- lubricants ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Lubricants
       </h2>
 
@@ -264,7 +266,7 @@ export default async function ReportsPage({ searchParams }) {
       )}
 
       {/* ---- closing stock ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         Closing stock at month end
       </h2>
       <div className="card table-scroll">
@@ -313,7 +315,7 @@ export default async function ReportsPage({ searchParams }) {
       </div>
 
       {/* ---- 30 day trend ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
+      <h2 className="section-heading">
         {formatMonth(year, month)} day by day
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">
@@ -327,49 +329,26 @@ export default async function ReportsPage({ searchParams }) {
         </section>
       </div>
 
-      {/* The same 30 days as numbers - for anyone who cannot read the charts,
-          and for checking a specific day without hovering. */}
+      {/* The same days as numbers - for anyone who cannot read the charts, and
+          for checking a specific day without hovering. Still collapsed by
+          default and still scoped to the month on screen; the link goes to the
+          same table paged back over every day the pump has traded. */}
       <details className="card mt-4 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-ink-800">
           Show these days as a table
         </summary>
-        <div className="table-scroll mt-4">
-          <table className="w-full min-w-[46rem]">
-            <thead className="border-b border-ink-200 bg-ink-50">
-              <tr>
-                <th className="th">Date</th>
-                <th className="th text-right">Litres</th>
-                <th className="th text-right">Petrol</th>
-                <th className="th text-right">Diesel</th>
-                <th className="th text-right">Fuel sales</th>
-                <th className="th text-right">Cash</th>
-                <th className="th text-right">Credit</th>
-                <th className="th text-right">Lubricants</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-100">
-              {trend.map((row) => (
-                <tr key={row.day}>
-                  <td className="td whitespace-nowrap">{formatDate(row.day)}</td>
-                  <td className="td-num">{formatLitres(row.litres_sold)}</td>
-                  <td className="td-num">{formatLitres(row.petrol_litres)}</td>
-                  <td className="td-num">{formatLitres(row.diesel_litres)}</td>
-                  <td className="td-num font-semibold">{formatPKR(row.sale_amount)}</td>
-                  <td className="td-num">{formatPKR(row.cash_amount)}</td>
-                  <td className="td-num">{formatPKR(row.credit_amount)}</td>
-                  {/* Litres and money together in one column: a lubricant day
-                      is a handful of tins, so two columns of mostly blanks
-                      would cost more width than the figures are worth. */}
-                  <td className="td-num text-ink-600">
-                    {Number(row.lubricant_amount) > 0
-                      ? `${formatLitres(row.lubricant_litres)} · ${formatPKR(row.lubricant_amount)}`
-                      : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        <div className="mt-4">
+          <DailySalesTable rows={trend} />
         </div>
+
+        <PendingLink
+          href="/admin/reports/daily"
+          className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:underline"
+        >
+          See every day, not just this month
+          <Icon name="chevronRight" className="h-4 w-4" />
+        </PendingLink>
       </details>
 
     </>

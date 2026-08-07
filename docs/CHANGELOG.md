@@ -500,3 +500,23 @@ Together with the `cache()` on `getSessionProfile`, an admin navigation went
 from four Supabase round trips before its own data (middleware verify, then
 the layout's claims + profile, then the page's claims + profile) to one
 claims verification and one profile read.
+
+### Daily sales got its own paged page, and section headings got their spacing back
+
+- **`/admin/reports/daily`** shows every day the pump has traded, newest
+  first, 25 days to a page. Reports keeps the same table collapsed under
+  "Show these days as a table" for the month on screen and links across.
+  The table moved into `DailySalesTable` so the two cannot drift apart.
+- **Paged by date window, not by row.** `get_sales_trend` fills in every day
+  between two bounds, including days with no trade, so a page is 25 *days*:
+  page 1 is the last 25, page 2 the 25 before that. There is no row count to
+  fetch — the page count falls out of the distance between the first trading
+  day and today, which is what `getFirstTradingDay()` is for. Days with
+  nothing entered show as zero rather than being skipped, so a gap in the
+  book is visible instead of silently closing up.
+- **`.section-heading`** replaces the hand-written heading classes. They had
+  drifted: nineteen of them, nine with a top margin and ten without, so
+  "Previous checks" on the Stock page sat flush against the card above it.
+  `first:mt-0` in the class covers the headings that open a column or a
+  section, which genuinely want no gap — so one class is correct in both
+  places and cannot drift again.
