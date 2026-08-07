@@ -462,3 +462,41 @@ Worth being precise about what this is **not**: it is a per-request memo, not
 a cache across requests, and it cannot serve a stale answer. A new request
 does the lookup again — which is what keeps a deactivated staff account
 locked out on their very next navigation.
+
+### The middleware stopped calling Supabase on every request
+
+`proxy.js` ran `supabase.auth.getClaims()` on every request the app served.
+Measured with a mocked fetch against a valid, unexpired session cookie:
+
+    getSession()  -> signed in: true | network calls: 0
+    getClaims()   -> sub: 1111...  | network calls: 1  (/auth/v1/user)
+
+So every navigation, and every prefetch, waited on a Supabase round trip
+before Next.js began rendering. Both key types pay it, for different reasons:
+on the legacy shared JWT secret the middleware cannot check an HS256
+signature itself and auth-js falls back to `/auth/v1/user`; on asymmetric
+signing keys it verifies locally but needs the JWKS, and that cache lives on
+the client *instance* — middleware builds a fresh client per request, so it
+refetches `/.well-known/jwks.json` instead.
+
+It uses `getSession()` now, which reads the cookie and only talks to Supabase
+when the token is inside the refresh margin. Verified that the refresh — the
+middleware's other job, and the reason Server Components can rely on the
+cookie being current — still happens:
+
+    token valid for another hour:  network: none        cookies rewritten: false
+    token 10s from expiry:         network: /auth/v1/token  cookies rewritten: true
+
+**Why dropping verification here is safe.** This gate decides one thing:
+whether to redirect to the login page. It is not what protects the data and
+never was. A forged cookie that gets past it reaches a page calling
+`requirePageRole()`, which uses `getClaims()` and does verify, and behind that
+every query runs under RLS. The worst it buys is being redirected to login a
+moment later. Note the code reads `data.session` and never `session.user` —
+auth-js wraps that user object in a proxy that warns on property access,
+precisely because it comes from an unverified token.
+
+Together with the `cache()` on `getSessionProfile`, an admin navigation went
+from four Supabase round trips before its own data (middleware verify, then
+the layout's claims + profile, then the page's claims + profile) to one
+claims verification and one profile read.
