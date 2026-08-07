@@ -35,6 +35,9 @@ export const ROUTE_ACCESS = {
   '/admin/settings': [ROLES.SUPER_ADMIN],
   // Your own login only. Managing other people's stays under /admin/settings.
   '/admin/account': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
+  // How to use the app. Open to staff too - the person most likely to need it
+  // is a new attendant on their first evening.
+  '/admin/guide': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
 };
 
 /** Where a role lands after logging in. */

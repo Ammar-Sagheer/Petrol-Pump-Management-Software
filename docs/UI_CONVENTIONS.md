@@ -286,6 +286,28 @@ the wrong question.
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
 
+## Two languages on one page
+
+The Guide is the app's only bilingual screen, and the shape it uses is the
+one to copy if another follows.
+
+- **The text is data, not markup.** `app/_lib/guide-content.js` holds both
+  languages against the same keys; the page renders that shape once and picks
+  one. Two hand-written pages would drift the first time one was corrected.
+- **The language is a query string** (`?lang=ur`), like the month filters on
+  Reports and Expenses. No client component, no cookie, no stored preference
+  — the browser follows a plain link, the server renders one language, and
+  the Urdu version can be sent to someone as a link that opens in Urdu.
+- **`dir` goes on the article**, and everything inside it must be
+  direction-agnostic: flex rows follow `dir` on their own, spacing uses the
+  logical `ms-`/`ps-`/`border-s` utilities rather than left and right, and
+  anything that genuinely points is flipped with `rtl:`. A single `ml-` or
+  `left-` inside that subtree silently breaks the Urdu layout, which is why
+  `GuideFlow.js` says so at the top.
+- **Diagrams are boxes and borders, not images.** They stay sharp, re-flow on
+  a phone, keep their text selectable and readable at any size — and the same
+  markup renders in Urdu without anything being redrawn.
+
 ## Long tables get their own paged page
 
 A table that grows without bound does not belong sitting open on a page that

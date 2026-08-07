@@ -520,3 +520,34 @@ claims verification and one profile read.
   `first:mt-0` in the class covers the headings that open a column or a
   section, which genuinely want no gap — so one class is correct in both
   places and cannot drift again.
+
+### A Guide section, in English and Urdu
+
+New nav entry and route (`/admin/guide`), open to **staff as well as the
+owner** — the person most likely to need it is a new attendant on their first
+evening, not the man who commissioned the app. It does not hide the
+owner-only sections either; it labels them, because knowing Reports exists
+and is not yours to open beats not knowing.
+
+It is written for someone who has run this pump on paper for years and has
+never opened the app: what to do, in the order you do it, naming the real
+buttons. Contents: the whole app as three stages (set up once → enter the day
+every evening → read the report monthly), the one-time setup in dependency
+order, the evening routine as six numbered steps, a card per section saying
+when you would open it, the rules the database enforces and what a refused
+save means, how to fix a day entered against the wrong date, and who can see
+what.
+
+- **Both languages come from one source.** `_lib/guide-content.js` holds the
+  text against the same keys in `en` and `ur`; the page renders that shape
+  once. Two hand-written pages would drift the first time one was corrected.
+- **The language is a query string** (`?lang=ur`), like the month filters —
+  so the Urdu guide is a link that can be sent to someone and opens in Urdu.
+- **The diagrams are boxes and borders, not images**: sharp at any size, they
+  re-flow on a phone, the text stays real text, and the same markup renders
+  right-to-left without being redrawn. `GuideFlow.js` documents the rule that
+  makes that work — nothing inside may hard-code a left or a right.
+
+Checked both languages at 1152 and 400px: `dir` flips, the stage arrows point
+the other way, the step numbers move to the right-hand side, and neither
+language overflows the page.
