@@ -57,7 +57,7 @@ export default async function ReadingsPage({ searchParams }) {
     <>
       <PageHeader
         title="Daily readings"
-        description={`Meter readings for ${formatDate(date)}. Opening figures carry over from the previous day.`}
+        description="Opening figures carry over from the previous day. The day you are entering is shown below."
       />
 
       {/* The day's controls on a row of their own, as on Lubricants - see

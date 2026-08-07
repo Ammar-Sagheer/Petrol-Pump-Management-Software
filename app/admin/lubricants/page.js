@@ -70,7 +70,7 @@ export default async function LubricantsPage({ searchParams }) {
     <>
       <PageHeader
         title="Lubricants"
-        description={`Counter sales for ${formatDate(date)}. Stock is kept in litres, packs and loose oil alike.`}
+        description="Counter sales. Stock is kept in litres, packs and loose oil alike."
       />
 
       {/* The day's controls and the day's actions share a row of their own,

@@ -61,7 +61,7 @@ export default async function StockChecksPage({ searchParams }) {
     <>
       <PageHeader
         title="Stock"
-        description={`What is in the tanks and on the shelf as at ${formatDate(date)}.`}
+        description="What is in the tanks and on the shelf on the day shown below."
       />
 
       {/* Own row, as on every other date-driven page - see

@@ -19,6 +19,21 @@ import Icon from '@/app/_components/ui/Icon';
  * way lives in format-helpers.js instead - see formatRate above.
  */
 const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+/*
+ * Meter readings always carry two decimals; litres sold do not.
+ *
+ * A pump meter is a physical dial with a tenths digit, so 1,987,128.80 and
+ * 1,987,279.95 are the same shape of number. Formatted with a bare
+ * maximumFractionDigits the first lost its trailing zero and rendered as
+ * 1,987,128.8 - a digit shorter than the figure directly beside it, in a
+ * tabular font whose whole job is to keep the columns aligned. On a screen
+ * read in a hurry against cash in a drawer, that is how a digit gets misread.
+ */
+const meterFormat = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 const moneyFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 const showLitres = (n) => `${litreFormat.format(n || 0)} L`;
@@ -138,7 +153,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
           <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
             <RowFigure
               label="Meter starts at"
-              value={litreFormat.format(openingUsed)}
+              value={meterFormat.format(openingUsed)}
               strong
             />
             {/* "/ litre" lives in the caption, not in the figure. At the
@@ -223,8 +238,8 @@ function SavedReading({ row, date, creditSales, canDelete }) {
       <ReadingChainWarning row={row} date={date} openingUsed={row.opening_reading} />
 
       <dl className="grid grid-cols-2 gap-3 text-sm">
-        <Figure label="Opening" value={litreFormat.format(row.opening_reading)} />
-        <Figure label="Closing" value={litreFormat.format(row.closing_reading)} />
+        <Figure label="Opening" value={meterFormat.format(row.opening_reading)} />
+        <Figure label="Closing" value={meterFormat.format(row.closing_reading)} />
         <Figure label="Sold" value={showLitres(row.litres_sold)} strong />
         <Figure label="Total" value={showMoney(row.sale_amount)} strong />
         <Figure label="Cash" value={showMoney(row.cash_amount)} />
@@ -380,7 +395,7 @@ function EntryForm({ row, date, customers }) {
         <div>
           <span className="label">Opening</span>
           <p className="tabular rounded-lg border border-ink-200 bg-ink-100 px-3 py-2.5 text-lg font-semibold text-ink-600">
-            {litreFormat.format(opening)}
+            {meterFormat.format(opening)}
           </p>
         </div>
         <div>
@@ -405,15 +420,15 @@ function EntryForm({ row, date, customers }) {
 
       {meterWentBackwards ? (
         <p className="text-sm font-medium text-red-700">
-          The closing reading is below the opening reading of {litreFormat.format(opening)}.
+          The closing reading is below the opening reading of {meterFormat.format(opening)}.
         </p>
       ) : null}
 
       {overlapsNextDay ? (
         <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
           The reading already saved for {formatDayLabel(row.later_date)} starts at{' '}
-          {litreFormat.format(nextOpening)}, before this day would close at{' '}
-          {litreFormat.format(closingValue)} — so{' '}
+          {meterFormat.format(nextOpening)}, before this day would close at{' '}
+          {meterFormat.format(closingValue)} — so{' '}
           {litreFormat.format(round2(closingValue - nextOpening))} litres would be counted on both
           days. Clear {formatDayLabel(row.later_date)} on Readings first, then enter this day
           again.

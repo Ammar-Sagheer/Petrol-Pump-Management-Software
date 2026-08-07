@@ -2,7 +2,7 @@ import PendingLink from '@/app/_components/ui/PendingLink';
 import DateJump from '@/app/_components/admin/DateJump';
 import Icon from '@/app/_components/ui/Icon';
 
-import { todayISO, shiftISODate, formatDate } from '@/app/_lib/date-helpers';
+import { todayISO, shiftISODate, formatDate, formatDateLong } from '@/app/_lib/date-helpers';
 
 /**
  * Previous / next day, a date box, and a way back to today.
@@ -30,22 +30,57 @@ export default function DateNav({
   const isYesterday = date === shiftISODate(today, -1);
   const isFuture = date > today;
 
+  /*
+   * There is ALWAYS a label now, including for an ordinary past day, which
+   * used to render none at all. A day with no label looked the same as today
+   * at a glance, and that is the mistake this whole block exists to prevent:
+   * a reading entered against a day the reader did not think they were on.
+   */
   const relativeLabel = isToday
     ? 'Today'
     : isYesterday
       ? 'Yesterday'
       : isFuture
         ? 'Future date'
-        : null;
+        : 'Past day';
 
   const labelStyle = isToday
     ? 'bg-brand-100 text-brand-800'
     : isFuture
-      ? 'bg-amber-100 text-amber-900'
-      : 'bg-ink-200 text-ink-700';
+      ? 'bg-amber-200 text-amber-900'
+      : 'bg-ink-200 text-ink-800';
+
+  // The banner is tinted when the day is NOT today, so being somewhere else is
+  // something you notice rather than something you have to read for.
+  const bannerStyle = isToday
+    ? 'border-brand-200 bg-brand-50'
+    : isFuture
+      ? 'border-amber-300 bg-amber-50'
+      : 'border-ink-300 bg-ink-100';
 
   return (
-    <div className="flex flex-col items-start gap-1.5 sm:items-end">
+    <div className="flex flex-col items-start gap-2">
+      {/*
+        WHICH DAY IS ON SCREEN, said once and said loudly.
+        
+        This used to be a line of small grey text under the controls, competing
+        with a date box the browser draws in its own locale and a copy of the
+        date in the page description. Three quiet statements of the same fact,
+        none of them dominant - and the owner lost track of which day he was
+        entering, which is how a day's readings ended up on the wrong date.
+        
+        So: one banner, larger than anything else in the block, carrying the
+        weekday (checkable against the day you have actually lived), the
+        written date, and what that day is relative to today. Tinted whenever
+        it is not today.
+      */}
+      <p
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-2 ${bannerStyle}`}
+      >
+        <span className={`badge ${labelStyle}`}>{relativeLabel}</span>
+        <span className="text-lg font-bold text-ink-900">{formatDateLong(date)}</span>
+      </p>
+
       <div className="flex flex-wrap items-center gap-2">
         <PendingLink
           href={`${basePath}?${paramName}=${previousDate}`}
@@ -77,27 +112,6 @@ export default function DateNav({
         {children}
       </div>
 
-      {/*
-        Which day is on screen, in words, and deliberately the loudest thing in
-        this block.
-
-        A native date box is drawn by the browser in the BROWSER's locale, which
-        no amount of markup can change: on an en-US browser the 7th of August
-        renders "08/07/2026", which anyone reading dates day-first sees as the
-        8th of July. That box therefore cannot be trusted to say which day is
-        being worked on - so the written date carries it instead, at a size and
-        weight that beats the numbers above it, with Today / Yesterday spelled
-        out beside it. The box is left to be what it is good at: jumping to a
-        date. Entering a reading against the wrong day is expensive - each
-        opening comes from the day before - and this is the only guard the
-        reader gets before they start typing.
-      */}
-      <p className="flex items-center gap-2 text-base font-semibold text-ink-800">
-        {relativeLabel ? (
-          <span className={`badge ${labelStyle}`}>{relativeLabel}</span>
-        ) : null}
-        <span>{formatDate(date)}</span>
-      </p>
     </div>
   );
 }

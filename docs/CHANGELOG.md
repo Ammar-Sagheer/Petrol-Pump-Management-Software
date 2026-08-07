@@ -620,3 +620,62 @@ Checked against live data before applying: exactly the six 06/07 Aug pairs
 overlap and nothing else in the history does. The trigger was then exercised
 against the real 06 Aug row inside a block that deliberately aborts, so the
 attempt rolled back — it returned the intended message and no row changed.
+
+### Meter decimals, and a warning that knows which day it is on
+
+Two small things spotted in the entry dialog on the duplicated 06 Aug day.
+
+- **`1,987,128.8` beside `1,987,279.95`.** The opening had dropped its
+  trailing zero, so two figures that describe the same dial rendered at
+  different widths in a tabular font. Meter readings now use a `meterFormat`
+  fixed at two decimals; litres sold keep the ordinary format, being
+  quantities rather than dial positions.
+- **The overlap warning was written for a day not yet entered** — "saving
+  here will count them twice" — and was showing on a day already saved, where
+  there is nothing to save and the double count has already happened. It
+  reads as a prediction about a button that is not on screen. A saved day now
+  gets the true statement instead: "this day and 07 Aug 2026 both cover the
+  same 151.15 litres … one of the two has to be cleared: whichever date the
+  meter was not read on." The unentered wording also now says the save *will
+  be refused*, which since migration 026 it will be.
+
+A third case fell out of separating the two: a saved day whose next reading
+starts *above* where it closed is a gap, not an overlap, and now says so —
+"05 Aug 2026 opens at 18,967.53 but this day closes at 18,900.00 … 67.53
+litres are on neither day."
+
+### The selected day is now unmissable, and back-filling under a skipped day is refused
+
+**The day banner.** The owner lost track of which date he was entering, which
+is how a day's readings ended up on 07 Aug instead of 06 Aug. The date had
+been said three times on the same screen in three different formats — the
+page description, the browser-drawn date box, and a small grey caption — none
+of them dominant. `DateNav` now opens with one tinted banner above the
+controls: the relative label, the weekday and the written date. The weekday
+is the part that matters; it is checkable against the day someone has
+actually lived, where a row of digits is not. Grey for a past day, amber for
+a future one, green for today, and "Past day" now appears where previously an
+ordinary past date carried no label at all. The descriptions on Readings,
+Lubricants, Stock and the Dashboard no longer repeat the date.
+
+**Migration 027.** Migration 026 refused readings that overlap the next one,
+but left a gap: when the next reading opens exactly where this day starts,
+the only figure 026 still accepted was the opening itself — a nought-litre
+day. That is a lie rather than a duplicate: it records "nothing sold" for a
+day that traded, with the litres sitting on the later date, and nothing flags
+it afterwards. Now refused outright.
+
+It is deliberately *not* a ban on back-filling, because the honest repair
+looks almost identical and is needed — Unit 2 · Nozzle B had no 04 Aug
+reading and 05 Aug opened 85.35 L above where 03 Aug closed. The test is
+whether the later reading **left room**:
+
+    room = next reading's opening − this reading's opening
+    room > 0    a genuine gap; this day may be entered, up to that figure
+    room <= 0   the next day already covers this one; nothing to record
+
+Both paths were exercised against the live database inside blocks that
+deliberately abort, so both rolled back:
+
+    back-fill under a skipped-ahead day  >> BLOCKED, naming the day to clear
+    back-fill into a genuine 85.35 L gap >> ALLOWED, as it must be
