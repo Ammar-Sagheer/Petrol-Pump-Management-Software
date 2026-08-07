@@ -551,3 +551,72 @@ what.
 Checked both languages at 1152 and 400px: `dir` flips, the stage arrows point
 the other way, the step numbers move to the right-hand side, and neither
 language overflows the page.
+
+### "Check" was showing on every nozzle of every past day
+
+The red Check badge on a nozzle row was driven by:
+
+    Boolean(row.later_date) || openingDoesNotMatchPreviousClosing
+
+`later_date` only means "a reading exists on some later date", which is true
+of every nozzle on every past day the moment entry continues. So opening any
+earlier date painted Check on all six rows at once — and a warning that is
+always on is a warning nobody reads, including on the row where it mattered.
+
+Checked against the real 04 Aug 2026 sheet: all six nozzles flagged, and the
+data was clean — every opening equalled the previous closing, and every
+05 Aug opening equalled the 04 Aug closing. Except one: Unit 2 · Nozzle B has
+no reading on 04 Aug, and 05 Aug opens at 18,967.53 where 03 Aug closed at
+18,882.18. Entering 04 Aug there really would double-count.
+
+A meter is continuous, so the chain is intact when each reading opens exactly
+where the one before it closed. The badge now means one of three things:
+
+1. this day's opening is not the previous day's closing;
+2. this day is saved but the next reading does not open where this one closed
+   — the two overlap or leave a hole;
+3. this day is not saved and a later reading already exists, so saving here
+   back-fills underneath it.
+
+A later reading that opens exactly where this day closes is the chain
+working, which is the case that used to shout. Re-run over the same six rows:
+one flagged instead of six, and it is Unit 2 · Nozzle B.
+
+The same false positive was in the dialog's `ReadingChainWarning`, which told
+you "a reading already exists for 05 Aug" on days where 05 Aug continued from
+this one perfectly. Narrowed the same way.
+
+### Overlapping readings are now refused, not warned about
+
+On 07 Aug 2026 a day's six readings were entered at 13:15 dated the 7th, and
+the same meter figures were entered again at 17:35 dated the 6th. Nothing
+removed the first set, so one movement of the meters became two days:
+
+    06 Aug   1,677.82 L   Rs 577,260   entered 07 Aug 17:35-17:39
+    07 Aug   1,677.78 L   Rs 577,245   entered 07 Aug 13:15-13:17
+
+The dialog did warn at the time — "the reading already saved for 07 Aug opens
+at the same place this day starts, so it already includes these litres" — and
+the warning was correct. It was also ignorable, and it was sitting under six
+red Check badges that were firing on every row of every past day.
+
+Migration 026 makes it a rule in the database. Two readings for one nozzle
+overlap when the later one starts before the earlier one finishes, and that
+is now refused with a message naming the other date, the two figures and how
+many litres would be duplicated — the message is the instruction, since
+`describe()` passes database errors straight to the user.
+
+**A gap is still allowed.** A later reading starting *after* an earlier one
+finished means litres are missing, not duplicated — a skipped day or a
+replaced meter — and blocking it would trap someone with no way forward.
+Those stay warnings, as they were. Only overlap, which cannot be honest, is
+refused.
+
+`ReadingForm` also disables Save and explains the clash while the closing
+reading is still on screen. That is the courtesy layer; the trigger is the
+rule.
+
+Checked against live data before applying: exactly the six 06/07 Aug pairs
+overlap and nothing else in the history does. The trigger was then exercised
+against the real 06 Aug row inside a block that deliberately aborts, so the
+attempt rolled back — it returned the intended message and no row changed.
