@@ -53,6 +53,23 @@ export default async function ReadingsPage({ searchParams }) {
 
   const missingRate = sheet.some((row) => !row.rate);
 
+  /*
+   * Grouped by unit, because a unit is a physical thing standing on the
+   * forecourt with two nozzles on it - and the flat list gave no sign of that.
+   * Six evenly spaced cards read as six unrelated pumps, so "Unit 1 · Nozzle
+   * A" and "Unit 1 · Nozzle B" only announced their relationship in words the
+   * reader had to compare.
+   *
+   * get_reading_sheet already returns them ordered by unit then nozzle, so
+   * this preserves that order rather than sorting again.
+   */
+  const units = [];
+  for (const row of sheet) {
+    const last = units[units.length - 1];
+    if (last && last.unitNumber === row.unit_number) last.rows.push(row);
+    else units.push({ unitNumber: row.unit_number, rows: [row] });
+  }
+
   return (
     <>
       <PageHeader
@@ -108,18 +125,47 @@ export default async function ReadingsPage({ searchParams }) {
       </div>
 
       {/* A list, not a grid of cards. Each row opens a dialog to enter that
-          nozzle, so the whole day stays visible on one screen. */}
-      <div className="space-y-2">
-        {sheet.map((row) => (
-          <ReadingForm
-            key={row.nozzle_id}
-            row={row}
-            date={date}
-            customers={customers}
-            creditSales={creditSalesByReading[row.reading_id] ?? []}
-            canDelete={profile.role === ROLES.SUPER_ADMIN}
-          />
-        ))}
+          nozzle, so the whole day stays visible on one screen - now gathered
+          under the unit each nozzle belongs to, with the units set well apart
+          so the grouping is read rather than worked out. */}
+      <div className="space-y-8">
+        {units.map((unit) => {
+          const entered = unit.rows.filter((row) => row.reading_id).length;
+          const allDone = entered === unit.rows.length;
+
+          return (
+            <section key={unit.unitNumber} aria-label={`Unit ${unit.unitNumber}`}>
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h2 className="text-base font-bold uppercase tracking-wide text-ink-700">
+                  Unit {unit.unitNumber}
+                </h2>
+                {/* How far through this unit is, so a finished pump can be
+                    skipped without reading both of its rows. */}
+                <span
+                  className={`badge ${
+                    allDone ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-700'
+                  }`}
+                >
+                  {entered} of {unit.rows.length} entered
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {unit.rows.map((row) => (
+                  <ReadingForm
+                    key={row.nozzle_id}
+                    row={row}
+                    date={date}
+                    customers={customers}
+                    creditSales={creditSalesByReading[row.reading_id] ?? []}
+                    canDelete={profile.role === ROLES.SUPER_ADMIN}
+                    showUnit={false}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </>
   );
