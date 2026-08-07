@@ -95,6 +95,28 @@ export function monthRange(year, month) {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/**
+ * '2026-08-03' -> "Monday, 03 Aug 2026".
+ *
+ * The weekday is the point. A row of digits is easy to skim past and a date
+ * box drawn by the browser may not even be in the order the reader expects,
+ * but "Monday" is checkable against the day someone has actually lived - which
+ * is the whole job of the banner this feeds.
+ *
+ * Same string-splitting as formatDate, and for the same reason: `new Date()`
+ * on a bare date reads it as UTC midnight and names the wrong weekday for
+ * anyone west of Greenwich.
+ */
+export function formatDateLong(value) {
+  if (!value) return '';
+  const [y, m, d] = String(value).slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return String(value);
+  const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${weekday}, ${String(d).padStart(2, '0')} ${MONTHS[m - 1]} ${y}`;
+}
+
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                      'August', 'September', 'October', 'November', 'December'];
 

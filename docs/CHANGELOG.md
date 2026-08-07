@@ -643,3 +643,39 @@ A third case fell out of separating the two: a saved day whose next reading
 starts *above* where it closed is a gap, not an overlap, and now says so —
 "05 Aug 2026 opens at 18,967.53 but this day closes at 18,900.00 … 67.53
 litres are on neither day."
+
+### The selected day is now unmissable, and back-filling under a skipped day is refused
+
+**The day banner.** The owner lost track of which date he was entering, which
+is how a day's readings ended up on 07 Aug instead of 06 Aug. The date had
+been said three times on the same screen in three different formats — the
+page description, the browser-drawn date box, and a small grey caption — none
+of them dominant. `DateNav` now opens with one tinted banner above the
+controls: the relative label, the weekday and the written date. The weekday
+is the part that matters; it is checkable against the day someone has
+actually lived, where a row of digits is not. Grey for a past day, amber for
+a future one, green for today, and "Past day" now appears where previously an
+ordinary past date carried no label at all. The descriptions on Readings,
+Lubricants, Stock and the Dashboard no longer repeat the date.
+
+**Migration 027.** Migration 026 refused readings that overlap the next one,
+but left a gap: when the next reading opens exactly where this day starts,
+the only figure 026 still accepted was the opening itself — a nought-litre
+day. That is a lie rather than a duplicate: it records "nothing sold" for a
+day that traded, with the litres sitting on the later date, and nothing flags
+it afterwards. Now refused outright.
+
+It is deliberately *not* a ban on back-filling, because the honest repair
+looks almost identical and is needed — Unit 2 · Nozzle B had no 04 Aug
+reading and 05 Aug opened 85.35 L above where 03 Aug closed. The test is
+whether the later reading **left room**:
+
+    room = next reading's opening − this reading's opening
+    room > 0    a genuine gap; this day may be entered, up to that figure
+    room <= 0   the next day already covers this one; nothing to record
+
+Both paths were exercised against the live database inside blocks that
+deliberately abort, so both rolled back:
+
+    back-fill under a skipped-ahead day  >> BLOCKED, naming the day to clear
+    back-fill into a genuine 85.35 L gap >> ALLOWED, as it must be

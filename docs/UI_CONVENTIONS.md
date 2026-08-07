@@ -286,6 +286,27 @@ the wrong question.
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
 
+## The day on screen is stated once, and loudly
+
+`<DateNav>` opens with a tinted banner carrying the relative label, the
+weekday and the written date — "Yesterday · Thursday, 06 Aug 2026" — above
+the arrows and the date box.
+
+- **The weekday is the point.** A row of digits is easy to skim past, and the
+  native date box is drawn in the *browser's* locale, so it may not even be in
+  the order the reader expects. "Thursday" is checkable against the day
+  someone has actually lived.
+- **Tinted whenever it is not today** — grey for a past day, amber for a
+  future one — so being somewhere else is noticed rather than read for.
+- **There is always a label**, including "Past day". A day with no label
+  looked identical to today at a glance, which is exactly the mistake the
+  block exists to prevent.
+- **Say it once.** The date used to appear three times on the same screen in
+  three formats: the page description, the date box, and a small caption. The
+  descriptions on the date-driven pages no longer repeat it — three quiet
+  statements of one fact left none of them dominant, and the owner lost track
+  of which day he was entering.
+
 ## Meter readings carry two decimals
 
 A pump meter is a physical dial with a tenths digit, so 1,987,128.80 and

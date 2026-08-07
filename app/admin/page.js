@@ -54,7 +54,7 @@ export default async function DashboardPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Dashboard" description={formatDate(date)} />
+      <PageHeader title="Dashboard" description="The day's takings, stock and trend. The day shown is below." />
 
       {/* Own row, as on Readings and Lubricants - see docs/UI_CONVENTIONS.md.
           With the sidebar taking 240px this header has less width to play with
