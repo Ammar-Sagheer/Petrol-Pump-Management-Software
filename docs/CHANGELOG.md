@@ -337,3 +337,128 @@ A connected sequence of changes reorganizing where things live, driven by
   through every evening, which makes it the last place a control should
   move between one day and the next. Checked as owner and as staff, on
   today and an older date, at 1440/1152/1024 and 400px.
+
+### A readability pass, for an owner moving off a spreadsheet
+
+The app was built text-first and measured badly for the person who actually
+uses it — an owner in his fifties reading a tablet in a pump office. Measured
+before the change, on the Readings screen: nozzle figures 14px, their
+captions **10.4px** uppercase grey at 4.76:1, table cells 14px, nav 14px —
+while the page heading that tells the reader nothing was 24px. The data was
+smaller than the chrome around it.
+
+What changed:
+
+- **Type scale**, mostly through `globals.css` so it stays fixable in one
+  place: body and table cells to 16px, nozzle figures to 18px, stat values to
+  24px, captions to a 12px floor, buttons and tabs to `py-3` (~48px targets).
+- **`figure-label` / `figure-value`** — the caption-over-figure pairing that
+  had been hand-rolled at 25 sites and had drifted to 10.4px in the worst of
+  them, now one class each.
+- **Contrast floor of `ink-600`** for anything meant to be read; `ink-400`
+  (2.6:1) is now only disabled and placeholder text. 57 secondary captions
+  and 10 "(optional)" hints moved up.
+- **Icons** (`ui/Icon.js`), drawn inline rather than added as a dependency —
+  on every nav tab, and on the Entered/Enter status, which had been two words
+  two letters apart distinguished mainly by amber vs green.
+- **The written date is now the loudest thing in `DateNav`.** A native date
+  box is drawn in the *browser's* locale, so on an en-US browser the 7th of
+  August renders "08/07/2026" — the 8th of July to anyone reading day-first.
+  Markup cannot change that, so the box was demoted to a jump control and the
+  spelled-out date carries which day is on screen.
+
+Two things this pass broke and then fixed, both worth knowing about:
+
+- **The nav no longer fits on one line and now wraps.** Icons plus 16px
+  labels need 1347px against a 1152px container, so Reports and Settings sat
+  off the right edge on every laptop. The `lg:ml-auto` pinning that used to
+  hold those two apart had to go with it: inside a wrapping row it threw them
+  onto a line of their own, making the header three rows at 1024px. They are
+  still last in reading order. Below `sm` the row still scrolls rather than
+  wrapping — ten tabs stacked four deep would push the day's work off screen
+  — and now has a measured fade on whichever edge still has tabs behind it.
+- **"Rs 336.34 / litre" started truncating** in a nozzle row on a phone at
+  the larger size. Fixed by moving "/ litre" into the caption rather than by
+  shrinking the figure back down. Same story on the dashboard tiles, where
+  "Rs 4,386,211" was breaking after the "Rs": those are `whitespace-nowrap`
+  now, and the grid drops to one column below 380px so the number has room.
+
+Checked by rendering a full six-nozzle sheet with realistic figures at 1440,
+1152, 1024, 820, 400, 360 and 320px, scripted to report any element whose
+text is clipped by its own box: nothing is, at any width, apart from the
+`sr-only` "Actions" heading and the navbar's business name, both of which
+truncate by design.
+
+### Navigation moved to a sidebar, and the dashboard tidied
+
+The top tab row had become the weakest part of the app: ten sections that,
+once they carried icons and readable labels, needed about 1350px against a
+1152px page. It had already been forced to wrap onto two rows, which ate the
+top of every screen and still looked like a compromise.
+
+- **`AdminSidebar` replaces `AdminNavbar`.** A fixed 240px column from `lg`
+  up; below that a burger opening a drawer. All ten sections are visible at
+  once either way, each with a full-width band to hit rather than a word.
+  Account and Sign out sit at the bottom, apart from the sections.
+- **The drawer is a native `<dialog>` opened with `showModal()`** — focus
+  trapping, Escape and an inert page behind it come from the browser. It
+  closes when the pathname changes rather than on the click, so it does not
+  pull away while the next page is still loading.
+- **The dashboard** picked up what the readability pass had missed: section
+  headings and card titles were still `text-sm`, the three-up figure blocks
+  inside the fuel, tank and lubricant cards were still 12px with `ink-500`
+  captions. Those now use `figure-label` like everywhere else. Its date
+  controls also moved to their own row, as on Readings, Lubricants and Stock.
+
+Two consequences worth knowing about:
+
+- **The Purchases table now scrolls inside its card at 1024px.** 240px of
+  sidebar is 240px the content does not have, and that table needs 896px for
+  its eight columns. It scrolls in the card rather than moving the page, and
+  it already behaved this way on anything narrower. That is the trade for a
+  nav that is always visible.
+- **Viewport breakpoints stopped meaning content width.** At a 1024px window
+  a page now has ~768px, so `lg:grid-cols-4` on the stat tiles gave each one
+  192px and the big figures ran into their dividers. `StatGrid` measures
+  itself with `@container` instead. While fixing it, the three hand-rolled
+  copies of that strip (Readings, Lubricants, Customers) were replaced with
+  the shared component — all three had the same latent bug.
+
+The pump's own name was also being truncated to "Mubeen Petr..." in the
+240px column. In the sidebar the logo, name and person now stack, each with
+the full width; the phone's top bar keeps the inline, truncating layout,
+where wrapping would push the day's work further down.
+
+### Fuel rates: seven days on Settings, the rest on their own page
+
+The rate moves most days and both fuels change together, so that table grew
+by about sixty rows a month. Left unbounded it had become the tallest thing
+on Settings and the part of the page nobody read.
+
+- Settings shows the last **seven days** of changes and links to the rest.
+  Counted in days rather than rows on purpose: a row limit cuts a day in
+  half and shows diesel's new rate without petrol's, and the two are read as
+  a pair.
+- `/admin/settings/fuel-prices` is the full history, 25 to a page, newest
+  first. The page number is a query string so Back works through it and a
+  page can be linked to. Paged rather than capped, because an old rate is
+  what a disputed reading gets checked against — there is no date past which
+  it stops mattering.
+- The table itself moved into `FuelPriceTable` and is shared by both. Its
+  rows carry a delete confirmation that names the rate and the date, and
+  that sentence drifting between two copies is how someone removes a rate
+  they meant to keep.
+
+### getSessionProfile is deduped per request
+
+Every admin navigation was paying for the session lookup twice — the layout
+asks who is signed in to draw the sidebar, then the page asks again through
+`requirePageRole()`. Each ask is a claims check plus a select on `profiles`,
+so two round trips to Supabase completed before a page began fetching what it
+actually wanted to show. It is wrapped in React's `cache()` now, so the second
+caller gets the first one's answer.
+
+Worth being precise about what this is **not**: it is a per-request memo, not
+a cache across requests, and it cannot serve a stale answer. A new request
+does the lookup again — which is what keeps a deactivated staff account
+locked out on their very next navigation.

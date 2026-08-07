@@ -103,7 +103,7 @@ export default function LedgerAdjustmentForm({ customerId }) {
           className="input"
           placeholder="e.g. opening balance from the old register"
         />
-        <p className="mt-1 text-xs text-ink-500">
+        <p className="mt-1 text-sm text-ink-600">
           Required, and permanent. This entry can never be edited or removed.
         </p>
       </div>

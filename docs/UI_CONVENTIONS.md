@@ -220,6 +220,87 @@ and abandoned — it worked above ~1280px viewport width but leaked a
 page-level horizontal scrollbar at common laptop widths (1024–1152px); not
 worth the fragility next to just removing the competing column.
 
+## Type scale and readability
+
+The reader is the owner, on a cheap tablet, in a pump office in the evening,
+checking figures against cash in a drawer. The scale below is set for that,
+not for a designer's monitor.
+
+- **The data is bigger than the chrome.** A figure someone verifies is never
+  smaller than the label describing it. Money and litres are `text-lg`
+  (18px) in a row, `text-xl`/`text-2xl` in a stat tile; captions are
+  `text-xs` (12px) and never smaller. Body copy is `text-base` (16px), not
+  `text-sm`. This was the whole problem the readability pass fixed: nozzle
+  figures were 14px under 10.4px uppercase labels, while the page heading
+  that told the reader nothing was 24px.
+- **`figure-label` and `figure-value`** (`globals.css`) are that pairing as
+  two classes — a small uppercase caption over a tabular figure. Use them
+  rather than hand-rolling the pair; every stat strip, nozzle row and dialog
+  summary in the app now shares them, which is why the size is fixable in
+  one place.
+- **Grey has a floor of `ink-600`** for anything meant to be read. `ink-500`
+  is for genuinely secondary text on white, `ink-400` only for disabled
+  controls and placeholder text — it measures 2.6:1, which is below the
+  accessibility minimum and unreadable in poor light.
+- **A money figure never wraps and never clips.** `whitespace-nowrap` on the
+  value, and the grid drops to one column below 380px rather than squeezing
+  "Rs 4,386,211" into half a phone. Breaking after the "Rs" reads as two
+  separate numbers for a moment, which is worse than a taller tile.
+- **Buttons and tabs are `py-3` or taller**, giving a tap target around
+  48px. These get pressed with a thumb, sometimes in a hurry.
+
+## Navigation
+
+- `<AdminSidebar>` (`app/_components/admin/AdminSidebar.js`) is the whole of
+  it: a fixed 240px column from `lg` up, a drawer behind a burger below that.
+  `app/admin/layout.js` keeps the content clear of it with `lg:pl-60` — those
+  two numbers have to agree and are the only two places the width appears.
+- **Why a column and not a row of tabs.** Ten sections with an icon and a
+  readable label need about 1350px laid out sideways, against a 1152px page.
+  As a top bar they either scrolled — hiding Reports and Settings off the
+  right of every laptop — or wrapped onto a second row that ate the top of
+  every screen. Down the side, all ten fit at once with room to spare, which
+  is what someone still learning where things live needs.
+- **What it costs.** 240px off the left means the widest table in the app
+  (Purchases, eight columns) scrolls inside its own card at 1024px, where it
+  used to just fit. Inside the card, not the page.
+- **The drawer is a real `<dialog>` opened with `showModal()`**, the same
+  reasoning as `ui/Dialog.js`: focus trapping, Escape and an inert background
+  come from the browser already correct. It closes on the pathname changing,
+  not on the click — closing on click pulls it away while the next page is
+  still loading, and the pending spinner on the link is the only feedback
+  there is.
+
+## Responsive: measure the container, not the window
+
+Since the sidebar arrived, viewport breakpoints and content width are no
+longer the same number — at a 1024px window a page has about 768px to work
+in. `sm:`/`lg:` on anything laid out inside the content area therefore asks
+the wrong question.
+
+- `<StatGrid>` uses `@container` and `@[24rem]`/`@[50rem]` variants so its
+  column count follows its own width. Asked for four columns at the `lg`
+  *viewport* breakpoint it gave each tile 192px, and "Rs 4,386,211" at 24px
+  does not fit that — the figures ran into their own dividers.
+- Use the shared `<StatGrid>`/`<StatTile>` rather than hand-rolling a stat
+  strip. Three pages had their own copy and all three had the same latent
+  bug; they are one component now.
+
+## Icons
+
+- `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, drawn inline
+  on a 24px grid at 1.75 stroke, in `currentColor`. Adding one means editing
+  that file; there is deliberately no icon package.
+- **An icon never carries meaning alone.** Every icon in the app sits beside
+  its own word — nav tabs, the Entered/Enter status, the Check warning — and
+  is `aria-hidden`. The icon is the redundant second cue: shape, on top of
+  the word and the colour. Status told apart by colour alone fails in dim
+  light and for a red-green colourblind reader, which is exactly what
+  "Enter" in amber next to "Entered" in green was doing.
+- **Do not icon everything.** The fuel badges stay plain: Petrol, Diesel and
+  Lubricant already differ in both word and colour, and a droplet on all
+  three would add shape without adding distinction.
+
 ## Page structure
 
 - `<PageHeader title description>{children}</PageHeader>`

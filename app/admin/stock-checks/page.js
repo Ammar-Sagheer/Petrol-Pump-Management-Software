@@ -62,16 +62,20 @@ export default async function StockChecksPage({ searchParams }) {
       <PageHeader
         title="Stock"
         description={`What is in the tanks and on the shelf as at ${formatDate(date)}.`}
-      >
+      />
+
+      {/* Own row, as on every other date-driven page - see
+          docs/UI_CONVENTIONS.md. */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <DateNav
           date={date}
           basePath="/admin/stock-checks"
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
         />
-      </PageHeader>
+      </div>
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
         Tanks — dip against the books
       </h2>
 
@@ -87,7 +91,7 @@ export default async function StockChecksPage({ searchParams }) {
       </div>
 
       {/* ---- the lubricant shelf ---- */}
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
         Lubricant shelf
       </h2>
 
@@ -117,7 +121,7 @@ export default async function StockChecksPage({ searchParams }) {
                     <tr key={row.id}>
                       <td className="td">
                         <span className="font-medium">{row.name}</span>
-                        <span className="ml-2 text-xs text-ink-500">
+                        <span className="ml-2 text-sm text-ink-600">
                           {formatLitres(pack)} pack
                         </span>
                         {row.is_active ? null : (
@@ -162,7 +166,7 @@ export default async function StockChecksPage({ searchParams }) {
         </>
       )}
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
         Previous checks
       </h2>
 

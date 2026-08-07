@@ -92,11 +92,11 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   .label {
-    @apply mb-1 block text-sm font-medium text-ink-700;
+    @apply mb-1 block text-base font-medium text-ink-700;
   }
 
   .input {
-    @apply w-full rounded-lg border border-ink-300 bg-white px-3 py-2.5 text-ink-900
+    @apply w-full rounded-lg border border-ink-300 bg-white px-3 py-3 text-base text-ink-900
            shadow-sm outline-none transition
            placeholder:text-ink-400
            focus:border-brand-500 focus:ring-2 focus:ring-brand-200
@@ -105,7 +105,7 @@ input[type='number']::-webkit-inner-spin-button {
 
   /* Meter readings and money: bigger and tabular, so a typo is easy to spot. */
   .input-number {
-    @apply w-full rounded-lg border border-ink-300 bg-white px-3 py-2.5 text-lg
+    @apply w-full rounded-lg border border-ink-300 bg-white px-3 py-3 text-xl
            font-semibold text-ink-900 shadow-sm outline-none transition
            placeholder:text-ink-400
            focus:border-brand-500 focus:ring-2 focus:ring-brand-200
@@ -114,15 +114,15 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
-           text-sm font-semibold transition
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3
+           text-base font-semibold transition
            focus-visible:outline-2 focus-visible:outline-offset-2
            disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg
-           bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition
+           bg-brand-600 px-4 py-3 text-base font-semibold text-white transition
            hover:bg-brand-700
            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600
            disabled:cursor-not-allowed disabled:opacity-50;
@@ -130,7 +130,7 @@ input[type='number']::-webkit-inner-spin-button {
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border
-           border-ink-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800
+           border-ink-300 bg-white px-4 py-3 text-base font-semibold text-ink-800
            transition hover:bg-ink-50
            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-500
            disabled:cursor-not-allowed disabled:opacity-50;
@@ -138,28 +138,49 @@ input[type='number']::-webkit-inner-spin-button {
 
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border
-           border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700
+           border-red-300 bg-white px-4 py-3 text-base font-semibold text-red-700
            transition hover:bg-red-50
            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600
            disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-semibold;
+  }
+
+  /*
+   * A small caption over a figure - "FUEL SOLD" over "412.25 L". This pattern
+   * is everywhere: the stat strips on Readings, Lubricants and the Dashboard,
+   * the figures on a nozzle row, the cash/credit summary in the entry dialog.
+   *
+   * It used to be written out by hand at each site and had drifted down to
+   * 10.4px in the nozzle rows - uppercase, grey, and the smallest text in the
+   * app, sitting over the numbers that get checked against cash in a drawer.
+   * These two classes are the pattern in one place, at a size that survives a
+   * dim office: the caption no smaller than 12px and a darker grey, the figure
+   * itself larger than the label above it.
+   */
+  .figure-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-ink-600;
+  }
+
+  .figure-value {
+    @apply text-lg font-bold text-ink-900;
+    font-variant-numeric: tabular-nums;
   }
 
   .th {
-    @apply px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-ink-500;
+    @apply px-3 py-3 text-left text-sm font-semibold uppercase tracking-wide text-ink-600;
   }
 
   .td {
-    @apply px-3 py-2.5 text-sm text-ink-800;
+    @apply px-3 py-3 text-base text-ink-800;
   }
 
   /* Figures never wrap - "Rs 2,500,000" split across two lines is unreadable,
      and "10,000 L" broken after the number looks like two separate values. */
   .td-num {
-    @apply whitespace-nowrap px-3 py-2.5 text-right text-sm font-medium text-ink-800;
+    @apply whitespace-nowrap px-3 py-3 text-right text-base font-medium text-ink-800;
     font-variant-numeric: tabular-nums;
   }
 

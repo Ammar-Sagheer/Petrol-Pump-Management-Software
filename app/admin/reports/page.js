@@ -104,7 +104,7 @@ export default async function ReportsPage({ searchParams }) {
       ) : null}
 
       {/* ---- monthly headline ---- */}
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
         {formatDate(report.from)} – {formatDate(report.to)}
       </h2>
 
@@ -160,15 +160,15 @@ export default async function ReportsPage({ searchParams }) {
       {/* ---- cash / credit + pending ---- */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Cash taken</p>
+          <p className="figure-label">Cash taken</p>
           <p className="tabular mt-1 text-xl font-bold text-ink-900">{formatPKR(totalCash)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Given on credit</p>
+          <p className="figure-label">Given on credit</p>
           <p className="tabular mt-1 text-xl font-bold text-ink-900">{formatPKR(totalCredit)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+          <p className="figure-label">
             Owed to suppliers
           </p>
           <p
@@ -182,7 +182,7 @@ export default async function ReportsPage({ searchParams }) {
       </div>
 
       {/* ---- lubricants ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Lubricants
       </h2>
 
@@ -194,35 +194,35 @@ export default async function ReportsPage({ searchParams }) {
         <>
           <div className="mb-4 grid gap-4 sm:grid-cols-4">
             <div className="card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Sold</p>
+              <p className="figure-label">Sold</p>
               <p className="tabular mt-1 text-xl font-bold text-ink-900">
                 {formatPKR(lubricantAmount)}
               </p>
-              <p className="mt-0.5 text-xs text-ink-500">
+              <p className="mt-0.5 text-sm text-ink-600">
                 {formatLitres(lubricantSales.litres)} over{' '}
                 {Number(lubricantSales.sales_count ?? 0)} sales
               </p>
             </div>
             <div className="card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Cash</p>
+              <p className="figure-label">Cash</p>
               <p className="tabular mt-1 text-xl font-bold text-ink-900">
                 {formatPKR(lubricantSales.cash_amount)}
               </p>
             </div>
             <div className="card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">On credit</p>
+              <p className="figure-label">On credit</p>
               <p className="tabular mt-1 text-xl font-bold text-ink-900">
                 {formatPKR(lubricantSales.credit_amount)}
               </p>
             </div>
             <div className="card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+              <p className="figure-label">
                 Stock bought
               </p>
               <p className="tabular mt-1 text-xl font-bold text-ink-900">
                 {formatPKR(lubricantPurchases.total_cost)}
               </p>
-              <p className="mt-0.5 text-xs text-ink-500">
+              <p className="mt-0.5 text-sm text-ink-600">
                 {formatLitres(lubricantPurchases.quantity_litres)}
               </p>
             </div>
@@ -264,7 +264,7 @@ export default async function ReportsPage({ searchParams }) {
       )}
 
       {/* ---- closing stock ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Closing stock at month end
       </h2>
       <div className="card table-scroll">
@@ -313,7 +313,7 @@ export default async function ReportsPage({ searchParams }) {
       </div>
 
       {/* ---- 30 day trend ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         {formatMonth(year, month)} day by day
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">

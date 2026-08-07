@@ -144,7 +144,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
         open={isOpen}
         onClose={() => setIsOpen(false)}
         title="Record a lubricant sale"
-        subtitle={<span className="text-xs text-ink-500">{dateLabel}</span>}
+        subtitle={<span className="text-sm text-ink-600">{dateLabel}</span>}
       >
         <form
           ref={formRef}
@@ -183,7 +183,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
               ))}
             </select>
             {selected ? (
-              <p className="mt-1 text-xs text-ink-500">
+              <p className="mt-1 text-sm text-ink-600">
                 <span className={stockLeft <= 0 ? 'font-semibold text-red-700' : 'font-semibold'}>
                   {showLitres(stockLeft)}
                 </span>{' '}
@@ -244,7 +244,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
               className="input-number"
               placeholder="0"
             />
-            <p className="mt-1 text-xs text-ink-500">
+            <p className="mt-1 text-sm text-ink-600">
               In litres. Loose oil is fine — 0.25 for a quarter litre.
             </p>
           </div>
@@ -278,7 +278,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
               placeholder="0"
             />
             {derivedRate ? (
-              <p className="mt-1 text-xs text-ink-500">
+              <p className="mt-1 text-sm text-ink-600">
                 Works out at {formatRate(derivedRate)} a litre.
               </p>
             ) : null}
@@ -346,7 +346,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-ink-500">
+              <p className="mt-1 text-sm text-ink-600">
                 The credit is posted to their ledger as soon as this is saved.
               </p>
             </div>
@@ -379,7 +379,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
 
           <div>
             <label className="label" htmlFor="sale_note">
-              Note <span className="font-normal text-ink-400">(optional)</span>
+              Note <span className="font-normal text-ink-500">(optional)</span>
             </label>
             <input id="sale_note" name="note" type="text" className="input" />
           </div>

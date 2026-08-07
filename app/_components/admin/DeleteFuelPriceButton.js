@@ -35,7 +35,7 @@ export default function DeleteFuelPriceButton({ priceId, summary }) {
     <form action={formAction} className="flex flex-col items-end gap-1 text-right">
       <input type="hidden" name="price_id" value={priceId} />
       <p className="text-xs text-ink-600">Remove {summary}?</p>
-      <p className="text-xs text-ink-500">
+      <p className="text-sm text-ink-600">
         Readings already entered keep this rate — clear and re-enter those days too.
       </p>
       <div className="flex gap-2">

@@ -80,10 +80,10 @@ export default async function ExpensesPage({ searchParams }) {
 
       <section className="card mb-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-4 py-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+          <p className="figure-label">
             {formatMonth(year, month)}
           </p>
-          <p className="tabular mt-1 text-2xl font-bold text-ink-900">{formatPKR(total)}</p>
+          <p className="tabular mt-1 whitespace-nowrap text-xl font-bold text-ink-900 sm:text-2xl">{formatPKR(total)}</p>
         </div>
         <p className="text-sm text-ink-600">
           {expenses.length} expense{expenses.length === 1 ? '' : 's'} recorded this month. Profit on{' '}
