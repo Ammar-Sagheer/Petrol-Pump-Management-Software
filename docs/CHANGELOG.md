@@ -388,3 +388,43 @@ Checked by rendering a full six-nozzle sheet with realistic figures at 1440,
 text is clipped by its own box: nothing is, at any width, apart from the
 `sr-only` "Actions" heading and the navbar's business name, both of which
 truncate by design.
+
+### Navigation moved to a sidebar, and the dashboard tidied
+
+The top tab row had become the weakest part of the app: ten sections that,
+once they carried icons and readable labels, needed about 1350px against a
+1152px page. It had already been forced to wrap onto two rows, which ate the
+top of every screen and still looked like a compromise.
+
+- **`AdminSidebar` replaces `AdminNavbar`.** A fixed 240px column from `lg`
+  up; below that a burger opening a drawer. All ten sections are visible at
+  once either way, each with a full-width band to hit rather than a word.
+  Account and Sign out sit at the bottom, apart from the sections.
+- **The drawer is a native `<dialog>` opened with `showModal()`** — focus
+  trapping, Escape and an inert page behind it come from the browser. It
+  closes when the pathname changes rather than on the click, so it does not
+  pull away while the next page is still loading.
+- **The dashboard** picked up what the readability pass had missed: section
+  headings and card titles were still `text-sm`, the three-up figure blocks
+  inside the fuel, tank and lubricant cards were still 12px with `ink-500`
+  captions. Those now use `figure-label` like everywhere else. Its date
+  controls also moved to their own row, as on Readings, Lubricants and Stock.
+
+Two consequences worth knowing about:
+
+- **The Purchases table now scrolls inside its card at 1024px.** 240px of
+  sidebar is 240px the content does not have, and that table needs 896px for
+  its eight columns. It scrolls in the card rather than moving the page, and
+  it already behaved this way on anything narrower. That is the trade for a
+  nav that is always visible.
+- **Viewport breakpoints stopped meaning content width.** At a 1024px window
+  a page now has ~768px, so `lg:grid-cols-4` on the stat tiles gave each one
+  192px and the big figures ran into their dividers. `StatGrid` measures
+  itself with `@container` instead. While fixing it, the three hand-rolled
+  copies of that strip (Readings, Lubricants, Customers) were replaced with
+  the shared component — all three had the same latent bug.
+
+The pump's own name was also being truncated to "Mubeen Petr..." in the
+240px column. In the sidebar the logo, name and person now stack, each with
+the full width; the phone's top bar keeps the inline, truncating layout,
+where wrapping would push the day's work further down.

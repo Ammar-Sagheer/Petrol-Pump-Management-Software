@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requirePageRole, ROLES, formatPKR } from '@/app/_lib/helpers';
 import { getCustomerBalances } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
+import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import EmptyState from '@/app/_components/ui/EmptyState';
 
 export const metadata = { title: 'Customers' };
@@ -42,28 +43,16 @@ export default async function CustomersPage() {
         </EmptyState>
       ) : (
         <>
-          <section className="card mb-6 grid grid-cols-1 gap-px overflow-hidden bg-ink-200 min-[380px]:grid-cols-2">
-            <div className="bg-white px-4 py-3">
-              <p className="figure-label">
-                Total outstanding
-              </p>
-              <p className="tabular mt-1 whitespace-nowrap text-xl font-bold text-ink-900 sm:text-2xl">
-                {formatPKR(totalOwed)}
-              </p>
-            </div>
-            <div className="bg-white px-4 py-3">
-              <p className="figure-label">
-                Over their limit
-              </p>
-              <p
-                className={`tabular mt-1 text-2xl font-bold ${
-                  overLimit.length > 0 ? 'text-red-700' : 'text-ink-900'
-                }`}
-              >
-                {overLimit.length}
-              </p>
-            </div>
-          </section>
+          <div className="mb-6">
+            <StatGrid columns={2}>
+              <StatTile label="Total outstanding" value={formatPKR(totalOwed)} />
+              <StatTile
+                label="Over their limit"
+                value={String(overLimit.length)}
+                tone={overLimit.length > 0 ? 'negative' : 'default'}
+              />
+            </StatGrid>
+          </div>
 
           <div className="card table-scroll">
             <table className="w-full min-w-[36rem]">

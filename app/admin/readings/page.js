@@ -16,6 +16,7 @@ import PageHeader from '@/app/_components/ui/PageHeader';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
 import ClearDayButton from '@/app/_components/admin/ClearDayButton';
+import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 
 export const metadata = { title: 'Daily readings' };
 
@@ -93,15 +94,18 @@ export default async function ReadingsPage({ searchParams }) {
         </p>
       ) : null}
 
-      <section
-        aria-label="Progress for the day"
-        className="card mb-6 grid grid-cols-1 gap-px overflow-hidden bg-ink-200 min-[380px]:grid-cols-2 sm:grid-cols-4"
-      >
-        <Stat label="Nozzles entered" value={`${done.length} of ${sheet.length}`} />
-        <Stat label="Litres sold" value={formatLitres(totals.litres)} />
-        <Stat label="Cash" value={formatPKR(totals.cash)} />
-        <Stat label="Credit" value={formatPKR(totals.credit)} />
-      </section>
+      {/* The shared tiles rather than a local copy: they size their columns
+          against their own width, which is what keeps a big day's cash figure
+          from running out of its tile now the sidebar has taken 240px off
+          every page. */}
+      <div className="mb-6" aria-label="Progress for the day">
+        <StatGrid>
+          <StatTile label="Nozzles entered" value={`${done.length} of ${sheet.length}`} />
+          <StatTile label="Litres sold" value={formatLitres(totals.litres)} />
+          <StatTile label="Cash" value={formatPKR(totals.cash)} />
+          <StatTile label="Credit" value={formatPKR(totals.credit)} />
+        </StatGrid>
+      </div>
 
       {/* A list, not a grid of cards. Each row opens a dialog to enter that
           nozzle, so the whole day stays visible on one screen. */}
@@ -121,11 +125,3 @@ export default async function ReadingsPage({ searchParams }) {
   );
 }
 
-function Stat({ label, value }) {
-  return (
-    <div className="bg-white px-4 py-3">
-      <p className="figure-label">{label}</p>
-      <p className="tabular mt-1 whitespace-nowrap text-xl font-bold text-ink-900 sm:text-2xl">{value}</p>
-    </div>
-  );
-}

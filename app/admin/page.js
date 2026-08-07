@@ -54,14 +54,20 @@ export default async function DashboardPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Dashboard" description={formatDate(date)}>
+      <PageHeader title="Dashboard" description={formatDate(date)} />
+
+      {/* Own row, as on Readings and Lubricants - see docs/UI_CONVENTIONS.md.
+          With the sidebar taking 240px this header has less width to play with
+          than it used to, which is exactly when the group starts wrapping
+          against the title on the days "Back to today" appears. */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <DateNav
           date={date}
           basePath="/admin"
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
         />
-      </PageHeader>
+      </div>
 
       <StatGrid>
         <StatTile
@@ -96,11 +102,11 @@ export default async function DashboardPage({ searchParams }) {
       </StatGrid>
 
       {/* ---- by fuel type ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         By fuel type
       </h2>
       {byFuel.length === 0 ? (
-        <p className="card px-4 py-6 text-center text-sm text-ink-500">
+        <p className="card px-4 py-6 text-center text-base text-ink-600">
           Nothing entered for this day yet.{' '}
           <Link href={`/admin/readings?date=${date}`} className="font-semibold text-brand-700 hover:underline">
             Enter readings
@@ -115,7 +121,7 @@ export default async function DashboardPage({ searchParams }) {
             >
               <div className="flex items-baseline justify-between">
                 <h3
-                  className={`text-sm font-bold ${
+                  className={`text-base font-bold ${
                     fuel.fuel_type === 'petrol' ? 'text-sky-900' : 'text-amber-900'
                   }`}
                 >
@@ -125,22 +131,22 @@ export default async function DashboardPage({ searchParams }) {
                   {formatLitres(fuel.litres_sold)}
                 </span>
               </div>
-              <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3 text-xs">
+              <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3">
                 <div>
-                  <dt className="text-ink-500">Sales</dt>
-                  <dd className="tabular font-semibold text-ink-900">
+                  <dt className="figure-label">Sales</dt>
+                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
                     {formatPKR(fuel.sale_amount)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-ink-500">Cash</dt>
-                  <dd className="tabular font-semibold text-ink-900">
+                  <dt className="figure-label">Cash</dt>
+                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
                     {formatPKR(fuel.cash_amount)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-ink-500">Credit</dt>
-                  <dd className="tabular font-semibold text-ink-900">
+                  <dt className="figure-label">Credit</dt>
+                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
                     {formatPKR(fuel.credit_amount)}
                   </dd>
                 </div>
@@ -151,7 +157,7 @@ export default async function DashboardPage({ searchParams }) {
       )}
 
       {/* ---- tanks ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Tank stock
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -164,7 +170,7 @@ export default async function DashboardPage({ searchParams }) {
           return (
             <div key={tank.id} className="card p-4">
               <div className="flex items-baseline justify-between">
-                <h3 className="text-sm font-bold text-ink-900">{tank.name}</h3>
+                <h3 className="text-base font-bold text-ink-900">{tank.name}</h3>
                 <span
                   className={`tabular text-lg font-bold ${
                     stock < 0 ? 'text-red-700' : 'text-ink-900'
@@ -179,7 +185,7 @@ export default async function DashboardPage({ searchParams }) {
                   stock was never set. Worth shouting about rather than showing
                   as an ordinary number. */}
               {stock < 0 ? (
-                <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+                <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
                   Stock has gone below zero. A delivery is probably missing, or this tank’s opening
                   stock was never set under Settings.
                 </p>
@@ -214,7 +220,7 @@ export default async function DashboardPage({ searchParams }) {
               ) : (
                 <p
                   className={[
-                    'tabular mt-3 border-t border-ink-200 pt-3 text-xs font-semibold',
+                    'tabular mt-3 border-t border-ink-200 pt-3 text-sm font-semibold',
                     gainLoss === 0
                       ? 'text-ink-600'
                       : gainLoss > 0
@@ -245,12 +251,12 @@ export default async function DashboardPage({ searchParams }) {
       ) : null}
 
       {/* ---- lubricants ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Lubricants
       </h2>
 
       {lubricantStock.length === 0 ? (
-        <p className="card px-4 py-6 text-center text-sm text-ink-500">
+        <p className="card px-4 py-6 text-center text-base text-ink-600">
           No lubricants set up yet.{' '}
           <Link href="/admin/lubricants" className="font-semibold text-brand-700 hover:underline">
             Add the ones the pump stocks
@@ -260,7 +266,7 @@ export default async function DashboardPage({ searchParams }) {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card p-4">
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-bold text-ink-900">Sold on this day</h3>
+              <h3 className="text-base font-bold text-ink-900">Sold on this day</h3>
               <span className="tabular text-lg font-bold text-ink-900">
                 {formatPKR(lubricants.amount)}
               </span>
@@ -278,31 +284,31 @@ export default async function DashboardPage({ searchParams }) {
               </p>
             ) : (
               <>
-                <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3 text-xs">
+                <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3">
                   <div>
-                    <dt className="text-ink-500">Litres</dt>
-                    <dd className="tabular font-semibold text-ink-900">
+                    <dt className="figure-label">Litres</dt>
+                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
                       {formatLitres(lubricants.litres)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-ink-500">Cash</dt>
-                    <dd className="tabular font-semibold text-ink-900">
+                    <dt className="figure-label">Cash</dt>
+                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
                       {formatPKR(lubricants.cash_amount)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-ink-500">Credit</dt>
-                    <dd className="tabular font-semibold text-ink-900">
+                    <dt className="figure-label">Credit</dt>
+                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
                       {formatPKR(lubricants.credit_amount)}
                     </dd>
                   </div>
                 </dl>
 
-                <ul className="mt-3 space-y-1.5 border-t border-ink-200/60 pt-3 text-xs">
+                <ul className="mt-3 space-y-2 border-t border-ink-200/60 pt-3 text-sm">
                   {lubricantsSold.map((product) => (
                     <li key={product.name} className="flex items-baseline justify-between gap-3">
-                      <span className="truncate text-ink-700">{product.name}</span>
+                      <span className="truncate text-ink-800">{product.name}</span>
                       <span className="tabular shrink-0 font-semibold text-ink-900">
                         {formatLitres(product.litres)} · {formatPKR(product.amount)}
                       </span>
@@ -316,13 +322,13 @@ export default async function DashboardPage({ searchParams }) {
           {/* The shelf, so a product about to run out is noticed from the
               dashboard rather than when a customer asks for it. */}
           <div className="card p-4">
-            <h3 className="text-sm font-bold text-ink-900">On the shelf</h3>
-            <ul className="mt-3 space-y-1.5 border-t border-ink-200/60 pt-3 text-xs">
+            <h3 className="text-base font-bold text-ink-900">On the shelf</h3>
+            <ul className="mt-3 space-y-2 border-t border-ink-200/60 pt-3 text-sm">
               {lubricantStock.map((product) => {
                 const left = Number(product.stock_litres ?? 0);
                 return (
                   <li key={product.id} className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-ink-700">{product.name}</span>
+                    <span className="truncate text-ink-800">{product.name}</span>
                     <span
                       className={[
                         'tabular shrink-0 font-semibold',
@@ -340,16 +346,16 @@ export default async function DashboardPage({ searchParams }) {
       )}
 
       {/* ---- trends ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Last {TREND_DAYS} days
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink-900">Daily fuel sales</h3>
+          <h3 className="mb-3 text-base font-bold text-ink-900">Daily fuel sales</h3>
           <SalesTrendChart data={trend} />
         </section>
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink-900">Fuel: cash vs credit</h3>
+          <h3 className="mb-3 text-base font-bold text-ink-900">Fuel: cash vs credit</h3>
           <CashCreditChart data={trend} />
         </section>
       </div>

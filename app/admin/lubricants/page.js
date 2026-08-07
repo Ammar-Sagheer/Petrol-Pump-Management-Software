@@ -21,6 +21,7 @@ import DateNav from '@/app/_components/admin/DateNav';
 import LubricantSaleForm from '@/app/_components/admin/LubricantSaleForm';
 import LubricantManager from '@/app/_components/admin/LubricantManager';
 import DeleteLubricantSaleButton from '@/app/_components/admin/DeleteLubricantSaleButton';
+import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 
 export const metadata = { title: 'Lubricants' };
 
@@ -114,21 +115,20 @@ export default async function LubricantsPage({ searchParams }) {
         />
       ) : (
         <>
-          <section
-            aria-label="Lubricant sales for the day"
-            className="card mb-6 grid grid-cols-1 gap-px overflow-hidden bg-ink-200 min-[380px]:grid-cols-2 sm:grid-cols-4"
-          >
-            <Stat label="Sales" value={String(Number(totals.sales_count ?? 0))} />
-            <Stat label="Litres sold" value={formatLitres(totals.litres)} />
-            <Stat label="Cash" value={formatPKR(totals.cash_amount)} />
-            <Stat
-              label="On credit"
-              value={formatPKR(creditAmount)}
-              sub={amount > 0 ? `${creditShare}% of the day` : null}
-            />
-          </section>
+          <div className="mb-6" aria-label="Lubricant sales for the day">
+            <StatGrid>
+              <StatTile label="Sales" value={String(Number(totals.sales_count ?? 0))} />
+              <StatTile label="Litres sold" value={formatLitres(totals.litres)} />
+              <StatTile label="Cash" value={formatPKR(totals.cash_amount)} />
+              <StatTile
+                label="On credit"
+                value={formatPKR(creditAmount)}
+                sub={amount > 0 ? `${creditShare}% of the day` : null}
+              />
+            </StatGrid>
+          </div>
 
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
             Sold on {formatDate(date)}
           </h2>
 
@@ -207,7 +207,7 @@ export default async function LubricantsPage({ searchParams }) {
               because it is what someone recording a sale needs to know, and
               sending them to another tab to find it is how a sale gets typed
               against a product that ran out last week. */}
-          <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
             On the shelf
           </h2>
           <div className="card table-scroll">
@@ -264,12 +264,3 @@ export default async function LubricantsPage({ searchParams }) {
   );
 }
 
-function Stat({ label, value, sub }) {
-  return (
-    <div className="bg-white px-4 py-3">
-      <p className="figure-label">{label}</p>
-      <p className="tabular mt-1 whitespace-nowrap text-xl font-bold text-ink-900 sm:text-2xl">{value}</p>
-      {sub ? <p className="mt-0.5 text-sm text-ink-600">{sub}</p> : null}
-    </div>
-  );
-}

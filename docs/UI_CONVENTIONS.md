@@ -249,6 +249,43 @@ not for a designer's monitor.
 - **Buttons and tabs are `py-3` or taller**, giving a tap target around
   48px. These get pressed with a thumb, sometimes in a hurry.
 
+## Navigation
+
+- `<AdminSidebar>` (`app/_components/admin/AdminSidebar.js`) is the whole of
+  it: a fixed 240px column from `lg` up, a drawer behind a burger below that.
+  `app/admin/layout.js` keeps the content clear of it with `lg:pl-60` — those
+  two numbers have to agree and are the only two places the width appears.
+- **Why a column and not a row of tabs.** Ten sections with an icon and a
+  readable label need about 1350px laid out sideways, against a 1152px page.
+  As a top bar they either scrolled — hiding Reports and Settings off the
+  right of every laptop — or wrapped onto a second row that ate the top of
+  every screen. Down the side, all ten fit at once with room to spare, which
+  is what someone still learning where things live needs.
+- **What it costs.** 240px off the left means the widest table in the app
+  (Purchases, eight columns) scrolls inside its own card at 1024px, where it
+  used to just fit. Inside the card, not the page.
+- **The drawer is a real `<dialog>` opened with `showModal()`**, the same
+  reasoning as `ui/Dialog.js`: focus trapping, Escape and an inert background
+  come from the browser already correct. It closes on the pathname changing,
+  not on the click — closing on click pulls it away while the next page is
+  still loading, and the pending spinner on the link is the only feedback
+  there is.
+
+## Responsive: measure the container, not the window
+
+Since the sidebar arrived, viewport breakpoints and content width are no
+longer the same number — at a 1024px window a page has about 768px to work
+in. `sm:`/`lg:` on anything laid out inside the content area therefore asks
+the wrong question.
+
+- `<StatGrid>` uses `@container` and `@[24rem]`/`@[50rem]` variants so its
+  column count follows its own width. Asked for four columns at the `lg`
+  *viewport* breakpoint it gave each tile 192px, and "Rs 4,386,211" at 24px
+  does not fit that — the figures ran into their own dividers.
+- Use the shared `<StatGrid>`/`<StatTile>` rather than hand-rolling a stat
+  strip. Three pages had their own copy and all three had the same latent
+  bug; they are one component now.
+
 ## Icons
 
 - `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, drawn inline

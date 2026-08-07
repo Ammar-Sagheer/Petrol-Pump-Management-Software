@@ -39,7 +39,7 @@ export default async function SettingsPage() {
       </PageHeader>
 
       {/* ---- pricing ---- */}
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">Fuel prices</h2>
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">Fuel prices</h2>
       <div className="grid gap-6 lg:grid-cols-[22rem_1fr] [&>*]:min-w-0">
         <FuelPriceForm currentRates={rates} />
 
@@ -103,7 +103,7 @@ export default async function SettingsPage() {
       </div>
 
       {/* ---- tanks ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">Tanks</h2>
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">Tanks</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {tanks.map((tank) => (
           <TankForm key={tank.id} tank={tank} />

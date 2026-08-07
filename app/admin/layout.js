@@ -1,5 +1,5 @@
 import { getSessionProfile } from '@/app/_lib/helpers';
-import AdminNavbar from '@/app/_components/admin/AdminNavbar';
+import AdminSidebar from '@/app/_components/admin/AdminSidebar';
 
 /**
  * Shell for everything under /admin.
@@ -13,6 +13,10 @@ import AdminNavbar from '@/app/_components/admin/AdminNavbar';
  * the page bare - that is the login screen, which lives under /admin/login and
  * therefore shares this layout. Checking for a session here as well would send
  * the login page redirecting to itself.
+ *
+ * The sidebar is fixed rather than a flex sibling, so a long page scrolls under
+ * a nav that stays put. `lg:pl-60` is what keeps the content clear of it; the
+ * two numbers have to agree, and they are the only two places 60 appears.
  */
 export default async function AdminLayout({ children }) {
   const profile = await getSessionProfile();
@@ -22,8 +26,8 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen">
-      <AdminNavbar profile={profile} />
+    <div className="min-h-screen lg:pl-60">
+      <AdminSidebar profile={profile} />
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">{children}</main>
     </div>
   );

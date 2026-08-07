@@ -104,7 +104,7 @@ export default async function ReportsPage({ searchParams }) {
       ) : null}
 
       {/* ---- monthly headline ---- */}
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
         {formatDate(report.from)} – {formatDate(report.to)}
       </h2>
 
@@ -182,7 +182,7 @@ export default async function ReportsPage({ searchParams }) {
       </div>
 
       {/* ---- lubricants ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Lubricants
       </h2>
 
@@ -264,7 +264,7 @@ export default async function ReportsPage({ searchParams }) {
       )}
 
       {/* ---- closing stock ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         Closing stock at month end
       </h2>
       <div className="card table-scroll">
@@ -313,7 +313,7 @@ export default async function ReportsPage({ searchParams }) {
       </div>
 
       {/* ---- 30 day trend ---- */}
-      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">
+      <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600">
         {formatMonth(year, month)} day by day
       </h2>
       <div className="grid gap-4 lg:grid-cols-2">

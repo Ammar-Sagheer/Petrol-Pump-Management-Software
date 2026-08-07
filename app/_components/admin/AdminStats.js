@@ -14,7 +14,7 @@ export function StatTile({ label, value, sub, tone = 'default' }) {
         {/* nowrap, and a step smaller on a phone. "Rs 4,386,211" in a
           half-width tile was breaking after the "Rs", which reads for a moment
           as two separate figures - the one thing a money tile must never do. */}
-      <p className={`tabular mt-1 whitespace-nowrap text-xl font-bold sm:text-2xl ${valueTone}`}>
+      <p className={`tabular mt-1 whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}>
         {value}
       </p>
       {sub ? <p className="tabular mt-0.5 text-sm text-ink-600">{sub}</p> : null}
@@ -23,20 +23,31 @@ export function StatTile({ label, value, sub, tone = 'default' }) {
 }
 
 export function StatGrid({ children, columns = 4 }) {
-  const columnClass = columns === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4';
+  const columnClass = columns === 2 ? '' : '@[50rem]:grid-cols-4';
 
   /*
-   * One tile per row on the narrowest phones. Two tiles across at 320-360px
-   * leaves about 130px of usable width, and "Rs 4,386,211" does not fit that
-   * at a readable size - it either broke after the "Rs" (two lines that read
-   * as two figures) or, once held on one line, ran out of its own tile. Full
-   * width below 380px, and the number fits whole either way.
+   * The column count follows the WIDTH OF THIS GRID, not the width of the
+   * window - hence @container and the @[..] variants rather than sm: and lg:.
+   *
+   * Those are not the same number any more. The sidebar takes 240px off the
+   * left, so at a 1024px window this grid has about 768px to work in. Asked
+   * for four columns at the `lg` viewport breakpoint it gave each tile 192px,
+   * and "Rs 4,386,211" at 24px needs more than that - the figures ran into
+   * their own dividers. Measured against the grid itself, four columns wait
+   * until there is genuinely room for them.
+   *
+   * The bottom end is the same problem from the other side: two tiles across
+   * a 320px phone leaves about 130px each, where the number either broke
+   * after the "Rs" - two lines that read for a moment as two figures - or ran
+   * out of its tile. One per row until 24rem.
    */
   return (
-    <section
-      className={`card grid grid-cols-1 gap-px overflow-hidden bg-ink-200 min-[380px]:grid-cols-2 ${columnClass}`}
-    >
-      {children}
-    </section>
+    <div className="@container">
+      <section
+        className={`card grid grid-cols-1 gap-px overflow-hidden bg-ink-200 @[24rem]:grid-cols-2 ${columnClass}`}
+      >
+        {children}
+      </section>
+    </div>
   );
 }

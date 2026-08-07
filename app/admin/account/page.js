@@ -82,7 +82,7 @@ export default async function AccountPage() {
           <div className="space-y-6">{ownAccount}</div>
 
           <div>
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-500">
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-600">
               Staff logins
             </h2>
             <StaffList staff={staff} currentProfileId={profile.id} />
