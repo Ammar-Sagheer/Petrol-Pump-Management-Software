@@ -697,3 +697,28 @@ Structure is untouched: still one row per nozzle opening a dialog, still a
 labelled figure per number. Those were deliberate and are documented; only
 the spacing changed. Rendered with a full six-nozzle sheet — entered rows,
 unentered rows, one with no rate — at 1440/1152/1024 and 400px.
+
+### Nozzles grouped under their unit
+
+A unit is a physical thing standing on the forecourt with two nozzles on it,
+and the flat list gave no sign of that. Six evenly spaced cards read as six
+unrelated pumps — "Unit 1 · Nozzle A" and "Unit 1 · Nozzle B" only announced
+their relationship in words the reader had to compare.
+
+- The sheet is grouped by unit, with a **Unit N** heading and a
+  **"1 of 2 entered"** badge that turns green when the unit is finished, so a
+  done pump can be skipped without reading both its rows.
+- 32px between units, 12px between the nozzles inside one. The spacing does
+  the grouping; the heading only names it.
+- The card title drops to **"Nozzle A"**, since the unit is stated right
+  above it. The DIALOG keeps the full "Unit 1 · Nozzle A" — it opens over the
+  whole page with the heading out of sight, and it is the one place where
+  being sure which nozzle you are typing into actually matters.
+
+`get_reading_sheet` already returns rows ordered by unit then nozzle, so the
+grouping walks that order rather than sorting again — a unit's nozzles are
+adjacent by construction.
+
+Unexpected benefit on a phone: dropping "Unit 1 · " freed enough width that
+the fuel badge and the Entered/Enter status now sit on one line with the
+name, where before the badge wrapped underneath.

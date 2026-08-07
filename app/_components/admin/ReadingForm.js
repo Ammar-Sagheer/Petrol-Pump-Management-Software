@@ -53,7 +53,14 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * down and yanks them back on collapse, so you lose your place after every
  * save, and the credit slip list makes the page reflow as it grows.
  */
-export default function ReadingForm({ row, date, customers, creditSales, canDelete }) {
+export default function ReadingForm({
+  row,
+  date,
+  customers,
+  creditSales,
+  canDelete,
+  showUnit = true,
+}) {
   const isSaved = Boolean(row.reading_id);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -102,6 +109,17 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
 
   const title = `Unit ${row.unit_number} · Nozzle ${row.nozzle_label}`;
 
+  /*
+   * The row drops "Unit 1 ·" when the list is already grouped under a Unit
+   * heading - repeating it on both cards under that heading is the clutter the
+   * grouping was meant to remove.
+   *
+   * The DIALOG always keeps the full name. It opens over the whole page with
+   * the heading out of sight, and it is the one place where being sure which
+   * nozzle you are typing into actually matters.
+   */
+  const rowTitle = showUnit ? title : `Nozzle ${row.nozzle_label}`;
+
   return (
     <>
       <button
@@ -113,7 +131,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
       >
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <span className="text-lg font-bold text-ink-900">{title}</span>
+            <span className="text-lg font-bold text-ink-900">{rowTitle}</span>
             <FuelBadge fuelType={row.fuel_type} />
             {hasChainProblem ? (
               <span className="badge bg-red-100 text-red-800">
