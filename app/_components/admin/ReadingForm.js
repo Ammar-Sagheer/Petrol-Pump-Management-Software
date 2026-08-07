@@ -107,7 +107,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="card block w-full px-4 py-3 text-left transition
+        className="card block w-full px-4 py-4 text-left transition sm:px-5 sm:py-5
                    hover:border-brand-300 hover:bg-brand-50/40
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
       >
@@ -139,7 +139,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
             already know which figure is which - and left most of the row
             empty. Spread across the width, each one says what it is. */}
         {isSaved ? (
-          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink-200/70 pt-3 sm:grid-cols-4">
             <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
             <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
             <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
@@ -150,7 +150,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
             />
           </dl>
         ) : (
-          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink-200/70 pt-3 sm:grid-cols-4">
             <RowFigure
               label="Meter starts at"
               value={meterFormat.format(openingUsed)}

@@ -109,7 +109,7 @@ export default async function ReadingsPage({ searchParams }) {
 
       {/* A list, not a grid of cards. Each row opens a dialog to enter that
           nozzle, so the whole day stays visible on one screen. */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {sheet.map((row) => (
           <ReadingForm
             key={row.nozzle_id}

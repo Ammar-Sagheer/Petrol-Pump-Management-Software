@@ -679,3 +679,21 @@ deliberately abort, so both rolled back:
 
     back-fill under a skipped-ahead day  >> BLOCKED, naming the day to clear
     back-fill into a genuine 85.35 L gap >> ALLOWED, as it must be
+
+### The nozzle rows had no room to breathe
+
+Six cards at `space-y-2` with `px-4 py-3` padding and the figures only 8px
+under the nozzle's name — the whole evening screen read as one dense block,
+and the name of the nozzle ran into the numbers belonging to it.
+
+- Gap between cards 8px → 12px, so each one is visibly its own thing.
+- Card padding to `py-4` on a phone and `p-5` from `sm` up.
+- The figures now sit under a hairline with 12px either side of it, the same
+  separation the dashboard cards use. A row carries two different kinds of
+  thing — which nozzle this is, and what it did — and they were running
+  together.
+
+Structure is untouched: still one row per nozzle opening a dialog, still a
+labelled figure per number. Those were deliberate and are documented; only
+the spacing changed. Rendered with a full six-nozzle sheet — entered rows,
+unentered rows, one with no rate — at 1440/1152/1024 and 400px.
