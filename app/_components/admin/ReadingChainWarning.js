@@ -44,8 +44,20 @@ export default function ReadingChainWarning({ row, date, openingUsed }) {
 
   const messages = [];
 
-  // Back-filling into a gap that a later reading already swallowed.
-  if (row.later_date) {
+  /*
+   * Back-filling into a gap that a later reading already swallowed.
+   *
+   * Only when the chain actually breaks. A later reading that opens exactly
+   * where this day closes is the chain working normally - saying so on every
+   * past day, on every nozzle, is how a warning stops being read.
+   */
+  const closing =
+    row.closing_reading === null || row.closing_reading === undefined
+      ? null
+      : Number(row.closing_reading);
+  const nextContinuesFromHere = closing !== null && laterOpening !== null && laterOpening === closing;
+
+  if (row.later_date && !nextContinuesFromHere) {
     const laterSpansThisDay =
       previousClosing !== null && laterOpening !== null && laterOpening === previousClosing;
 

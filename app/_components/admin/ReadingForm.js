@@ -49,13 +49,41 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
     savedRef.current = isSaved;
   }, [isSaved]);
 
-  const previousClosing =
-    row.previous_closing === null || row.previous_closing === undefined
-      ? null
-      : Number(row.previous_closing);
+  const num = (value) => (value === null || value === undefined ? null : Number(value));
+
+  const previousClosing = num(row.previous_closing);
+  const laterOpening = num(row.later_opening);
+  const closing = num(row.closing_reading);
   const openingUsed = Number(row.opening_reading ?? 0);
-  const hasChainProblem =
-    Boolean(row.later_date) || (previousClosing !== null && openingUsed !== previousClosing);
+
+  /*
+   * WHAT COUNTS AS A BROKEN CHAIN.
+   *
+   * This used to be `Boolean(row.later_date) || openingDoesNotMatch`, and the
+   * first half of that was wrong: later_date only means "a reading exists on
+   * some later date", which is true of every nozzle on every past day the
+   * moment you carry on entering. Opening any earlier date painted Check on
+   * all six rows at once, and a warning that is always on is a warning nobody
+   * reads - including on the one row where it mattered.
+   *
+   * A meter is continuous, so the chain is intact when each reading opens
+   * exactly where the one before it closed. Three ways that fails:
+   *
+   *   1. this day's opening is not the previous day's closing
+   *   2. this day IS saved, but the next reading does not open where this one
+   *      closed - the two overlap or leave a hole
+   *   3. this day is NOT saved and a later reading already exists, so saving
+   *      here back-fills underneath it and risks counting the litres twice
+   *
+   * A later reading that opens exactly where this day closes is the chain
+   * working, which is the case that used to shout.
+   */
+  const openingDoesNotFollow = previousClosing !== null && openingUsed !== previousClosing;
+  const nextDoesNotFollow =
+    isSaved && laterOpening !== null && closing !== null && laterOpening !== closing;
+  const backFillingUnderALaterDay = !isSaved && Boolean(row.later_date);
+
+  const hasChainProblem = openingDoesNotFollow || nextDoesNotFollow || backFillingUnderALaterDay;
 
   const title = `Unit ${row.unit_number} · Nozzle ${row.nozzle_label}`;
 

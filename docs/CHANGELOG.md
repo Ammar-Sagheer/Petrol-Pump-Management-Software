@@ -551,3 +551,37 @@ what.
 Checked both languages at 1152 and 400px: `dir` flips, the stage arrows point
 the other way, the step numbers move to the right-hand side, and neither
 language overflows the page.
+
+### "Check" was showing on every nozzle of every past day
+
+The red Check badge on a nozzle row was driven by:
+
+    Boolean(row.later_date) || openingDoesNotMatchPreviousClosing
+
+`later_date` only means "a reading exists on some later date", which is true
+of every nozzle on every past day the moment entry continues. So opening any
+earlier date painted Check on all six rows at once — and a warning that is
+always on is a warning nobody reads, including on the row where it mattered.
+
+Checked against the real 04 Aug 2026 sheet: all six nozzles flagged, and the
+data was clean — every opening equalled the previous closing, and every
+05 Aug opening equalled the 04 Aug closing. Except one: Unit 2 · Nozzle B has
+no reading on 04 Aug, and 05 Aug opens at 18,967.53 where 03 Aug closed at
+18,882.18. Entering 04 Aug there really would double-count.
+
+A meter is continuous, so the chain is intact when each reading opens exactly
+where the one before it closed. The badge now means one of three things:
+
+1. this day's opening is not the previous day's closing;
+2. this day is saved but the next reading does not open where this one closed
+   — the two overlap or leave a hole;
+3. this day is not saved and a later reading already exists, so saving here
+   back-fills underneath it.
+
+A later reading that opens exactly where this day closes is the chain
+working, which is the case that used to shout. Re-run over the same six rows:
+one flagged instead of six, and it is Unit 2 · Nozzle B.
+
+The same false positive was in the dialog's `ReadingChainWarning`, which told
+you "a reading already exists for 05 Aug" on days where 05 Aug continued from
+this one perfectly. Narrowed the same way.
