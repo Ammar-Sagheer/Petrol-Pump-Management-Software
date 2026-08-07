@@ -134,6 +134,12 @@ amount of application code can get around them.
   of the transaction, so a reading and its slips are saved together or not at
   all.
 - **A meter cannot run backwards** — closing is never below opening.
+- **Two readings for one nozzle may not overlap.** A meter only moves
+  forwards, so if a later reading starts before an earlier one finished, the
+  same litres are on the books twice. Refused, naming the other date and how
+  many litres would be duplicated. A *gap* is still allowed — that is a
+  skipped day or a replaced meter, and blocking it would leave no way
+  forward — so gaps stay warnings in the entry dialog.
 - **The customer ledger is append-only.** No update, no delete, for anybody,
   including the owner and including the service-role key. A mistake is corrected
   by posting a new entry pointing the other way, so the history always adds up.

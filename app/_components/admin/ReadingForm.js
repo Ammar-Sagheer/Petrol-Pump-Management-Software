@@ -304,7 +304,32 @@ function EntryForm({ row, date, customers }) {
 
   const meterWentBackwards = hasClosing && closingValue < opening;
   const creditExceedsSale = hasClosing && cashAmount < 0;
-  const canSubmit = rate > 0 && hasClosing && !meterWentBackwards && !creditExceedsSale;
+
+  /*
+   * OVERLAPPING THE NEXT DAY. A meter only moves forwards, so two readings for
+   * one nozzle describe two separate spans of it. They overlap - and so count
+   * the same litres twice - when the next reading starts before this one
+   * finishes.
+   *
+   * This is the mistake that put about 1,678 litres and Rs 577,000 on the
+   * books twice in August 2026: a day entered against the 7th, then the same
+   * meter figures entered again against the 6th, with nothing removing the
+   * first. There was a warning in this dialog at the time and it was correct;
+   * it was also ignorable, so it was ignored.
+   *
+   * The rule that actually stops it is a trigger on nozzle_readings (migration
+   * 026) - this check only stops the trip to the server and explains the
+   * problem while the closing reading is still on screen. If the two ever
+   * disagree, the database is right.
+   */
+  const nextOpening =
+    row.later_opening === null || row.later_opening === undefined
+      ? null
+      : Number(row.later_opening);
+  const overlapsNextDay = hasClosing && nextOpening !== null && nextOpening < closingValue;
+
+  const canSubmit =
+    rate > 0 && hasClosing && !meterWentBackwards && !creditExceedsSale && !overlapsNextDay;
 
   function addLine() {
     setLines((current) => [
@@ -381,6 +406,17 @@ function EntryForm({ row, date, customers }) {
       {meterWentBackwards ? (
         <p className="text-sm font-medium text-red-700">
           The closing reading is below the opening reading of {litreFormat.format(opening)}.
+        </p>
+      ) : null}
+
+      {overlapsNextDay ? (
+        <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+          The reading already saved for {formatDayLabel(row.later_date)} starts at{' '}
+          {litreFormat.format(nextOpening)}, before this day would close at{' '}
+          {litreFormat.format(closingValue)} — so{' '}
+          {litreFormat.format(round2(closingValue - nextOpening))} litres would be counted on both
+          days. Clear {formatDayLabel(row.later_date)} on Readings first, then enter this day
+          again.
         </p>
       ) : null}
 

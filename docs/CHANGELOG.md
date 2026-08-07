@@ -585,3 +585,38 @@ one flagged instead of six, and it is Unit 2 · Nozzle B.
 The same false positive was in the dialog's `ReadingChainWarning`, which told
 you "a reading already exists for 05 Aug" on days where 05 Aug continued from
 this one perfectly. Narrowed the same way.
+
+### Overlapping readings are now refused, not warned about
+
+On 07 Aug 2026 a day's six readings were entered at 13:15 dated the 7th, and
+the same meter figures were entered again at 17:35 dated the 6th. Nothing
+removed the first set, so one movement of the meters became two days:
+
+    06 Aug   1,677.82 L   Rs 577,260   entered 07 Aug 17:35-17:39
+    07 Aug   1,677.78 L   Rs 577,245   entered 07 Aug 13:15-13:17
+
+The dialog did warn at the time — "the reading already saved for 07 Aug opens
+at the same place this day starts, so it already includes these litres" — and
+the warning was correct. It was also ignorable, and it was sitting under six
+red Check badges that were firing on every row of every past day.
+
+Migration 026 makes it a rule in the database. Two readings for one nozzle
+overlap when the later one starts before the earlier one finishes, and that
+is now refused with a message naming the other date, the two figures and how
+many litres would be duplicated — the message is the instruction, since
+`describe()` passes database errors straight to the user.
+
+**A gap is still allowed.** A later reading starting *after* an earlier one
+finished means litres are missing, not duplicated — a skipped day or a
+replaced meter — and blocking it would trap someone with no way forward.
+Those stay warnings, as they were. Only overlap, which cannot be honest, is
+refused.
+
+`ReadingForm` also disables Save and explains the clash while the closing
+reading is still on screen. That is the courtesy layer; the trigger is the
+rule.
+
+Checked against live data before applying: exactly the six 06/07 Aug pairs
+overlap and nothing else in the history does. The trigger was then exercised
+against the real 06 Aug row inside a block that deliberately aborts, so the
+attempt rolled back — it returned the intended message and no row changed.
