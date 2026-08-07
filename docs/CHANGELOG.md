@@ -722,3 +722,29 @@ adjacent by construction.
 Unexpected benefit on a phone: dropping "Unit 1 · " freed enough width that
 the fuel badge and the Entered/Enter status now sit on one line with the
 name, where before the badge wrapped underneath.
+
+### Docs caught up with the code
+
+An audit of every markdown file after the last few sessions. What had gone
+stale:
+
+- **README's migration table stopped at 025.** 026 (readings may not overlap)
+  and 027 (no back-fill where the next reading left no room) were applied and
+  committed but not listed.
+- **README's rules section had 026 but not 027**, and said nothing about the
+  consequence that matters daily: enter days oldest first, and if one is
+  missed, clear everything after it and re-enter forwards.
+- **README's project layout** was missing `reports/daily/` and
+  `settings/fuel-prices/`.
+- **`public/README.md` still described a navbar** and a 36px logo. It is a
+  sidebar now, and the mark is drawn at 64px on login, 48px in the sidebar,
+  40px in the phone's top bar.
+- **UI_CONVENTIONS' size-override example** pointed at "the compact navbar
+  buttons", which no longer exist — the technique does, on the staff list, so
+  the example moved there rather than being deleted.
+- Added the **grouping principle** to UI_CONVENTIONS: let the gap carry the
+  grouping, drop the repetition it makes redundant, and shorten a label only
+  where the context replacing it is on screen.
+
+`CLAUDE.md` needed nothing — its pointers to the three docs, the devcheck
+route, the Playwright path and `npm run build` are all still accurate.

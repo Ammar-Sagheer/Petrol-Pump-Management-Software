@@ -4,17 +4,18 @@ Files here are served from the site root: `public/logo.png` is `/logo.png`.
 
 ## logo.png
 
-The mark shown in the navbar and on the login screen, next to the business name.
+The mark shown in the sidebar and on the login screen, above the business name.
 Supplied by hand — save the green version here.
 
-Use the green one on purpose: this sits on a white header, where a transparent
+Use the green one on purpose: this sits on white, where a transparent
 mark floats and a solid tile reads as a logo. The tab icon is the opposite case
 and is transparent, because it sits on browser chrome that changes colour with
 the theme. The two wanting opposite things is why they are separate files.
 
-Keep it small. It is displayed at 36px in the navbar and 48px on login, so a few
-hundred pixels wide is ample — the 1.1 MB original was being downloaded in full
-on every page load to be drawn at 36px. Trimming the empty margin around the
+Keep it small. The largest it is ever drawn is 64px, on the login screen; the
+sidebar shows it at 48px and the phone's top bar at 40px. So a few hundred
+pixels wide is ample — the 1.1 MB original was being downloaded in full on
+every page load to be drawn at a fraction of its size. Trimming the empty margin around the
 mark helps too: it takes nothing off the logo and lets it fill the space.
 
 ## Browser icons

@@ -30,8 +30,9 @@ several look simplifiable and were already tried that way once.
   styles** — it was added for exactly this and had gone unused; the Sign
   out button was briefly a one-off red style before being folded into it.
 - Size overrides are applied by adding utility classes after the component
-  class, e.g. `className="btn-secondary px-3 py-1.5 text-xs"` for the
-  compact navbar buttons — the later utility classes win under Tailwind's
+  class, e.g. `className="btn-secondary px-2.5 py-1.5 text-xs"` for the
+  compact buttons inside a table row, as on the staff list — the later
+  utility classes win under Tailwind's
   cascade layers regardless of source order, since `@layer components`
   always loses to plain utilities.
 - `<SubmitButton>` (`app/_components/ui/SubmitButton.js`) wraps a submit
@@ -285,6 +286,24 @@ the wrong question.
 - Use the shared `<StatGrid>`/`<StatTile>` rather than hand-rolling a stat
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
+
+## Let spacing do the grouping
+
+Readings lists six nozzles that belong to three physical units. Flat and
+evenly spaced they read as six unrelated pumps, and the only thing saying
+otherwise was the words "Unit 1 ·" repeated on two cards — a relationship the
+reader had to compare character by character to see.
+
+- **The gap carries the grouping**: 32px between units against 12px between
+  the nozzles inside one. The heading only names what the spacing already
+  showed.
+- **Drop the repetition the grouping makes redundant.** With a "Unit 1"
+  heading above them, the cards say "Nozzle A" and "Nozzle B". The *dialog*
+  keeps the full "Unit 1 · Nozzle A", because it opens over the whole page
+  with the heading out of sight — shorten a label only where the context that
+  replaces it is on screen.
+- **A group can carry its own progress** — "1 of 2 entered", green once done —
+  so a finished group is skipped without reading its rows.
 
 ## The day on screen is stated once, and loudly
 
