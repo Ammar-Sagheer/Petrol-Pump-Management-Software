@@ -38,10 +38,48 @@ export default async function proxy(request) {
     },
   );
 
-  // Reads the verified JWT and refreshes it if it is close to expiring. Do not
-  // put anything between creating the client and this call.
-  const { data } = await supabase.auth.getClaims();
-  const isSignedIn = Boolean(data?.claims?.sub);
+  /*
+   * getSession(), NOT getClaims() - and the difference is a network round trip
+   * on every single request the app serves.
+   *
+   * getSession() reads the session out of the request cookies and returns it.
+   * It only talks to Supabase when the access token is within the refresh
+   * margin of expiring, at which point it exchanges the refresh token and
+   * writes the new cookie through setAll above. So job 1 is untouched: the
+   * refresh still happens, just once per token lifetime instead of once per
+   * page view.
+   *
+   * getClaims() starts by doing exactly the same read, and then VERIFIES the
+   * token - which is where the cost was:
+   *
+   *   - on a project using the legacy shared JWT secret, the middleware cannot
+   *     check an HS256 signature itself, so auth-js falls back to calling
+   *     /auth/v1/user. One round trip, every request.
+   *   - on a project using asymmetric signing keys it verifies locally, but
+   *     it needs the JWKS to do it, and that cache lives on the client
+   *     INSTANCE. Middleware builds a fresh client per request, so the cache
+   *     is always empty and it fetches /.well-known/jwks.json instead. Also
+   *     one round trip, every request.
+   *
+   * Either way the gate below was waiting on Supabase before Next.js had begun
+   * rendering anything - on every navigation, and on every prefetch.
+   *
+   * WHY DROPPING THE VERIFICATION HERE IS SAFE. This gate decides one thing:
+   * whether to redirect to the login page. It is not what protects the data,
+   * and it never was - see the note at the top of this file. Someone who
+   * hand-crafted a cookie to get past it would reach a page that calls
+   * requirePageRole(), which uses getClaims() and does verify, and behind that
+   * every query runs under RLS as whoever the database says they are. The
+   * worst a forged cookie buys is the chance to be redirected to the login
+   * page a moment later than they otherwise would have been.
+   *
+   * Note this reads `data.session` and never `session.user`. On the server
+   * auth-js wraps the user object in a proxy that warns when its properties
+   * are read, precisely because they come from an unverified token. Whether
+   * the session exists at all is the only thing this gate needs.
+   */
+  const { data } = await supabase.auth.getSession();
+  const isSignedIn = Boolean(data?.session);
 
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname === '/admin/login';
