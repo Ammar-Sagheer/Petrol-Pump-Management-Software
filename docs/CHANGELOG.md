@@ -620,3 +620,26 @@ Checked against live data before applying: exactly the six 06/07 Aug pairs
 overlap and nothing else in the history does. The trigger was then exercised
 against the real 06 Aug row inside a block that deliberately aborts, so the
 attempt rolled back — it returned the intended message and no row changed.
+
+### Meter decimals, and a warning that knows which day it is on
+
+Two small things spotted in the entry dialog on the duplicated 06 Aug day.
+
+- **`1,987,128.8` beside `1,987,279.95`.** The opening had dropped its
+  trailing zero, so two figures that describe the same dial rendered at
+  different widths in a tabular font. Meter readings now use a `meterFormat`
+  fixed at two decimals; litres sold keep the ordinary format, being
+  quantities rather than dial positions.
+- **The overlap warning was written for a day not yet entered** — "saving
+  here will count them twice" — and was showing on a day already saved, where
+  there is nothing to save and the double count has already happened. It
+  reads as a prediction about a button that is not on screen. A saved day now
+  gets the true statement instead: "this day and 07 Aug 2026 both cover the
+  same 151.15 litres … one of the two has to be cleared: whichever date the
+  meter was not read on." The unentered wording also now says the save *will
+  be refused*, which since migration 026 it will be.
+
+A third case fell out of separating the two: a saved day whose next reading
+starts *above* where it closed is a gap, not an overlap, and now says so —
+"05 Aug 2026 opens at 18,967.53 but this day closes at 18,900.00 … 67.53
+litres are on neither day."

@@ -286,6 +286,28 @@ the wrong question.
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
 
+## Meter readings carry two decimals
+
+A pump meter is a physical dial with a tenths digit, so 1,987,128.80 and
+1,987,279.95 are the same shape of number. Formatted with a bare
+`maximumFractionDigits` the first drops its trailing zero and renders a digit
+shorter than the figure beside it — in a tabular font whose whole purpose is
+keeping columns aligned, on a screen read in a hurry against cash in a
+drawer. `ReadingForm` and `ReadingChainWarning` use a `meterFormat` with
+`minimumFractionDigits: 2` for meter figures; litres sold keep the ordinary
+format, since those are quantities rather than dial positions.
+
+## A warning tells the reader their situation, not the general case
+
+The reading-chain messages say the same thing two ways depending on whether
+the day is already saved. On an unentered day the overlap is a prediction —
+"saving would count them twice, and will be refused" — and that is what stops
+the mistake. On a saved day the identical sentence describes something that
+has already happened as though it were still avoidable, which invites someone
+to hunt for a save button that is not there and conclude the message is
+stale. A saved day is told what is true and what to do: "this day and 07 Aug
+both cover the same 151.15 litres — one of the two has to be cleared."
+
 ## Two languages on one page
 
 The Guide is the app's only bilingual screen, and the shape it uses is the
