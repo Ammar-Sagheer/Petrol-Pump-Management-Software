@@ -10,6 +10,7 @@ import NumberInput from '@/app/_components/ui/NumberInput';
 import ReadingChainWarning from '@/app/_components/admin/ReadingChainWarning';
 import { formatRate } from '@/app/_lib/format-helpers';
 import Dialog from '@/app/_components/ui/Dialog';
+import Icon from '@/app/_components/ui/Icon';
 
 /*
  * Formatting is done inline here rather than imported from helpers.js: that
@@ -69,10 +70,13 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
       >
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <span className="text-sm font-bold text-ink-900">{title}</span>
+            <span className="text-lg font-bold text-ink-900">{title}</span>
             <FuelBadge fuelType={row.fuel_type} />
             {hasChainProblem ? (
-              <span className="badge bg-red-100 text-red-800">check</span>
+              <span className="badge bg-red-100 text-red-800">
+                <Icon name="warning" className="h-4 w-4" />
+                Check
+              </span>
             ) : null}
           </div>
 
@@ -81,11 +85,10 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
               isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-100 text-amber-900'
             }`}
           >
+            <Icon name={isSaved ? 'check' : 'pencil'} className="h-4 w-4" />
             {isSaved ? 'Entered' : 'Enter'}
           </span>
-          <span aria-hidden="true" className="shrink-0 text-lg leading-none text-ink-400">
-            ›
-          </span>
+          <Icon name="chevronRight" className="h-5 w-5 shrink-0 text-ink-500" />
         </div>
 
         {/* Every number gets its own label. The old single line read
@@ -110,12 +113,17 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
               value={litreFormat.format(openingUsed)}
               strong
             />
+            {/* "/ litre" lives in the caption, not in the figure. At the
+                readable type size "Rs 336.34 / litre" no longer fits the
+                half-width column a phone gives this, and it was truncating to
+                "Rs 336.34 / lit..." - hiding part of a number to make room for
+                a unit that never changes. */}
             <RowFigure
-              label="Today’s rate"
-              value={row.rate ? `${formatRate(row.rate)} / litre` : 'Not set'}
+              label="Rate a litre"
+              value={row.rate ? formatRate(row.rate) : 'Not set'}
               tone={row.rate ? undefined : 'warn'}
             />
-            <div className="col-span-2 self-center text-xs text-ink-500 sm:col-span-2">
+            <div className="col-span-2 self-center text-sm text-ink-600 sm:col-span-2">
               Tap to enter the closing meter reading.
             </div>
           </dl>
@@ -129,7 +137,7 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
         subtitle={
           <div className="flex items-center gap-2">
             <FuelBadge fuelType={row.fuel_type} />
-            <span className="text-xs text-ink-500">{formatDayLabel(date)}</span>
+            <span className="text-sm text-ink-600">{formatDayLabel(date)}</span>
           </div>
         }
       >
@@ -149,19 +157,15 @@ export default function ReadingForm({ row, date, customers, creditSales, canDele
  */
 function RowFigure({ label, value, strong, tone }) {
   const valueTone =
-    tone === 'muted' ? 'text-ink-400'
+    tone === 'muted' ? 'text-ink-500'
     : tone === 'warn' ? 'text-amber-700'
     : tone === 'credit' ? 'text-ink-900'
     : 'text-ink-900';
 
   return (
     <div className="min-w-0">
-      <dt className="truncate text-[0.65rem] font-medium uppercase tracking-wide text-ink-500">
-        {label}
-      </dt>
-      <dd
-        className={`tabular truncate text-sm ${strong ? 'font-bold' : 'font-semibold'} ${valueTone}`}
-      >
+      <dt className="figure-label truncate">{label}</dt>
+      <dd className={`figure-value truncate ${strong ? '' : 'font-semibold'} ${valueTone}`}>
         {value}
       </dd>
     </div>
@@ -234,7 +238,7 @@ function SavedReading({ row, date, creditSales, canDelete }) {
 function Figure({ label, value, strong }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</dt>
+      <dt className="figure-label">{label}</dt>
       <dd
         className={[
           'tabular mt-0.5',
@@ -356,7 +360,7 @@ function EntryForm({ row, date, customers }) {
       <ReadingChainWarning row={row} date={date} openingUsed={opening} />
 
       {rate > 0 ? (
-        <p className="text-xs text-ink-500">
+        <p className="text-sm text-ink-600">
           Rate: <span className="tabular font-semibold text-ink-700">{formatRate(rate)}</span> per litre
         </p>
       ) : (
@@ -402,7 +406,7 @@ function EntryForm({ row, date, customers }) {
         </div>
 
         {lines.length === 0 ? (
-          <p className="text-xs text-ink-500">
+          <p className="text-sm text-ink-600">
             None yet — the whole amount is treated as cash. Took fuel on credit? Add them above.
           </p>
         ) : (
@@ -465,7 +469,7 @@ function EntryForm({ row, date, customers }) {
       {/* ---- the split ---- */}
       <div className="grid grid-cols-2 gap-3 rounded-lg border border-ink-200 p-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Cash</p>
+          <p className="figure-label">Cash</p>
           <p
             className={[
               'tabular mt-0.5 text-lg font-bold',
@@ -476,7 +480,7 @@ function EntryForm({ row, date, customers }) {
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Credit</p>
+          <p className="figure-label">Credit</p>
           <p className="tabular mt-0.5 text-lg font-bold text-ink-900">{showMoney(creditTotal)}</p>
         </div>
       </div>
@@ -486,7 +490,7 @@ function EntryForm({ row, date, customers }) {
           The slips come to more than this nozzle sold. Check the litres and amounts.
         </p>
       ) : (
-        <p className="text-xs text-ink-500">
+        <p className="text-sm text-ink-600">
           Cash is worked out for you. Check it against the notes in the drawer before saving.
         </p>
       )}

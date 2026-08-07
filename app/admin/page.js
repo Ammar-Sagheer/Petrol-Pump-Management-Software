@@ -197,12 +197,12 @@ export default async function DashboardPage({ searchParams }) {
                   }}
                 />
               </div>
-              <p className="mt-1.5 text-xs text-ink-500">
+              <p className="mt-1.5 text-sm text-ink-600">
                 {Math.round(fill)}% of {formatLitres(capacity)} capacity
               </p>
 
               {gainLoss === null ? (
-                <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-500">
+                <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-600">
                   No dip recorded for this date.{' '}
                   <Link
                     href={`/admin/stock-checks?date=${date}`}
@@ -267,7 +267,7 @@ export default async function DashboardPage({ searchParams }) {
             </div>
 
             {Number(lubricants.sales_count ?? 0) === 0 ? (
-              <p className="mt-3 border-t border-ink-200/60 pt-3 text-xs text-ink-500">
+              <p className="mt-3 border-t border-ink-200/60 pt-3 text-sm text-ink-600">
                 Nothing sold over the counter on this date.{' '}
                 <Link
                   href={`/admin/lubricants?date=${date}`}

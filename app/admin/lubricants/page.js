@@ -116,7 +116,7 @@ export default async function LubricantsPage({ searchParams }) {
         <>
           <section
             aria-label="Lubricant sales for the day"
-            className="card mb-6 grid grid-cols-2 gap-px overflow-hidden bg-ink-200 sm:grid-cols-4"
+            className="card mb-6 grid grid-cols-1 gap-px overflow-hidden bg-ink-200 min-[380px]:grid-cols-2 sm:grid-cols-4"
           >
             <Stat label="Sales" value={String(Number(totals.sales_count ?? 0))} />
             <Stat label="Litres sold" value={formatLitres(totals.litres)} />
@@ -162,7 +162,7 @@ export default async function LubricantsPage({ searchParams }) {
                       <td className="td">
                         <span className="font-medium">{sale.name}</span>
                         {sale.note ? (
-                          <span className="block text-xs text-ink-500">{sale.note}</span>
+                          <span className="block text-sm text-ink-600">{sale.note}</span>
                         ) : null}
                       </td>
                       <td className="td-num">{formatLitres(sale.litres)}</td>
@@ -267,9 +267,9 @@ export default async function LubricantsPage({ searchParams }) {
 function Stat({ label, value, sub }) {
   return (
     <div className="bg-white px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
-      <p className="tabular mt-1 text-lg font-bold text-ink-900">{value}</p>
-      {sub ? <p className="mt-0.5 text-xs text-ink-500">{sub}</p> : null}
+      <p className="figure-label">{label}</p>
+      <p className="tabular mt-1 whitespace-nowrap text-xl font-bold text-ink-900 sm:text-2xl">{value}</p>
+      {sub ? <p className="mt-0.5 text-sm text-ink-600">{sub}</p> : null}
     </div>
   );
 }

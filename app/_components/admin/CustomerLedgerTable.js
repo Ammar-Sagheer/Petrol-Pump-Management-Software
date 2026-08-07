@@ -64,7 +64,7 @@ export default function CustomerLedgerTable({ entries }) {
                     ) : null}
                   </div>
                   {entry.litres ? (
-                    <span className="tabular mt-0.5 block text-xs text-ink-500">
+                    <span className="tabular mt-0.5 block text-sm text-ink-600">
                       {formatLitres(entry.litres)}
                     </span>
                   ) : null}

@@ -337,3 +337,54 @@ A connected sequence of changes reorganizing where things live, driven by
   through every evening, which makes it the last place a control should
   move between one day and the next. Checked as owner and as staff, on
   today and an older date, at 1440/1152/1024 and 400px.
+
+### A readability pass, for an owner moving off a spreadsheet
+
+The app was built text-first and measured badly for the person who actually
+uses it — an owner in his fifties reading a tablet in a pump office. Measured
+before the change, on the Readings screen: nozzle figures 14px, their
+captions **10.4px** uppercase grey at 4.76:1, table cells 14px, nav 14px —
+while the page heading that tells the reader nothing was 24px. The data was
+smaller than the chrome around it.
+
+What changed:
+
+- **Type scale**, mostly through `globals.css` so it stays fixable in one
+  place: body and table cells to 16px, nozzle figures to 18px, stat values to
+  24px, captions to a 12px floor, buttons and tabs to `py-3` (~48px targets).
+- **`figure-label` / `figure-value`** — the caption-over-figure pairing that
+  had been hand-rolled at 25 sites and had drifted to 10.4px in the worst of
+  them, now one class each.
+- **Contrast floor of `ink-600`** for anything meant to be read; `ink-400`
+  (2.6:1) is now only disabled and placeholder text. 57 secondary captions
+  and 10 "(optional)" hints moved up.
+- **Icons** (`ui/Icon.js`), drawn inline rather than added as a dependency —
+  on every nav tab, and on the Entered/Enter status, which had been two words
+  two letters apart distinguished mainly by amber vs green.
+- **The written date is now the loudest thing in `DateNav`.** A native date
+  box is drawn in the *browser's* locale, so on an en-US browser the 7th of
+  August renders "08/07/2026" — the 8th of July to anyone reading day-first.
+  Markup cannot change that, so the box was demoted to a jump control and the
+  spelled-out date carries which day is on screen.
+
+Two things this pass broke and then fixed, both worth knowing about:
+
+- **The nav no longer fits on one line and now wraps.** Icons plus 16px
+  labels need 1347px against a 1152px container, so Reports and Settings sat
+  off the right edge on every laptop. The `lg:ml-auto` pinning that used to
+  hold those two apart had to go with it: inside a wrapping row it threw them
+  onto a line of their own, making the header three rows at 1024px. They are
+  still last in reading order. Below `sm` the row still scrolls rather than
+  wrapping — ten tabs stacked four deep would push the day's work off screen
+  — and now has a measured fade on whichever edge still has tabs behind it.
+- **"Rs 336.34 / litre" started truncating** in a nozzle row on a phone at
+  the larger size. Fixed by moving "/ litre" into the caption rather than by
+  shrinking the figure back down. Same story on the dashboard tiles, where
+  "Rs 4,386,211" was breaking after the "Rs": those are `whitespace-nowrap`
+  now, and the grid drops to one column below 380px so the number has room.
+
+Checked by rendering a full six-nozzle sheet with realistic figures at 1440,
+1152, 1024, 820, 400, 360 and 320px, scripted to report any element whose
+text is clipped by its own box: nothing is, at any width, apart from the
+`sr-only` "Actions" heading and the navbar's business name, both of which
+truncate by design.

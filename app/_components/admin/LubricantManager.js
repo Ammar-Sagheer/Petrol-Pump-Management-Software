@@ -92,7 +92,7 @@ export default function LubricantManager({ lubricants }) {
                 <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">
                   Retired
                 </h3>
-                <p className="mb-2 text-xs text-ink-500">
+                <p className="mb-2 text-sm text-ink-600">
                   Not offered on the sale form any more. Their past sales and purchases still count
                   towards every month they appear in.
                 </p>
@@ -117,7 +117,7 @@ function ProductRow({ lubricant, retired = false, onEdit }) {
         <p className={`text-sm font-semibold ${retired ? 'text-ink-500' : 'text-ink-900'}`}>
           {lubricant.name}
         </p>
-        <p className="text-xs text-ink-500">
+        <p className="text-sm text-ink-600">
           {litreFormat.format(lubricant.pack_size_litres)} L pack
           {Number(lubricant.sale_rate_per_litre) > 0
             ? ` · Rs ${litreFormat.format(lubricant.sale_rate_per_litre)} a litre`
@@ -176,7 +176,7 @@ function ProductForm({ lubricant, onDone }) {
           className="input"
           placeholder="e.g. Shell Helix HX5 20W-50"
         />
-        <p className="mt-1 text-xs text-ink-500">
+        <p className="mt-1 text-sm text-ink-600">
           Whatever is written on the carton — brand, grade and all. It is what staff will pick from
           when recording a sale.
         </p>
@@ -196,7 +196,7 @@ function ProductForm({ lubricant, onDone }) {
             defaultValue={lubricant?.pack_size_litres ?? 4}
             className="input-number"
           />
-          <p className="mt-1 text-xs text-ink-500">
+          <p className="mt-1 text-sm text-ink-600">
             The usual carton — 4, 3 or 1. Only a shortcut on the sale form; loose oil is still sold
             by the quarter litre.
           </p>
@@ -204,7 +204,7 @@ function ProductForm({ lubricant, onDone }) {
 
         <div>
           <label className="label" htmlFor="sale_rate_per_litre">
-            Selling rate a litre <span className="font-normal text-ink-400">(optional)</span>
+            Selling rate a litre <span className="font-normal text-ink-500">(optional)</span>
           </label>
           <NumberInput
             id="sale_rate_per_litre"
@@ -215,7 +215,7 @@ function ProductForm({ lubricant, onDone }) {
             className="input-number"
             placeholder="0"
           />
-          <p className="mt-1 text-xs text-ink-500">
+          <p className="mt-1 text-sm text-ink-600">
             Used to fill in the amount when a sale is typed. It can always be changed on the sale
             itself.
           </p>

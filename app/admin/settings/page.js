@@ -49,7 +49,7 @@ export default async function SettingsPage() {
               <div key={fuelType} className="card p-4">
                 <div className="flex items-center justify-between">
                   <FuelBadge fuelType={fuelType} />
-                  <span className="text-xs text-ink-500">current rate</span>
+                  <span className="text-sm text-ink-600">current rate</span>
                 </div>
                 <p className="tabular mt-2 text-2xl font-bold text-ink-900">
                   {rates[fuelType] === null ? (

@@ -1,5 +1,6 @@
 import PendingLink from '@/app/_components/ui/PendingLink';
 import DateJump from '@/app/_components/admin/DateJump';
+import Icon from '@/app/_components/ui/Icon';
 
 import { todayISO, shiftISODate, formatDate } from '@/app/_lib/date-helpers';
 
@@ -52,7 +53,7 @@ export default function DateNav({
           aria-label={`Go to ${formatDate(previousDate)}`}
           spinnerOnly
         >
-          <span aria-hidden="true">‹</span>
+          <Icon name="chevronRight" className="h-5 w-5 rotate-180" />
         </PendingLink>
 
         <DateJump date={date} basePath={basePath} paramName={paramName} />
@@ -63,12 +64,12 @@ export default function DateNav({
           aria-label={`Go to ${formatDate(nextDate)}`}
           spinnerOnly
         >
-          <span aria-hidden="true">›</span>
+          <Icon name="chevronRight" className="h-5 w-5" />
         </PendingLink>
 
         {/* Only worth showing when it would actually do something. */}
         {!isToday ? (
-          <PendingLink href={basePath} className="btn-primary py-2 text-xs">
+          <PendingLink href={basePath} className="btn-primary py-2 text-sm">
             Back to today
           </PendingLink>
         ) : null}
@@ -76,13 +77,26 @@ export default function DateNav({
         {children}
       </div>
 
-      {/* Which day is on screen, in words - the date box alone is easy to skim
-          past, and entering a reading against the wrong day is expensive. */}
-      <p className="flex items-center gap-1.5 text-xs text-ink-600">
+      {/*
+        Which day is on screen, in words, and deliberately the loudest thing in
+        this block.
+
+        A native date box is drawn by the browser in the BROWSER's locale, which
+        no amount of markup can change: on an en-US browser the 7th of August
+        renders "08/07/2026", which anyone reading dates day-first sees as the
+        8th of July. That box therefore cannot be trusted to say which day is
+        being worked on - so the written date carries it instead, at a size and
+        weight that beats the numbers above it, with Today / Yesterday spelled
+        out beside it. The box is left to be what it is good at: jumping to a
+        date. Entering a reading against the wrong day is expensive - each
+        opening comes from the day before - and this is the only guard the
+        reader gets before they start typing.
+      */}
+      <p className="flex items-center gap-2 text-base font-semibold text-ink-800">
         {relativeLabel ? (
           <span className={`badge ${labelStyle}`}>{relativeLabel}</span>
         ) : null}
-        <span className="font-medium">{formatDate(date)}</span>
+        <span>{formatDate(date)}</span>
       </p>
     </div>
   );

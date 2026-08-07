@@ -117,7 +117,7 @@ export default async function StockChecksPage({ searchParams }) {
                     <tr key={row.id}>
                       <td className="td">
                         <span className="font-medium">{row.name}</span>
-                        <span className="ml-2 text-xs text-ink-500">
+                        <span className="ml-2 text-sm text-ink-600">
                           {formatLitres(pack)} pack
                         </span>
                         {row.is_active ? null : (

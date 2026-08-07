@@ -112,7 +112,7 @@ export default function LubricantPurchaseForm({ lubricants }) {
               ))}
             </select>
             {selected ? (
-              <p className="mt-1 text-xs text-ink-500">
+              <p className="mt-1 text-sm text-ink-600">
                 Holds {litreFormat.format(selected.current_stock_litres ?? 0)} L today · sold in{' '}
                 {litreFormat.format(selected.pack_size_litres)} L packs
               </p>
@@ -203,7 +203,7 @@ export default function LubricantPurchaseForm({ lubricants }) {
 
           <div>
             <label className="label" htmlFor="lubricant_invoice">
-              Invoice number <span className="font-normal text-ink-400">(optional)</span>
+              Invoice number <span className="font-normal text-ink-500">(optional)</span>
             </label>
             <input id="lubricant_invoice" name="invoice_number" type="text" className="input" />
           </div>

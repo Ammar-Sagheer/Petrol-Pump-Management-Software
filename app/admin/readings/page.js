@@ -95,7 +95,7 @@ export default async function ReadingsPage({ searchParams }) {
 
       <section
         aria-label="Progress for the day"
-        className="card mb-6 grid grid-cols-2 gap-px overflow-hidden bg-ink-200 sm:grid-cols-4"
+        className="card mb-6 grid grid-cols-1 gap-px overflow-hidden bg-ink-200 min-[380px]:grid-cols-2 sm:grid-cols-4"
       >
         <Stat label="Nozzles entered" value={`${done.length} of ${sheet.length}`} />
         <Stat label="Litres sold" value={formatLitres(totals.litres)} />
@@ -124,8 +124,8 @@ export default async function ReadingsPage({ searchParams }) {
 function Stat({ label, value }) {
   return (
     <div className="bg-white px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
-      <p className="tabular mt-1 text-lg font-bold text-ink-900">{value}</p>
+      <p className="figure-label">{label}</p>
+      <p className="tabular mt-1 whitespace-nowrap text-xl font-bold text-ink-900 sm:text-2xl">{value}</p>
     </div>
   );
 }

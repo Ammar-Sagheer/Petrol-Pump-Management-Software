@@ -50,7 +50,7 @@ export default function LoginForm({ next = '' }) {
         Sign in
       </SubmitButton>
 
-      <p className="text-center text-xs text-ink-500">
+      <p className="text-center text-sm text-ink-600">
         Accounts are created by the owner. There is no self signup.
       </p>
     </form>

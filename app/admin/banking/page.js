@@ -128,7 +128,7 @@ export default async function BankingPage() {
                             <td className="td">
                               <span>{txn.category ?? (isDeposit ? 'Cash paid in' : '—')}</span>
                               {txn.note ? (
-                                <span className="block text-xs text-ink-500">{txn.note}</span>
+                                <span className="block text-sm text-ink-600">{txn.note}</span>
                               ) : null}
                             </td>
                             <td className="td-num font-semibold text-brand-700">
@@ -166,7 +166,7 @@ function AccountCard({ account, transactionCount }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-bold text-ink-900">{account.account_label}</h3>
-          <p className="truncate text-xs text-ink-500">
+          <p className="truncate text-sm text-ink-600">
             {account.bank_name}
             {account.account_number ? ` · ${account.account_number}` : ''}
           </p>
@@ -178,7 +178,7 @@ function AccountCard({ account, transactionCount }) {
         />
       </div>
 
-      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-ink-500">Balance</p>
+      <p className="mt-3 figure-label">Balance</p>
       {/* Red when overdrawn. A negative balance here means the books say more
           has gone out than went in, which is worth noticing immediately. */}
       <p
@@ -211,7 +211,7 @@ function AccountCard({ account, transactionCount }) {
       ) : null}
 
       {account.pruned_count > 0 ? (
-        <p className="mt-3 text-xs text-ink-500">
+        <p className="mt-3 text-sm text-ink-600">
           {account.pruned_count} older transaction{account.pruned_count === 1 ? '' : 's'} have
           dropped off the list. Their amounts are still counted above.
         </p>
@@ -223,7 +223,7 @@ function AccountCard({ account, transactionCount }) {
 function Stat({ label, value, strong = false }) {
   return (
     <div className="bg-white px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="figure-label">{label}</p>
       <p
         className={`tabular mt-1 font-bold text-ink-900 ${strong ? 'text-2xl' : 'text-lg'}`}
       >

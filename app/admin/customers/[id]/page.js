@@ -49,7 +49,7 @@ export default async function CustomerDetailPage({ params }) {
         <div className="space-y-6">
           {/* ---- balance ---- */}
           <section className="card p-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+            <p className="figure-label">
               Currently owes
             </p>
             <p
@@ -72,7 +72,7 @@ export default async function CustomerDetailPage({ params }) {
 
             <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-ink-200 pt-4">
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">
+                <dt className="figure-label">
                   Fuel taken
                 </dt>
                 <dd className="tabular mt-0.5 text-lg font-semibold text-ink-900">
@@ -80,7 +80,7 @@ export default async function CustomerDetailPage({ params }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">
+                <dt className="figure-label">
                   Paid back
                 </dt>
                 <dd className="tabular mt-0.5 text-lg font-semibold text-ink-900">

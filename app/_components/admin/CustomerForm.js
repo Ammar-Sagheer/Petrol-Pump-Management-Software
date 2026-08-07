@@ -29,7 +29,7 @@ export default function CustomerForm() {
 
       <div>
         <label className="label" htmlFor="vehicle_number">
-          Vehicle number <span className="font-normal text-ink-400">(optional)</span>
+          Vehicle number <span className="font-normal text-ink-500">(optional)</span>
         </label>
         <input
           id="vehicle_number"
@@ -42,14 +42,14 @@ export default function CustomerForm() {
 
       <div>
         <label className="label" htmlFor="phone">
-          Phone <span className="font-normal text-ink-400">(optional)</span>
+          Phone <span className="font-normal text-ink-500">(optional)</span>
         </label>
         <input id="phone" name="phone" type="tel" className="input" placeholder="03xx-xxxxxxx" />
       </div>
 
       <div>
         <label className="label" htmlFor="credit_limit">
-          Credit limit <span className="font-normal text-ink-400">(optional)</span>
+          Credit limit <span className="font-normal text-ink-500">(optional)</span>
         </label>
         <NumberInput
           id="credit_limit"
@@ -59,7 +59,7 @@ export default function CustomerForm() {
           className="input-number"
           placeholder="0"
         />
-        <p className="mt-1 text-xs text-ink-500">
+        <p className="mt-1 text-sm text-ink-600">
           Leave blank for no limit. Going over it does not block a sale — the customer is just
           flagged on the list.
         </p>

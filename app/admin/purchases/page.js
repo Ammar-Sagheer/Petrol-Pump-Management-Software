@@ -162,7 +162,7 @@ export default async function PurchasesPage() {
                     <td className="td">
                       <span className="font-medium">{row.supplier}</span>
                       {row.invoice ? (
-                        <span className="block text-xs text-ink-500">#{row.invoice}</span>
+                        <span className="block text-sm text-ink-600">#{row.invoice}</span>
                       ) : null}
                     </td>
                     <td className="td-num">{formatLitres(row.litres)}</td>
@@ -206,7 +206,7 @@ export default async function PurchasesPage() {
         )}
 
         {isOwner && lubricantSpend > 0 ? (
-          <p className="mt-3 text-xs text-ink-500">
+          <p className="mt-3 text-sm text-ink-600">
             Of the list above, <span className="font-semibold">{formatPKR(lubricantSpend)}</span> is
             lubricant stock.
           </p>
