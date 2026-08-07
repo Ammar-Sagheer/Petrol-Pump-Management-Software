@@ -4,7 +4,7 @@ Daily management for the petrol pump: nozzle readings, fuel purchases,
 lubricant sales, stock gain/loss, customer credit, banking and monthly profit.
 
 **Naming and logo** live in `app/_lib/brand.js`. Change `BUSINESS_NAME` there and
-the navbar, the login screen, every browser tab title and the monthly workbook
+the sidebar, the login screen, every browser tab title and the monthly workbook
 all follow. The logo is whatever sits at `public/logo.png` — drop a file in and
 it appears; take it away and the initials tile comes back. No code change either
 way.
@@ -140,6 +140,13 @@ amount of application code can get around them.
   many litres would be duplicated. A *gap* is still allowed — that is a
   skipped day or a replaced meter, and blocking it would leave no way
   forward — so gaps stay warnings in the entry dialog.
+- **A day the next reading already covers whole cannot be entered at all.**
+  If the following reading opens exactly where this day starts, there is no
+  honest figure left to type: the only closing the overlap rule would still
+  accept is the opening itself, and a nought-litre day says "nothing sold" for
+  a day that traded. So enter days **oldest first**. If one is missed, clear
+  everything after it and re-enter forwards — back-filling underneath a saved
+  day is refused, and the message names the day to clear.
 - **The customer ledger is append-only.** No update, no delete, for anybody,
   including the owner and including the service-role key. A mistake is corrected
   by posting a new entry pointing the other way, so the history always adds up.
@@ -207,7 +214,9 @@ app/
     banking/               the owner's bank accounts - owner only
     expenses/              what the pump spends, by month - owner only
     reports/               monthly profit, charts, Excel export
+      daily/               every trading day, newest first, paged
     settings/              prices, tanks, nozzle wiring
+      fuel-prices/         the full rate history, paged
     account/               your own login, and staff logins for the owner
     guide/                 how to use the app, English and Urdu (?lang=ur)
   _components/
@@ -268,6 +277,8 @@ Applied in order:
 | `023_purchase_total_is_the_input.sql` | Invoice total stored; rate per litre generated from it |
 | `024_lubricants.sql` | The lubricant shelf: products, purchases, counter sales, credit to the ledger |
 | `025_lubricants_in_reports.sql` | Lubricants in the dashboard, the trend, the monthly report and the export |
+| `026_readings_may_not_overlap.sql` | A nozzle's readings may not overlap: two rows cannot cover the same litres |
+| `027_no_backfill_without_room.sql` | And a day the next reading already covers whole cannot be entered at all |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
