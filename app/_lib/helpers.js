@@ -7,6 +7,7 @@
  * Client Components that need to format a number as they type do it inline with
  * Intl instead - see ReadingForm.
  */
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from './supabase-server';
 
@@ -52,7 +53,23 @@ export function landingPageFor(role) {
  * browser sent, then loads the profile row for the role. A deactivated account
  * is treated as signed out.
  */
-export async function getSessionProfile() {
+/**
+ * Wrapped in React's cache() so it runs ONCE PER REQUEST, not once per caller.
+ *
+ * Every admin navigation was paying for this twice: the layout asks who is
+ * signed in so it can draw the sidebar, and then the page asks again through
+ * requirePageRole(). Each ask is a claims check plus a select on `profiles`,
+ * so two round trips to Supabase happened before a page had started fetching
+ * anything it actually wanted to show. Deduped, the second caller gets the
+ * first one's answer.
+ *
+ * This is a per-request memo and nothing more - it is not a cache across
+ * requests, and it cannot go stale. A new request, or the same user in another
+ * tab, does the lookup again. That matters: it means a staff account that is
+ * deactivated is locked out on their very next navigation, which is the one
+ * property this function is not allowed to lose.
+ */
+export const getSessionProfile = cache(async function getSessionProfile() {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.getClaims();
@@ -68,7 +85,7 @@ export async function getSessionProfile() {
   if (!profile || !profile.is_active) return null;
 
   return { ...profile, email: claims.email ?? null };
-}
+});
 
 /**
  * requireRole - the guard to call at the top of EVERY Server Action.

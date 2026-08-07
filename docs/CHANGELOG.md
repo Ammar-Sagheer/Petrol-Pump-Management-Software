@@ -428,3 +428,37 @@ The pump's own name was also being truncated to "Mubeen Petr..." in the
 240px column. In the sidebar the logo, name and person now stack, each with
 the full width; the phone's top bar keeps the inline, truncating layout,
 where wrapping would push the day's work further down.
+
+### Fuel rates: seven days on Settings, the rest on their own page
+
+The rate moves most days and both fuels change together, so that table grew
+by about sixty rows a month. Left unbounded it had become the tallest thing
+on Settings and the part of the page nobody read.
+
+- Settings shows the last **seven days** of changes and links to the rest.
+  Counted in days rather than rows on purpose: a row limit cuts a day in
+  half and shows diesel's new rate without petrol's, and the two are read as
+  a pair.
+- `/admin/settings/fuel-prices` is the full history, 25 to a page, newest
+  first. The page number is a query string so Back works through it and a
+  page can be linked to. Paged rather than capped, because an old rate is
+  what a disputed reading gets checked against — there is no date past which
+  it stops mattering.
+- The table itself moved into `FuelPriceTable` and is shared by both. Its
+  rows carry a delete confirmation that names the rate and the date, and
+  that sentence drifting between two copies is how someone removes a rate
+  they meant to keep.
+
+### getSessionProfile is deduped per request
+
+Every admin navigation was paying for the session lookup twice — the layout
+asks who is signed in to draw the sidebar, then the page asks again through
+`requirePageRole()`. Each ask is a claims check plus a select on `profiles`,
+so two round trips to Supabase completed before a page began fetching what it
+actually wanted to show. It is wrapped in React's `cache()` now, so the second
+caller gets the first one's answer.
+
+Worth being precise about what this is **not**: it is a per-request memo, not
+a cache across requests, and it cannot serve a stale answer. A new request
+does the lookup again — which is what keeps a deactivated staff account
+locked out on their very next navigation.

@@ -103,16 +103,16 @@ export default function AdminSidebar({ profile }) {
    * on one line - laid out like the top bar it truncated to "Mubeen Petr...",
    * which is the pump's own name, on its own screen, cut in half. Sat beside
    * the logo it wrapped one word to a line. So down the side everything
-   * stacks: the logo, then the name across the full width of the column, then
-   * the person and their role.
+   * stacks and centres over the column's full width: the logo, then the name,
+   * then the person and their role.
    *
    * Across the top of a phone there is room for one line each, and wrapping
    * there would push the day's work further down, so that one keeps the
    * truncating layout it always had.
    */
   const identityStacked = (
-    <div className="min-w-0">
-      <BrandMark className="h-10" />
+    <div className="min-w-0 text-center">
+      <BrandMark className="mx-auto h-12" />
       <p className="mt-2 text-base font-semibold leading-tight text-ink-900">{BUSINESS_NAME}</p>
       <p className="mt-1 text-sm text-ink-600">
         {profile.full_name}

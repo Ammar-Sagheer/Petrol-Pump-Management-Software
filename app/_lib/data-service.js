@@ -43,16 +43,56 @@ export async function getNozzles() {
   );
 }
 
-export async function getFuelPrices() {
+/**
+ * The most recent rate changes, for the panel on Settings.
+ *
+ * Counted in DAYS, not rows. The rate for both fuels usually changes together,
+ * so a row limit would cut a day in half and show diesel's new rate without
+ * petrol's - the two are read as a pair. This takes the latest `days` distinct
+ * dates and returns every row belonging to them.
+ *
+ * The overfetch is what makes one round trip enough: at two fuels a day, seven
+ * days is fourteen rows, and 60 leaves room for a day that was corrected
+ * several times over without going back to the database to find out.
+ */
+export async function getRecentFuelPrices(days = 7) {
   const supabase = await createClient();
-  return unwrap(
+  const rows = unwrap(
     await supabase
       .from('fuel_prices')
       .select('*')
       .order('effective_from', { ascending: false })
-      .limit(50),
+      .limit(60),
     'the fuel prices',
   );
+
+  const recentDates = [...new Set(rows.map((row) => row.effective_from))].slice(0, days);
+  return rows.filter((row) => recentDates.includes(row.effective_from));
+}
+
+/**
+ * One page of the full rate history, plus how many there are in total.
+ *
+ * `count: 'exact'` rides along on the same request - the total is needed to
+ * draw the pager, and asking for it separately would be a second round trip
+ * for a number the database has already worked out.
+ */
+export async function getFuelPricesPage({ page = 1, perPage = 25 } = {}) {
+  const supabase = await createClient();
+  const from = (page - 1) * perPage;
+
+  const { data, error, count } = await supabase
+    .from('fuel_prices')
+    .select('*', { count: 'exact' })
+    .order('effective_from', { ascending: false })
+    .order('fuel_type')
+    .range(from, from + perPage - 1);
+
+  if (error) {
+    throw new Error(`Could not load the fuel prices: ${error.message}`);
+  }
+
+  return { rows: data ?? [], total: count ?? 0 };
 }
 
 /**
