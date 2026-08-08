@@ -177,6 +177,11 @@ export const GUIDE = {
           name: 'Reports',
           when: 'Owner only. Once a month. Sales, profit, what is owed and what is owing, with a spreadsheet to download for the accountant.',
         },
+        {
+          icon: 'activity',
+          name: 'Activity',
+          when: 'Owner only. Every entry, change and deletion, with the name of whoever made it and the time they made it. Written by the database itself — it cannot be edited or turned off, not even by you. Look here when a figure is not what you remember.',
+        },
       ],
     },
 
@@ -244,6 +249,7 @@ export const GUIDE = {
         { label: 'See and record expenses and banking', owner: true, staff: false },
         { label: 'Change prices, tanks and nozzles', owner: true, staff: false },
         { label: 'Correct or delete past entries', owner: true, staff: false },
+        { label: 'See who did what, and when', owner: true, staff: false },
       ],
     },
   },
@@ -407,6 +413,11 @@ export const GUIDE = {
           name: 'رپورٹس',
           when: 'صرف مالک کے لیے، مہینے میں ایک بار۔ فروخت، منافع، کتنا لینا ہے اور کتنا دینا ہے — ساتھ اکاؤنٹنٹ کے لیے شیٹ ڈاؤن لوڈ کرنے کی سہولت۔',
         },
+        {
+          icon: 'activity',
+          name: 'سرگرمی',
+          when: 'صرف مالک کے لیے۔ ہر اندراج، ہر تبدیلی اور ہر حذف — کس نے کیا اور کس وقت کیا، سب درج ہوتا ہے۔ یہ ریکارڈ ڈیٹابیس خود لکھتا ہے، اِسے کوئی بدل یا بند نہیں کر سکتا، آپ بھی نہیں۔ جب کوئی رقم یاد کے مطابق نہ ہو تو یہیں دیکھیں۔',
+        },
       ],
     },
 
@@ -474,6 +485,7 @@ export const GUIDE = {
         { label: 'اخراجات اور بینک دیکھنا اور درج کرنا', owner: true, staff: false },
         { label: 'ریٹ، ٹینک اور نوزل بدلنا', owner: true, staff: false },
         { label: 'پرانے اندراج درست کرنا یا مٹانا', owner: true, staff: false },
+        { label: 'کس نے کیا کیا اور کب کیا، یہ دیکھنا', owner: true, staff: false },
       ],
     },
   },

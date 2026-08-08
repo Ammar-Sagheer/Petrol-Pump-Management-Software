@@ -210,6 +210,16 @@ amount of application code can get around them.
 - **A delivery's invoice total is what gets stored**; its rate per litre is
   generated from it. The amount on the note is the fact - see "Things worth
   knowing".
+- **Every change is logged, by the database, and the log cannot be edited.**
+  A trigger on sixteen tables writes one readable line into `activity_log` for
+  each insert, update and delete: who did it, when, what it was, and — on an
+  edit — which fields moved and what they moved from. Only the owner can read
+  it (`/admin/activity`), and *nobody* can write to it by hand or change a line
+  afterwards: there is no insert policy, and update and delete raise the same
+  way the ledger's do. See `035_activity_log.sql` for the two things it
+  deliberately stays quiet about (stock recalculation, and the ledger row a
+  credit slip posts for itself) and for why the trigger swallows its own errors
+  rather than ever blocking a write.
 
 If the app and the database ever disagree, the database is right.
 
@@ -254,6 +264,7 @@ app/
       fuel-prices/         the full rate history, paged
     account/               your own login, and staff logins for the owner
     guide/                 how to use the app, English and Urdu (?lang=ur)
+    activity/              the audit trail, newest first, paged - owner only
   _components/
     admin/                 admin-only components
     ui/                    shared building blocks
@@ -364,6 +375,7 @@ Applied in order:
 | `032_ledger_in_whole_rupees.sql` | The removal guard rounds to the rupee, matching the ledger |
 | `033_purge_a_mistyped_customer.sql` | Deleting a customer for good, but only one that never traded |
 | `034_customer_opening_balance.sql` | Creating a customer and the balance they arrive with, in one transaction |
+| `035_activity_log.sql` | The audit trail: a trigger on sixteen tables writing who changed what, and an append-only log to hold it |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

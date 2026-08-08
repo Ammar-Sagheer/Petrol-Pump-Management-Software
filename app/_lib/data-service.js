@@ -107,6 +107,43 @@ export async function getFuelPricesPage({ page = 1, perPage = 25 } = {}) {
 }
 
 /**
+ * One page of the activity trail, newest first, plus how many there are.
+ *
+ * Nothing is joined and nothing is looked up: every line was written as a
+ * finished sentence by the trigger in migration 035, at the moment the change
+ * happened. That is not a shortcut, it is the requirement - half these lines
+ * describe rows that no longer exist, and a join would render them as blanks.
+ *
+ * There is no role check here because the row-level policy is the check: only
+ * a super_admin can select from this table at all, so a staff login asking for
+ * it gets an empty page rather than somebody else's day.
+ *
+ * `who` narrows to one person, which is the question actually asked of a log:
+ * not "what happened to this row" but "what did they do". It matches a column
+ * the log holds itself, so filtering does not need another table either.
+ */
+export async function getActivityLog({ page = 1, perPage = 20, who } = {}) {
+  const supabase = await createClient();
+  const from = (page - 1) * perPage;
+
+  let query = supabase
+    .from('activity_log')
+    .select('*', { count: 'exact' })
+    .order('occurred_at', { ascending: false })
+    .order('id', { ascending: false });
+
+  if (who) query = query.eq('actor_id', who);
+
+  const { data, error, count } = await query.range(from, from + perPage - 1);
+
+  if (error) {
+    throw new Error(`Could not load the activity log: ${error.message}`);
+  }
+
+  return { rows: data ?? [], total: count ?? 0 };
+}
+
+/**
  * The rate in force for each fuel, as { petrol: 280, diesel: 275 }.
  *
  * The date is always sent explicitly rather than left to the database default,

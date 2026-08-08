@@ -600,6 +600,47 @@ charts are filtered, and the shape to copy for the next set.
   `trendDaysFrom()` returns the default for anything not in `TREND_WINDOWS`, so
   `?days=999` cannot ask the database for three years of daily rows.
 
+## When a list should stop being a table
+
+Every list in this app is a `<table>` that scrolls sideways inside its card
+when it runs out of room. That is right for Purchases, Readings, the ledger —
+lists of short numbers, where the columns stay readable and the reader knows
+what is off to the right.
+
+`<ActivityTable>` is the exception, and the test for when to copy it is
+**whether the widest column is a sentence**. The activity log was a table
+first: at 400px it measured perfectly — nothing clipped, no page scroll — and
+looked broken, two narrow columns of timestamps beside acres of white, because
+the row heights were being set by a 700px description sitting off-screen.
+Scrolling right to find out *what happened* defeats the page.
+
+The replacement is one piece of markup that is a grid of columns above
+`@[54rem]` and a stack below it:
+
+- **`@container` on the wrapper**, and container-query variants throughout —
+  not `sm:`/`lg:`. With the 240px sidebar a 1024px window gives a page 768px,
+  so viewport breakpoints answer the wrong question. See "Responsive: measure
+  the container".
+- **`@[54rem]:contents` is the trick that avoids two copies of the markup.**
+  When/who/amount are wrapped in one div: below the threshold it is a flex row
+  of small grey text under the event, and above it the wrapper dissolves so its
+  three children become grid cells in their own columns.
+- **DOM order is the phone order; `order-*` and `col-start-*` rearrange it for
+  the columns.** What happened comes first in the markup, because that is what
+  the reader came for, and moves to column three on a wide screen.
+- **Size the columns to the content and prove it, then set the threshold above
+  the total.** Measured: the timestamp needs 11.5rem, the longest name 11.6rem,
+  a seven-figure sum 7.5rem. At a threshold of 46rem those columns cramped and
+  "Rs 7,686,000" wrapped onto two lines — the exact regression the type rules
+  call out. 54rem with 12/12/1fr/8rem does not.
+- **`whitespace-nowrap` on the figures, not on the name.** A name that outgrows
+  its column should wrap; a timestamp or an amount that does the same is a
+  defect.
+- **A placeholder is a column's problem, not a stack's.** The em-dash standing
+  in for "no amount" is `hidden @[54rem]:inline` — in the stacked layout it
+  would be a dash alone on a line, which is a thing to decipher rather than
+  read.
+
 ## Moving money by hand: say which way, then show the result
 
 Anywhere the owner moves a balance by hand — the manual adjustment, a new

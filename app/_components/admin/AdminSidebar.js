@@ -73,6 +73,13 @@ const LINKS = [
     roles: ['super_admin', 'data_entry'],
     prefetch: true,
   },
+  // Below the Guide and owner-only, which is the whole point of where it sits:
+  // it is the one section that is about the people using the app rather than
+  // about the pump, and a staff member should not be watching it any more than
+  // they should be reading Reports. Hiding the link is cosmetic - the page
+  // calls requirePageRole() and the row-level policy on activity_log refuses
+  // the data to anyone but the owner regardless.
+  { href: '/admin/activity', label: 'Activity', icon: 'activity', roles: ['super_admin'] },
 ];
 
 export default function AdminSidebar({ profile }) {
