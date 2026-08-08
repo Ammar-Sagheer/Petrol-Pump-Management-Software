@@ -155,11 +155,18 @@ const moneyFormat = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-/** 140000 -> "Rs 140,000" */
+/**
+ * 140000 -> "Rs 140,000"
+ *
+ * The `|| 0` is not decoration. Intl rounds -0.28 to the string "-0", so a
+ * customer sitting on a 28-paisa residue on the wrong side of zero had an
+ * OWES column reading "Rs -0" - which looks like a bug to anyone who sees it,
+ * and is one. Adding zero collapses negative zero to zero before formatting.
+ */
 export function formatPKR(value) {
   const n = Number(value ?? 0);
   if (!Number.isFinite(n)) return 'Rs 0';
-  return `Rs ${moneyFormat.format(n)}`;
+  return `Rs ${moneyFormat.format(roundRupees(n) === 0 ? 0 : n)}`;
 }
 
 /*
@@ -250,7 +257,18 @@ export function roundMoney(value) {
  * counted in notes anyway.
  */
 export function roundRupees(value) {
-  return Math.round(Number(value) + Number.EPSILON);
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+
+  /*
+   * Half away from zero, because that is what Postgres `round()` does and what
+   * Intl does when it formats. JavaScript's own Math.round rounds half toward
+   * +Infinity, so Math.round(-0.5) is -0 while Postgres gives -1 - and the two
+   * ends of the app would then disagree about whether an account was settled.
+   * Anything that rounds a balance has to round it the same way.
+   */
+  const sign = n < 0 ? -1 : 1;
+  return sign * Math.round(Math.abs(n) + Number.EPSILON);
 }
 
 export function litresSold(opening, closing) {

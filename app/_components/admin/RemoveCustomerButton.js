@@ -26,11 +26,25 @@ export default function RemoveCustomerButton({ customerId, name, balance }) {
   const [confirming, setConfirming] = useState(false);
   const [state, formAction] = useActionState(deleteCustomer, null);
 
-  // The same test the database applies, so the row can explain itself before
-  // the click rather than after it. The database is still the rule - this is
-  // the courtesy.
+  /*
+   * The same test the database applies, so the row can explain itself before
+   * the click rather than after it. The database is still the rule - this is
+   * the courtesy.
+   *
+   * ROUNDED TO THE RUPEE, and it has to stay that way. This check was left at
+   * a 0.01 threshold when delete_customer moved to whole rupees, and the two
+   * promptly disagreed: an account sitting on a 28-paisa residue displayed
+   * "Rs 0", warned "this account is not settled", and would then have been
+   * removed perfectly happily by the database. A courtesy check that
+   * contradicts the rule it is previewing is worse than no check.
+   *
+   * Three things now round the same way and must be changed together: this,
+   * `delete_customer` (migration 032), and `formatPKR` in the Owes column.
+   */
   const owes = Number(balance ?? 0);
-  const notSquare = Math.abs(owes) >= 0.01;
+  // Half away from zero, matching Postgres and formatPKR - Math.round would
+  // call a balance of -0.5 settled while the column beside it reads "Rs -1".
+  const notSquare = (owes < 0 ? -1 : 1) * Math.round(Math.abs(owes)) !== 0;
 
   if (!confirming) {
     return (

@@ -70,7 +70,23 @@ several look simplifiable and were already tried that way once.
   Anything that *tests* a balance has to round the same way, or the screen and
   the rule disagree — see `delete_customer`, which refuses removal on a
   non-zero balance and had to round too, otherwise an account reading "Rs 0"
-  could not be removed and the reason quoted a figure nobody can pay. `format-helpers.js` exists for the same reason
+  could not be removed and the reason quoted a figure nobody can pay.
+
+  **Three places round a balance and they must be changed together**:
+  `formatPKR` (the column), the `notSquare` check in `RemoveCustomerButton`
+  (the warning), and `delete_customer` (the rule). This was got wrong once
+  already — the SQL was moved to whole rupees and the browser check left on a
+  `0.01` threshold, so an account displaying "Rs 0" warned that it was not
+  settled and would then have been removed happily by the database.
+
+  **Round half away from zero**, never bare `Math.round`. Postgres `round()`
+  and `Intl` both send −0.5 to −1; `Math.round(-0.5)` is `-0`, so a balance the
+  column printed as "Rs -1" was being treated as settled. `roundRupees` does
+  `sign * Math.round(abs(n))` for exactly this reason.
+
+  **And watch for negative zero in output.** `Intl` formats −0.28 as the string
+  `"-0"`, so a customer a few paisa the wrong side of zero had an Owes column
+  reading "Rs -0". `formatPKR` collapses it. `format-helpers.js` exists for the same reason
   `date-helpers.js` does: `helpers.js` reads request cookies and so cannot
   enter a client bundle, which previously left client components formatting
   inline and drifting. Server code imports both through `helpers.js`.
