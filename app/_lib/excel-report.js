@@ -198,6 +198,11 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
     ['Sales', num(lubricantSales.amount)],
     ['Cash taken', num(lubricantSales.cash_amount)],
     ['Given on credit', num(lubricantSales.credit_amount)],
+    // The drum on its own line. It is most of the sale COUNT and a small part
+    // of the money, so folded into the figures above it flatters neither.
+    ['  of which loose oil', num(lubricantSales.loose_amount)],
+    ['  loose oil sales', num(lubricantSales.loose_count)],
+    ['  loose oil litres', num(lubricantSales.loose_litres)],
     ['', ''],
     ['ALL SALES', num(data.total_sales)],
     ['', ''],
@@ -206,6 +211,8 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
     ['Fuel bought (cost)', num(purchases.total_cost)],
     ['Lubricants bought (litres)', num(lubricantPurchases.quantity_litres)],
     ['Lubricants bought (cost)', num(lubricantPurchases.total_cost)],
+    ['  of which loose oil (litres)', num(lubricantPurchases.loose_litres)],
+    ['  of which loose oil (cost)', num(lubricantPurchases.loose_cost)],
     [
       'Still owed to suppliers',
       num(purchases.pending_amount) + num(lubricantPurchases.pending_amount),
@@ -351,6 +358,10 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
     num(row.credit_amount),
     row.customer ?? '',
     row.note ?? '',
+    // Which side of the business the row is. The name usually says so too, but
+    // a word in its own column is what makes the sheet filterable - the owner
+    // wanting "just the drum for August" should not have to trust a spelling.
+    row.sold_loose ? 'Loose' : 'Packed',
   ]);
   const lubricantsXml = await zip.file(SHEET_FILES.Lubricants).async('string');
   zip.file(SHEET_FILES.Lubricants, writeSheet(lubricantsXml, lubricantRows));

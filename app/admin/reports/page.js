@@ -6,6 +6,7 @@ import {
   formatMonth,
   formatDate,
   formatLitres,
+  formatLitresFine,
   formatPKR,
 } from '@/app/_lib/helpers';
 import { getMonthlyReport, getSalesTrend } from '@/app/_lib/data-service';
@@ -204,6 +205,18 @@ export default async function ReportsPage({ searchParams }) {
                 {formatLitres(lubricantSales.litres)} over{' '}
                 {Number(lubricantSales.sales_count ?? 0)} sales
               </p>
+              {/* The drum called out on its own line. It is a large share of
+                  the SALE COUNT and a small share of the money, so folded into
+                  one figure it makes both look wrong. */}
+              {Number(lubricantSales.loose_count ?? 0) > 0 ? (
+                <p className="mt-0.5 text-sm text-ink-600">
+                  of which loose oil:{' '}
+                  <span className="font-semibold text-ink-800">
+                    {formatPKR(lubricantSales.loose_amount)}
+                  </span>{' '}
+                  over {Number(lubricantSales.loose_count)} sales
+                </p>
+              ) : null}
             </div>
             <div className="card p-4">
               <p className="figure-label">Cash</p>
@@ -246,8 +259,17 @@ export default async function ReportsPage({ searchParams }) {
               <tbody className="divide-y divide-ink-100">
                 {lubricantsByProduct.map((product) => (
                   <tr key={product.lubricant_id}>
-                    <td className="td font-medium">{product.name}</td>
-                    <td className="td-num">{formatLitres(product.litres_sold)}</td>
+                    <td className="td font-medium">
+                      {product.name}
+                      {product.sold_loose ? (
+                        <span className="badge ml-2 bg-amber-100 text-amber-900">loose</span>
+                      ) : null}
+                    </td>
+                    <td className="td-num">
+                      {product.sold_loose
+                        ? formatLitresFine(product.litres_sold)
+                        : formatLitres(product.litres_sold)}
+                    </td>
                     <td className="td-num font-semibold">{formatPKR(product.amount)}</td>
                     <td className="td-num">{formatPKR(product.cash_amount)}</td>
                     <td className="td-num">{formatPKR(product.credit_amount)}</td>
@@ -256,7 +278,11 @@ export default async function ReportsPage({ searchParams }) {
                         ? `${formatLitres(product.bought_litres)} · ${formatPKR(product.bought_cost)}`
                         : '—'}
                     </td>
-                    <td className="td-num font-semibold">{formatLitres(product.closing_litres)}</td>
+                    <td className="td-num font-semibold">
+                      {product.sold_loose
+                        ? formatLitresFine(product.closing_litres)
+                        : formatLitres(product.closing_litres)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

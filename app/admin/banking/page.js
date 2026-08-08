@@ -6,6 +6,7 @@ import BankAccountForm from '@/app/_components/admin/BankAccountForm';
 import BankTransactionForm from '@/app/_components/admin/BankTransactionForm';
 import DeleteBankAccountButton from '@/app/_components/admin/DeleteBankAccountButton';
 import DeleteBankTransactionButton from '@/app/_components/admin/DeleteBankTransactionButton';
+import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 
 export const metadata = { title: 'Banking' };
 
@@ -19,8 +20,11 @@ export const metadata = { title: 'Banking' };
  * Owner only. Staff record readings and deliveries; what is in the account is
  * not theirs to see, the same way expenses already are not.
  */
-export default async function BankingPage() {
+const PER_PAGE = 25;
+
+export default async function BankingPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
+  const page = pageFrom(await searchParams);
 
   const [accounts, transactions] = await Promise.all([
     getBankAccounts(),
@@ -40,6 +44,13 @@ export default async function BankingPage() {
     acc[txn.account_id] = (acc[txn.account_id] ?? 0) + 1;
     return acc;
   }, {});
+
+  /*
+   * Sliced rather than paged in Postgres: the per-account counts above are
+   * worked out from every transaction, and a database page would turn "14
+   * transactions" into "however many of them are on this screen".
+   */
+  const pageTransactions = transactions.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
     <>
@@ -119,7 +130,7 @@ export default async function BankingPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink-100">
-                      {transactions.map((txn) => {
+                      {pageTransactions.map((txn) => {
                         const isDeposit = txn.txn_type === 'deposit';
                         return (
                           <tr key={txn.id}>
@@ -150,6 +161,16 @@ export default async function BankingPage() {
                   </table>
                 </div>
               )}
+
+              {transactions.length > 0 ? (
+                <Pager
+                  page={page}
+                  perPage={PER_PAGE}
+                  total={transactions.length}
+                  hrefFor={(n) => `/admin/banking?page=${n}`}
+                  label="Transaction pages"
+                />
+              ) : null}
             </div>
           </div>
         </>

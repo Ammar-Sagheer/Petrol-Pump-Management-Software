@@ -16,6 +16,7 @@ import EmptyState from '@/app/_components/ui/EmptyState';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import DateNav from '@/app/_components/admin/DateNav';
+import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 import StockCheckForm from '@/app/_components/admin/StockCheckForm';
 
 export const metadata = { title: 'Stock' };
@@ -38,10 +39,13 @@ export const metadata = { title: 'Stock' };
  * page because "what stock am I holding" is one question, and answering half of
  * it on a different tab is how a reorder gets forgotten.
  */
+const PER_PAGE = 25;
+
 export default async function StockChecksPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
 
   const params = await searchParams;
+  const page = pageFrom(params);
   const date =
     typeof params?.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
       ? params.date
@@ -56,6 +60,14 @@ export default async function StockChecksPage({ searchParams }) {
   const checksOnDate = new Map(
     checks.filter((check) => check.check_date === date).map((check) => [check.tank_id, check]),
   );
+
+  /*
+   * Sliced rather than paged in Postgres: the lookup above needs whichever
+   * check belongs to the DATE ON SCREEN, and that row is not necessarily on
+   * the page of history being shown. Paging in the database would make the
+   * form offer to re-record a dip that had already been taken.
+   */
+  const pageChecks = checks.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
     <>
@@ -189,7 +201,7 @@ export default async function StockChecksPage({ searchParams }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
-              {checks.map((check) => {
+              {pageChecks.map((check) => {
                 const difference = Number(check.gain_loss);
                 return (
                   <tr key={check.id}>
@@ -220,6 +232,16 @@ export default async function StockChecksPage({ searchParams }) {
           </table>
         </div>
       )}
+
+      {checks.length > 0 ? (
+        <Pager
+          page={page}
+          perPage={PER_PAGE}
+          total={checks.length}
+          hrefFor={(n) => `/admin/stock-checks?date=${date}&page=${n}`}
+          label="Stock check pages"
+        />
+      ) : null}
     </>
   );
 }

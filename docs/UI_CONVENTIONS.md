@@ -383,6 +383,40 @@ one to copy if another follows.
   a phone, keep their text selectable and readable at any size — and the same
   markup renders in Urdu without anything being redrawn.
 
+## Paging: `<Pager>`, and where the slice happens
+
+`<Pager>` (`app/_components/ui/Pager.js`) is the row under every paged table:
+a "Showing 21 to 39 of 39" sentence and the Previous/Next nav. It takes
+`page`, `perPage`, `total` and **`hrefFor(page)`** — a function, not a base
+path, because these tables already carry a date, a month or a customer id in
+the query string and a pager that rebuilt the URL would silently drop them.
+`pageFrom(searchParams)` beside it reads and clamps `?page=`.
+
+**What needs paging.** Anything that shows everything since the pump opened:
+Purchases, Banking, Stock checks, a customer's ledger. A table scoped to one
+day or one month is bounded by how much can happen in that time and does not
+need it — with one exception, the two sales tables, where a busy day runs to
+dozens of rows and pushes the stock table below them out of reach.
+
+**Where to slice — this is the part that bites.** Two options, and the wrong
+one silently corrupts a figure:
+
+- **Page in the database** (`range()` + `count: 'exact'`) when the list is
+  *only* a list. The customer ledger is the clean case: the balance and the
+  fuel breakdown come from `get_customer_statement`, which sums in Postgres
+  over everything, so paging the rows changes only what is displayed.
+- **Fetch it all and `slice()`** when the page derives anything from the whole
+  set. Purchases totals what is still owed to suppliers; Banking counts
+  transactions per account; Stock checks looks up the check belonging to the
+  date on screen. A database page would turn each of those into "…of whatever
+  is on this screen".
+
+The same trap had already been laid by plain `.limit()` defaults, which is
+worse because nothing on screen says a cap was applied: `getPurchases` stopped
+at 100, so the hundred-and-first delivery pushed the oldest unpaid ones out of
+the "still owed" total. **A cap on a list you are going to total is a cap on
+the total.** Those caps were removed rather than paged around.
+
 ## Long tables get their own paged page
 
 A table that grows without bound does not belong sitting open on a page that
@@ -404,7 +438,8 @@ third should copy it rather than invent another:
   rather than 25 rows and the page count falls out of the distance between
   the first trading day and today.
 - A dead pager button is a `<span>`, not a link styled to look disabled — a
-  disabled-looking link is still focusable and still navigates.
+  disabled-looking link is still focusable and still navigates. This now lives
+  inside `<Pager>`; do not hand-roll it again.
 
 ## Icons
 

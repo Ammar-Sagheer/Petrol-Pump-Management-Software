@@ -25,6 +25,9 @@ export const ROUTE_ACCESS = {
   '/admin': [ROLES.SUPER_ADMIN],
   '/admin/readings': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/lubricants': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
+  // The drum, sold by the rupee. Its own page under Lubricants rather than a
+  // nav entry - it is the same job, done from the other end.
+  '/admin/lubricants/loose': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/purchases': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/stock-checks': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/customers': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
@@ -189,7 +192,7 @@ export { todayISO, shiftISODate, formatDate, formatDateLong, monthRange, formatM
  * Same arrangement for the formatters the client forms also need - see
  * format-helpers.js.
  */
-export { formatRate } from './format-helpers';
+export { formatRate, formatLitresFine } from './format-helpers';
 
 /**
  * Whether the "empty everything" button exists on this deployment.

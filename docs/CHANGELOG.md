@@ -769,3 +769,128 @@ The nav drawer in `AdminSidebar.js` keeps its backdrop-close deliberately.
 It is a menu, it holds no input, and closing it by tapping the page is what
 people expect — noted in `docs/UI_CONVENTIONS.md` so the two are not
 "fixed" into agreement later.
+
+## Loose oil
+
+### The drum, sold by the rupee
+
+The owner buys loose oil as a 200 litre drum — one supplier, one invoice, no
+brand on it, bought the way a tanker of diesel is — and sells it across the
+counter in rupees: "Rs 20 of oil", "Rs 30". Nobody measures the pour. The
+money is the fact; the litres are arithmetic.
+
+The existing lubricant form asked for litres and prefilled the amount, which
+meant dividing 20 by 580 in your head at the counter, several times a day.
+
+**Modelled as a flag on the product, not a new table.** `lubricants.sold_loose`
+(migration 028). A drum *is* a lubricant — bought in litres from a supplier,
+sold over the counter, taken on credit onto the same ledger, counted in the
+same monthly report — so a second table would have meant a second copy of the
+stock triggers, the ledger posting, the delete-and-reverse RPC, the report
+block and the export sheet. The only real difference is which number gets
+typed, so that is the only thing the flag changes:
+
+- `sold_loose = false` — the shelf. Type litres, amount prefills from the rate.
+- `sold_loose = true` — the drum. Type rupees, litres come from the rate.
+
+**The litres are derived on the server, never taken from the browser.** Sending
+them would let a hand-edited form record Rs 500 of oil against a teaspoon of
+stock. Deriving them also means the drum's book level can only disagree with
+the real drum for one reason — the rate is wrong — which is one thing to check
+rather than two. A loose product is therefore required to have a rate, by check
+constraint as well as by the form.
+
+**Litres went from two decimals to three.** Rs 20 out of a drum at Rs 580 a
+litre is 0.0345 L; stored at two decimals that is 0.03, losing a tenth of every
+pour, always in the same direction, on the kind of sale that happens dozens of
+times a day. Done while `lubricant_sales` was still empty — a month later it
+would have been a data migration. Two things had to come apart first and go
+back unchanged: `rate_per_litre` is generated *from* `litres`, and
+`recalc_lubricant_after_product_update` names `opening_stock_litres` in its
+`update of` list, and Postgres will not retype a column either depends on.
+
+`formatLitresFine` (3 dp) sits beside `formatLitres` (2 dp) rather than
+replacing it. "4 L" and "0.25 L" are right for a shelf; only the drum needs
+millilitres, and "1.000 L" everywhere would be noise.
+
+### Its own page under Lubricants
+
+`/admin/lubricants/loose`. Tried mentally as one combined table first and it
+does not work: most rows read "Loose Oil … 0.034 L" and bury the four carton
+sales that actually need reading. The split is by product, so a sale can only
+ever belong to one of the two pages, and the shelf table at the bottom of
+Lubricants deliberately keeps **both** — that one is stock on hand, and someone
+checking what is in the building wants the whole answer in one place.
+
+Lubricants carries a summary card for the drum's day with a link through, so a
+day is visibly not finished until both halves are in. A pump that keeps only a
+drum lands on that link rather than on "no lubricants yet".
+
+The sale dialog asks for rupees with Rs 20/30/50/100 shortcuts, states the
+consequence underneath ("At Rs 580.00 a litre, Rs 30 is 0.052 L off the drum")
+and names what is left in the drum. The rate is shown *before* an amount is
+typed, because a wrong rate is the one thing that can make every loose sale
+wrong at once. With one drum the product select is not rendered at all.
+
+Purchases gets a separate **Record a loose oil purchase** button rather than
+one more entry in the lubricant dropdown — a drum arrives from a different
+supplier with no brand, so splitting the button is what lets each form say the
+right thing instead of hedging. It warns if the drum's buying rate has caught
+up with its selling rate.
+
+### Everywhere else
+
+Reports splits "of which loose oil" out of the lubricant line and badges the
+drum in the per-product table — it is most of the sale *count* and a small
+share of the money, so one combined figure flatters neither. The workbook gains
+the same split on Summary and a **Kind** column on the Lubricants sheet, so
+"just the drum for August" is a filter rather than trusting a spelling. The
+dashboard gains an **Oil sales — packed and loose** chart, stacked, in rupees
+(litres would render the drum as a flat line beside the shelf, and the drum's
+litres are the softer figure anyway).
+
+## Paging, and a cap that was corrupting a total
+
+Asked for after noticing Purchases would grow unreadable after a year. Doing it
+turned up a worse bug than the one being fixed.
+
+**`.limit()` defaults were silently truncating figures.** `getPurchases`
+stopped at 100 rows — but the Purchases page totals *what is still owed to
+suppliers across every row*, so the hundred-and-first delivery pushed the
+oldest unpaid ones out of the sum and the pump under-reported its own debt,
+with nothing on screen to say so. `getStockChecks` capped at 60 had the same
+shape: the page looks up the check belonging to the date on screen, so stepping
+back far enough made it believe an old day had never been dipped and offer to
+record it again. Both caps removed. **A cap on a list you are going to total is
+a cap on the total.**
+
+`<Pager>` was lifted out of the fuel-prices page, which had it inline, and is
+now used by Purchases, Banking, Stock checks, the customer ledger, and both
+sales tables. It takes `hrefFor(page)` rather than a base path so the date,
+month or customer id already in the query string survives.
+
+Where the slice happens is deliberate and differs by page — the reasoning is in
+`docs/UI_CONVENTIONS.md`, but briefly: page in the database only when the list
+is *only* a list (the customer ledger, whose balance comes from an RPC that
+sums over everything), and fetch-then-slice wherever the page derives a figure
+from the whole set.
+
+The two sales tables are day-scoped and so cannot grow without bound, but they
+are paged anyway at 20: a busy Saturday of loose sales pushed the stock table
+below them off the bottom of the screen.
+
+### Verified
+
+Rendered with realistic fixtures — the smallest possible sale, a part-credit
+sale to a long customer name, a multi-line note — at 1440/1152/1024/400/360/320
+and with the dialog open at 1152 and 400.
+
+One real bug came out of it that no measurement would have shown: at 400px the
+free-text note pulled the Amount column narrow enough that **"Rs 1,160" broke
+after the "Rs"**, which reads for a moment as two separate figures. Fixed with
+`whitespace-nowrap` on the figure — the column may widen and the table may
+scroll, the number may not break.
+
+The workbook was built from a fixture and unzipped to confirm the Kind column
+is populated, the Summary carries the loose split, and the three-decimal litres
+survive into the cells.

@@ -175,15 +175,28 @@ export async function getRecentReadings(limit = 60) {
 // Fuel purchases
 // ---------------------------------------------------------------------------
 
-export async function getPurchases({ limit = 100 } = {}) {
+/*
+ * Every fuel delivery, uncapped.
+ *
+ * It used to stop at 100, which quietly broke the figure that matters most on
+ * that screen: the Purchases page adds up what is still owed to suppliers ACROSS
+ * ALL ROWS, so once the hundred-and-first delivery was recorded the oldest
+ * unpaid ones dropped out of the sum and the pump under-reported its own debt.
+ * A cap on a list you are going to total is a cap on the total.
+ *
+ * The page shows a page at a time - see Pager - but it needs the whole set to
+ * work the total out from. Deliveries are a handful a week, so this stays small
+ * for years; if it ever does not, the pending total wants its own aggregate
+ * query before this cap comes back.
+ */
+export async function getPurchases() {
   const supabase = await createClient();
   return unwrap(
     await supabase
       .from('fuel_purchases')
       .select('*, tank:tanks(id, name, fuel_type)')
       .order('purchase_date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit),
+      .order('created_at', { ascending: false }),
     'the fuel purchases',
   );
 }
@@ -229,15 +242,15 @@ export async function getLubricantDay(date) {
   );
 }
 
-export async function getLubricantPurchases({ limit = 100 } = {}) {
+/** The other half of the Purchases page, uncapped for the same reason. */
+export async function getLubricantPurchases() {
   const supabase = await createClient();
   return unwrap(
     await supabase
       .from('lubricant_purchases')
-      .select('*, lubricant:lubricants(id, name, pack_size_litres)')
+      .select('*, lubricant:lubricants(id, name, pack_size_litres, sold_loose)')
       .order('purchase_date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit),
+      .order('created_at', { ascending: false }),
     'the lubricant purchases',
   );
 }
@@ -246,14 +259,21 @@ export async function getLubricantPurchases({ limit = 100 } = {}) {
 // Stock checks
 // ---------------------------------------------------------------------------
 
-export async function getStockChecks({ limit = 60 } = {}) {
+/*
+ * Every dip that has been recorded, uncapped.
+ *
+ * The Stock page looks up THE CHECK FOR THE DATE ON SCREEN in this list, so a
+ * cap meant stepping back far enough made the page believe an older day had
+ * never been checked - and offer to record it again. Same shape of bug as the
+ * purchases cap: the list is not only a list, something is derived from it.
+ */
+export async function getStockChecks() {
   const supabase = await createClient();
   return unwrap(
     await supabase
       .from('stock_checks')
       .select('*, tank:tanks(id, name, fuel_type)')
-      .order('check_date', { ascending: false })
-      .limit(limit),
+      .order('check_date', { ascending: false }),
     'the stock checks',
   );
 }
@@ -306,18 +326,35 @@ export async function getCustomerStatement(customerId) {
   );
 }
 
-export async function getLedgerEntries(customerId, { limit = 500 } = {}) {
+/*
+ * One customer's ledger, a page at a time.
+ *
+ * Paged in the DATABASE rather than fetched whole and sliced, unlike purchases
+ * and stock checks: nothing on the customer page is derived from these rows.
+ * The balance and the fuel/lubricant breakdown come from get_customer_statement,
+ * which sums in Postgres over everything. So the list is only ever a list, and
+ * there is no reason to carry rows the screen will not show.
+ *
+ * A regular haulier can run to hundreds of entries a year, which is what makes
+ * this the one growing table worth paging properly.
+ */
+export async function getLedgerEntriesPage(customerId, { page = 1, perPage = 25 } = {}) {
   const supabase = await createClient();
-  return unwrap(
-    await supabase
-      .from('ledger_entries')
-      .select('*')
-      .eq('customer_id', customerId)
-      .order('entry_date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit),
-    'the ledger entries',
-  );
+  const from = (page - 1) * perPage;
+
+  const { data, error, count } = await supabase
+    .from('ledger_entries')
+    .select('*', { count: 'exact' })
+    .eq('customer_id', customerId)
+    .order('entry_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(from, from + perPage - 1);
+
+  if (error) {
+    throw new Error(`Could not load the ledger entries: ${error.message}`);
+  }
+
+  return { rows: data ?? [], total: count ?? 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -337,6 +374,21 @@ export async function getSalesTrend(from, to) {
   return unwrap(
     await supabase.rpc('get_sales_trend', { p_from: from, p_to: to }),
     'the sales trend',
+  );
+}
+
+/**
+ * The same date spine as getSalesTrend, for the oil side: what the shelf took
+ * and what the drum took, per day.
+ *
+ * Its own RPC rather than more columns on get_sales_trend, which two screens
+ * read and neither of which wants these - see migration 029.
+ */
+export async function getLubricantTrend(from, to) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_lubricant_trend', { p_from: from, p_to: to }),
+    'the lubricant sales trend',
   );
 }
 
