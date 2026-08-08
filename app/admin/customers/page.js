@@ -7,6 +7,7 @@ import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import EmptyState from '@/app/_components/ui/EmptyState';
 import RemoveCustomerButton, {
   RestoreCustomerButton,
+  PurgeCustomerButton,
 } from '@/app/_components/admin/RemoveCustomerButton';
 
 export const metadata = { title: 'Customers' };
@@ -141,7 +142,9 @@ export default async function CustomersPage() {
           <h2 className="section-heading">Removed</h2>
           <p className="mb-3 text-sm text-ink-600">
             Off the customer list and off the credit-slip dropdown. Everything they ever took or
-            paid still counts towards the months it belongs to.
+            paid still counts towards the months it belongs to. A name added by mistake can be
+            deleted for good from here — only if it never actually traded, and the app will say so
+            if it did.
           </p>
           <div className="card table-scroll">
             <table className="w-full min-w-[36rem]">
@@ -168,8 +171,18 @@ export default async function CustomersPage() {
                     </td>
                     <td className="td text-ink-600">{customer.vehicle_number ?? '—'}</td>
                     <td className="td-num text-ink-600">{formatPKR(customer.balance)}</td>
+                    {/* Bring back sits beside Delete for good on purpose: the
+                        two opposite endings for a removed account, and the
+                        recoverable one is named first and coloured as the
+                        ordinary choice. */}
                     <td className="td">
-                      <RestoreCustomerButton customerId={customer.customer_id} />
+                      <div className="flex flex-wrap items-start justify-end gap-x-4 gap-y-1">
+                        <RestoreCustomerButton customerId={customer.customer_id} />
+                        <PurgeCustomerButton
+                          customerId={customer.customer_id}
+                          name={customer.name}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

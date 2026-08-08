@@ -144,7 +144,7 @@ export const GUIDE = {
         {
           icon: 'customers',
           name: 'Customers',
-          when: 'When someone pays off their account. Open the customer, record the payment, and their balance comes down. Their full history is on the same screen. A name added by mistake can be taken off with Remove — the owner only, and only once the account is settled.',
+          when: 'When someone pays off their account. Open the customer, record the payment, and their balance comes down. Their full history is on the same screen. A name added by mistake can be taken off with Remove — the owner only, and only once the account is settled. Removed names sit in a list underneath and can be brought back; one that never actually took fuel can be deleted for good from there by typing its name.',
         },
         {
           icon: 'banking',
@@ -176,6 +176,7 @@ export const GUIDE = {
         'Enter days oldest first. Two readings for one nozzle can never cover the same litres, so if a later day is already saved, the day underneath it will be refused — the message names the day to clear first.',
         'Loose oil must have a selling rate before it can be sold. Without one there is no way to tell how much oil a rupee figure is.',
         'A customer still carrying a balance cannot be removed — in either direction, whether they owe the pump or the pump owes them. Settle the account first, or the money would quietly leave the books.',
+        'A customer who has ever taken fuel or oil on credit cannot be deleted for good, only removed from the list. Their slips belong to days already counted, so deleting them would change a month that has been reported.',
       ],
     },
 
@@ -326,7 +327,7 @@ export const GUIDE = {
         {
           icon: 'customers',
           name: 'گاہک',
-          when: 'جب کوئی اپنا ادھار چکائے۔ گاہک کھولیں، ادائیگی درج کریں، بقایا کم ہو جائے گا۔ اُس کا پورا حساب اِسی اسکرین پر موجود ہے۔ غلطی سے لکھا گیا نام «ہٹائیں» سے فہرست سے نکالا جا سکتا ہے — یہ صرف مالک کر سکتا ہے، اور تبھی جب حساب برابر ہو چکا ہو۔',
+          when: 'جب کوئی اپنا ادھار چکائے۔ گاہک کھولیں، ادائیگی درج کریں، بقایا کم ہو جائے گا۔ اُس کا پورا حساب اِسی اسکرین پر موجود ہے۔ غلطی سے لکھا گیا نام «ہٹائیں» سے فہرست سے نکالا جا سکتا ہے — یہ صرف مالک کر سکتا ہے، اور تبھی جب حساب برابر ہو چکا ہو۔ ہٹائے گئے نام نیچے ایک الگ فہرست میں رہتے ہیں اور واپس لائے جا سکتے ہیں؛ جس نام پر کبھی تیل لیا ہی نہ گیا ہو، اُسے وہیں سے نام لکھ کر ہمیشہ کے لیے مٹایا جا سکتا ہے۔',
         },
         {
           icon: 'banking',
@@ -358,6 +359,7 @@ export const GUIDE = {
         'دن پرانی تاریخ سے شروع کر کے ترتیب سے درج کریں۔ ایک نوزل کی دو ریڈنگیں ایک ہی لٹر دو بار شمار نہیں کر سکتیں، اِس لیے اگر آگے کا دن پہلے سے محفوظ ہو تو اُس سے پچھلا دن قبول نہیں ہوگا — پیغام میں لکھا ہوتا ہے کہ پہلے کون سا دن مٹانا ہے۔',
         'کھلا آئل بیچنے سے پہلے اُس کا فی لٹر ریٹ درج ہونا ضروری ہے۔ ریٹ کے بغیر یہ معلوم نہیں ہو سکتا کہ اِتنے روپے کا آئل کتنا بنتا ہے۔',
         'جس گاہک کا حساب برابر نہ ہو، اُسے فہرست سے نہیں ہٹایا جا سکتا — چاہے اُس نے دینا ہو یا پمپ نے۔ پہلے حساب برابر کریں، ورنہ رقم خاموشی سے کتاب سے نکل جائے گی۔',
+        'جس گاہک نے کبھی ادھار پر تیل یا آئل لیا ہو، اُسے ہمیشہ کے لیے نہیں مٹایا جا سکتا، صرف فہرست سے ہٹایا جا سکتا ہے۔ اُس کی پرچیاں اُن دنوں کا حصہ ہیں جو پہلے ہی حساب میں شامل ہو چکے، اور مٹانے سے وہ مہینہ بدل جائے گا جس کی رپورٹ بن چکی ہے۔',
       ],
     },
 

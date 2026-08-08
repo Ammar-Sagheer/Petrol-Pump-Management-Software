@@ -1040,3 +1040,63 @@ is a stronger claim than a screenshot of one row:
 
 `roundRupees` was checked against Postgres `round()` at each of those points
 and agrees. Then rendered, with every confirmation open at once.
+
+### Deleting a customer for good
+
+Remove (031) deletes an account that never traded and retires one that did. The
+owner then asked the obvious follow-up: a name added by mistake that somehow
+picked up entries is retired for ever and sits in the Removed list looking like
+a real customer who left.
+
+**Where the line is drawn, and why there.** A purge is allowed only when the
+customer's whole footprint is entries the owner typed himself — payments and
+adjustments. No credit slips, no lubricant sales. That is not caution for its
+own sake; the two kinds of row are genuinely different:
+
+- a **credit slip** belongs to a nozzle reading. That reading's `credit_amount`
+  must equal the sum of its slips, and the litres behind it are part of the
+  day's takings and the month's report. Deleting one either breaks the
+  constraint or silently rewrites a month already exported.
+- a **typed entry** belongs to nobody but the customer. No reading depends on
+  it. If the customer was a mistake then so was the entry, and removing both
+  leaves every other figure exactly where it was.
+
+So a customer who ever actually traded still cannot be purged, and the refusal
+says why and points at clearing the day on Readings, which reverses the slip
+properly.
+
+**How it gets past the append-only guard, without weakening it.**
+`ledger_entries` has a BEFORE DELETE trigger that refuses everything, service
+role included — the most valuable guarantee in the schema. Rather than
+disabling it (which would be off for every other session while it was off), the
+guard learned one named exception: a delete is permitted only while
+`app.purging_customer` holds that customer's id. It is transaction-local and is
+set in exactly one place, by `purge_customer()`, after every check has passed.
+
+That was the part worth testing hardest, and it was tested by trying to break
+it rather than by trying to use it:
+
+    plain DELETE on ledger_entries  >> refused (guarantee intact)
+    plain UPDATE on ledger_entries  >> refused (as always)
+    wrong name typed                >> refused
+    correct name                    >> purged, 2 entries
+    a bystander customer's entries  >> untouched
+    plain DELETE after the purge    >> refused (setting did not leak)
+
+And the two refusals against the real accounts:
+
+    Usama (1 credit slip)      >> BLOCKED, pointing at clearing the day
+    Abdul Latif (Rs 59,186 out) >> BLOCKED, must be settled first
+
+All inside blocks that abort; the customer count, ledger count, `is_super_admin`
+body and the setting itself were re-checked afterwards rather than assumed.
+
+**Typing the name is the confirmation, not a Yes button.** Everything else
+destructive here is recoverable — a retired customer comes back, a deleted sale
+posts a reversal — and this one is not, so it asks for something a mis-aimed
+click cannot produce. Offered only from the Removed list, so reaching it is
+two deliberate decisions. Checked in the database as well as the browser.
+
+No tombstone: the owner asked for gone, and a hidden record of the name would
+mean it never really left. The record of a purge is this entry and the
+migration.

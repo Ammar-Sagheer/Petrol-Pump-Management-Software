@@ -150,12 +150,17 @@ amount of application code can get around them.
 - **The customer ledger is append-only.** No update, no delete, for anybody,
   including the owner and including the service-role key. A mistake is corrected
   by posting a new entry pointing the other way, so the history always adds up.
-  This is enforced by a database trigger, not just by permissions. Two narrow
-  exceptions exist and only these: `created_by`, `credit_sale_id` and
-  `lubricant_sale_id` may be set to null when the profile, credit slip or
-  lubricant sale they point at is deleted. Every other column must be
-  byte-for-byte identical, so none can be used as a way in to change an amount,
-  a date or a customer.
+  This is enforced by a database trigger, not just by permissions. The
+  exceptions are narrow, and these are all of them:
+  - `created_by`, `credit_sale_id` and `lubricant_sale_id` may be set to null
+    when the profile, credit slip or lubricant sale they point at is deleted.
+    Every other column must be byte-for-byte identical, so this cannot be used
+    as a way in to change an amount, a date or a customer.
+  - `purge_customer()` may delete a customer's entries — see below. It is the
+    only caller that can, because the trigger requires a transaction-local
+    setting naming that one customer, and nothing else ever sets it. A stray
+    `delete` from server code or the API still gets the same refusal it always
+    did.
 - **Deleting a reading reverses its credit slips, it does not erase them.** The
   customer's original debit stays on the ledger and an offsetting credit is
   posted beside it, so the balance comes back to correct while the history still
@@ -178,6 +183,15 @@ amount of application code can get around them.
   with nothing on screen to say it had happened. Settle the account first. A
   customer who never traded is deleted outright; one with history is retired,
   and can be brought back from the **Removed** list.
+- **A customer can only be deleted *for good* if they never actually traded.**
+  From the **Removed** list, with the name typed to confirm. Allowed when the
+  account is settled and its whole footprint is entries the owner typed
+  himself — payments and adjustments, which no reading or month depends on.
+  Refused outright once there is a fuel credit slip or a lubricant sale against
+  the name, because a slip belongs to a nozzle reading whose credit amount must
+  equal the sum of its slips, and the litres behind it are part of a day
+  already reported and exported. The refusal points at clearing the day on
+  Readings instead, which reverses the slip properly.
 - **Tank and lubricant stock are recalculated from history**, never incremented,
   so the cached figures cannot drift away from the purchases, sales and dips
   that produced them.
@@ -297,6 +311,7 @@ Applied in order:
 | `030_loose_oil_in_the_export.sql` | The workbook's loose oil split and its Kind column |
 | `031_remove_a_customer.sql` | Removing a customer: delete if never traded, retire if not, never while owing |
 | `032_ledger_in_whole_rupees.sql` | The removal guard rounds to the rupee, matching the ledger |
+| `033_purge_a_mistyped_customer.sql` | Deleting a customer for good, but only one that never traded |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
