@@ -1160,3 +1160,29 @@ crosses the Pacific twice, which would dominate everything above. And the
 `profiles` lookup could move into the JWT as a custom claim, removing a round
 trip from every page, at the cost of a deactivated login staying valid until
 its token refreshes.
+
+### The app was on the wrong side of the Pacific
+
+Following the navigation-speed work above, the Vercel function region turned
+out to be `iad1` (Washington DC) while the Supabase project is in
+`ap-southeast-1` (Singapore). Every page therefore paid:
+
+- ~230ms getting the request from Pakistan to Virginia, and
+- ~230ms **per query**, Virginia to Singapore and back.
+
+`vercel.json` now pins the functions to `sin1`. Both legs improve at once: the
+reader's request travels roughly 70ms instead of 230ms, and each database round
+trip drops to single-digit milliseconds.
+
+Singapore rather than Mumbai, which is physically closer to the reader: one
+navigation makes **one** user round trip but **several** database ones, so
+co-locating with the data wins. If the database is ever moved, this moves with
+it.
+
+**This also called off the JWT change.** The plan had been to move the role
+into the access token to save the `profiles` round trip on every page - the
+owner had agreed, on the grounds that staff are rarely deactivated. But that
+round trip was only expensive *because* of the region; once the function sits
+beside the database it costs about 2ms. Trading immediate lockout of a
+deactivated staff login for 2ms is a bad deal, and it would have stayed in the
+codebase long after the reason for it disappeared. Not done.
