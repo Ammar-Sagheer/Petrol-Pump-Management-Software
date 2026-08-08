@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 import PendingLink from '@/app/_components/ui/PendingLink';
+import SubmitButton from '@/app/_components/ui/SubmitButton';
 import Icon from '@/app/_components/ui/Icon';
 import BrandMark from '@/app/_components/ui/BrandMark';
 import { signOut } from '@/app/_lib/actions';
@@ -204,14 +205,14 @@ export default function AdminSidebar({ profile }) {
       </PendingLink>
 
       <form action={signOut}>
-        <button
-          type="submit"
+        <SubmitButton
           className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base font-medium
                      text-red-700 transition hover:bg-red-50"
+          pendingLabel="Signing out…"
         >
           <Icon name="signOut" className="h-5 w-5" />
           Sign out
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

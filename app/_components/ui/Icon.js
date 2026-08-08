@@ -1,7 +1,7 @@
 /**
  * The app's icons, drawn inline rather than pulled from a package.
  *
- * WHY NOT AN ICON LIBRARY. There are sixteen icons in here. Lucide or Heroicons
+ * WHY NOT AN ICON LIBRARY. There are seventeen icons in here. Lucide or Heroicons
  * would add a dependency and a bundle for that, and every icon in a library is
  * a decision someone else made about what a "tank" looks like. Drawing them
  * here keeps the set small, keeps them on the same 24px grid and the same
@@ -17,7 +17,9 @@
  *
  * They are decoration, never the only carrier of meaning - every icon here
  * sits next to its own label, and is aria-hidden so a screen reader is not
- * made to announce it twice.
+ * made to announce it twice. The single exception is `trash` inside an
+ * IconButton, which carries its label in aria-label and title instead; the
+ * reasoning is written up there.
  *
  * Everything is `currentColor` and 1.75 stroke, so an icon takes the colour and
  * the weight of the text it sits beside without being told.
@@ -105,6 +107,17 @@ const PATHS = {
     <>
       <path d="M4 20h4L18.5 9.5a2.05 2.05 0 0 0-2.9-2.9L5 17.2z" />
       <path d="m15 8 3 3" />
+    </>
+  ),
+  // Trash: a bin with a lid and a handle. The one icon here that is allowed to
+  // stand without a word beside it - see IconButton for why.
+  trash: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7" />
+      <path d="M6.5 7v12.3A1.7 1.7 0 0 0 8.2 21h7.6a1.7 1.7 0 0 0 1.7-1.7V7" />
+      <path d="M10.5 11v6" />
+      <path d="M13.5 11v6" />
     </>
   ),
   // Guide: an open book.

@@ -47,6 +47,30 @@ several look simplifiable and were already tried that way once.
   submit instead of a plain `<button type="submit">`, to stop a slow
   connection producing a double-submit.
 
+  **This is not optional on destructive buttons, and it was missed on
+  thirteen of them.** Every confirm — Yes, remove / Yes, delete / Bring back
+  / Sign out — was a plain `<button type="submit">`, so pressing it did
+  nothing visible until the row disappeared. The owner reported it as the UI
+  freezing, which is exactly what it looks like. A button that runs a Server
+  Action and does not change is indistinguishable from a button that did not
+  register the tap.
+
+  The exception is a plain GET form that navigates — the month pickers on
+  Expenses and Reports — where the route change brings its own `loading.js`.
+
+- `<IconButton>` (`app/_components/ui/IconButton.js`) — a square icon-only
+  button for a row action, currently the trash on every delete. It is the one
+  deliberate exception to "icons never carry meaning alone": that rule is
+  about icons carrying *information*, and this is a control whose word was
+  being repeated down every row of a table. `label` is mandatory and becomes
+  both `aria-label` and the hover `title`, and the action behind it must
+  confirm **in words** before anything happens — nothing here destroys on the
+  first click.
+
+  Text stays where the words are the distinction: *Bring back* and *Delete
+  for good* sit side by side on the removed-customers row, and two icons
+  there would be a guess.
+
 ## Forms and Server Actions
 
 - Every Server Action returns `{ ok: boolean, message: string }` via the

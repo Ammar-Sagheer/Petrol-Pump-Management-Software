@@ -1292,3 +1292,51 @@ repo first. There is no prettier config here and the codebase uses single quotes
 at a 100 column width, so the default run rewrote the whole file to double
 quotes. Re-run as `--single-quote --print-width 100`, which reproduces existing
 files byte-for-byte — worth using if prettier is ever run again.
+
+### A bin instead of the word, and feedback on every button that waits
+
+Two reports, and the second turned out to be thirteen bugs rather than one.
+
+**The "Remove" links looked unfinished.** A column of red text down a table
+reads as a list of links, not a set of buttons, and the same word repeated on
+every row is noise — the row already names what it applies to. Replaced with a
+trash `IconButton`, and the same treatment given to the five other delete
+triggers (purchases, expenses, bank transactions, fuel rates, lubricant sales)
+so the whole app deletes the same way.
+
+**No icon library.** `Icon.js` already explains why — seventeen icons now, all
+on one 24px grid at one stroke weight, and adding one is editing a file rather
+than taking a dependency and someone else's idea of what a bin looks like. The
+trash was drawn to match.
+
+This is the one deliberate exception to "icons never carry meaning alone". That
+rule is about icons carrying *information* — a nozzle's Entered badge, a fuel
+type — where colour is the cue that fails in a dim office. A control is
+different, and two conditions keep it honest: `label` is mandatory and becomes
+both `aria-label` and the hover title, and every one of these confirms **in
+words** before anything happens. Text is kept where the words *are* the
+distinction: *Bring back* beside *Delete for good* would be a guess as two
+icons.
+
+**"Clicking some buttons freezes the UI."** It was not a freeze — it was
+**thirteen submit buttons with no pending state**. `SubmitButton` has wrapped
+`useFormStatus()` since early on and is used in 25 places, but every
+destructive confirm had been written as a plain `<button type="submit">`: Yes,
+remove / Yes, delete / Bring back / Sign out. Press one and nothing changes
+until the row vanishes, which is indistinguishable from a tap that never
+registered — so the natural response is to press again.
+
+All thirteen now use `SubmitButton` with a fitting label — Removing…,
+Deleting…, Bringing back…, Signing out… Verified by holding the Server Action
+open for 2.5s to stand in for a slow connection, which is when it actually
+matters:
+
+    during the action: label "Removing…", disabled=true
+
+Disabled matters as much as the label: it is what stops the impatient second
+tap posting the same thing twice.
+
+Left alone deliberately: the month pickers on Expenses and Reports are plain
+GET forms in server components, so the navigation brings its own `loading.js`.
+`PaymentStatusToggle` already updates optimistically and `StaffList` already
+used `SubmitButton`.

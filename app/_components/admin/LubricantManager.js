@@ -9,6 +9,7 @@ import {
   setLubricantActive,
 } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
+import IconButton from '@/app/_components/ui/IconButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import Dialog from '@/app/_components/ui/Dialog';
 import NumberInput from '@/app/_components/ui/NumberInput';
@@ -351,13 +352,12 @@ function RemoveButton({ lubricantId, name }) {
 
   if (!confirming) {
     return (
-      <button
-        type="button"
+      <IconButton
+        name="trash"
+        label={`Take ${name} off the shelf`}
+        tone="danger"
         onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-700 hover:underline"
-      >
-        Remove
-      </button>
+      />
     );
   }
 
@@ -366,9 +366,9 @@ function RemoveButton({ lubricantId, name }) {
       <input type="hidden" name="lubricant_id" value={lubricantId} />
       <p className="text-xs text-ink-600">Take {name} off the shelf?</p>
       <div className="flex gap-2">
-        <button type="submit" className="btn-danger px-2 py-1 text-xs">
+        <SubmitButton className="btn-danger px-2 py-1 text-xs" pendingLabel="Removing…">
           Yes, remove
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}
@@ -389,9 +389,12 @@ function RestoreButton({ lubricantId }) {
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="lubricant_id" value={lubricantId} />
       <input type="hidden" name="is_active" value="true" />
-      <button type="submit" className="text-xs font-semibold text-brand-700 hover:underline">
+      <SubmitButton
+        className="text-xs font-semibold text-brand-700 hover:underline"
+        pendingLabel="Bringing back…"
+      >
         Bring back
-      </button>
+      </SubmitButton>
       {state?.ok === false ? <span className="text-xs text-red-700">{state.message}</span> : null}
     </form>
   );

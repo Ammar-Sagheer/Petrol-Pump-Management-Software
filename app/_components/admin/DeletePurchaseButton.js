@@ -3,6 +3,8 @@
 import { useActionState, useState } from 'react';
 
 import { deletePurchase } from '@/app/_lib/actions';
+import IconButton from '@/app/_components/ui/IconButton';
+import SubmitButton from '@/app/_components/ui/SubmitButton';
 
 /**
  * Owner-only. The way to correct a mistyped delivery: remove it and record it
@@ -21,13 +23,12 @@ export default function DeletePurchaseButton({ purchaseId, summary, kind = 'fuel
 
   if (!confirming) {
     return (
-      <button
-        type="button"
+      <IconButton
+        name="trash"
+        label="Delete this purchase"
+        tone="danger"
         onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-700 hover:underline"
-      >
-        Delete
-      </button>
+      />
     );
   }
 
@@ -37,9 +38,9 @@ export default function DeletePurchaseButton({ purchaseId, summary, kind = 'fuel
       <input type="hidden" name="kind" value={kind} />
       <p className="text-xs text-ink-600">Delete {summary}?</p>
       <div className="flex gap-2">
-        <button type="submit" className="btn-danger px-2 py-1 text-xs">
+        <SubmitButton className="btn-danger px-2 py-1 text-xs" pendingLabel="Deleting…">
           Yes, delete
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}
