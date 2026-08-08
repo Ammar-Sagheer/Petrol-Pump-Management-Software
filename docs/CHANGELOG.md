@@ -11,6 +11,38 @@ stock is calculated) see `README.md`. For the reusable patterns these
 entries establish (dialogs, table layout, buttons) see
 `docs/UI_CONVENTIONS.md`.
 
+## Where things stand
+
+A short orientation, so a new session does not have to read the whole file to
+know what the app is today. Everything below this section is the narrative, in
+theme order; the last block of work is at the bottom.
+
+**The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
+`sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
+logins, one pump. Migrations run to **034**.
+
+**What was added most recently**, newest last, all of it detailed further down:
+
+| Area | What changed |
+|---|---|
+| Loose oil | A drum bought from a supplier and sold by the rupee, not the litre. Its own page under Lubricants, litres derived server-side from a rate, sale litres widened to 3 dp. Migrations 028–030. |
+| Tables that grow | `<Pager>` on Purchases, Banking, Stock checks, the customer ledger and both sales tables — and the removal of `.limit()` caps that were silently truncating a money total. |
+| Dashboard | An oil-sales chart beside the fuel ones (`get_lubricant_trend`, 029). |
+| Customers | Removing one (delete if never traded, retire if it did), deleting one for good, an opening balance created with the account, and editable details. Migrations 031, 033, 034. |
+| Money precision | The ledger moved to **whole rupees**, storage as well as display — there is no coin below one rupee. Migration 032. |
+| Speed | Functions moved to Singapore beside the database; the Guide is prefetched. |
+| Feedback | Every destructive submit shows a pending state; delete triggers are a trash icon. |
+
+**Three things that are load-bearing and easy to break:**
+
+1. **The database enforces the money rules, not the app.** Balanced days,
+   append-only ledger, no overlapping meter readings, stock recalculated from
+   history. `README.md` → "What the database will not let you do" is the list.
+2. **Whole rupees on the ledger, two decimals on the meter.** Different
+   rounding for different reasons, and three places must agree — see
+   `docs/UI_CONVENTIONS.md`.
+3. **The business day is `Asia/Karachi`**, never the server clock.
+
 ## Foundation
 
 - Next.js App Router app scaffolded: auth flow (Supabase, no public
@@ -1340,3 +1372,34 @@ Left alone deliberately: the month pickers on Expenses and Reports are plain
 GET forms in server components, so the navigation brings its own `loading.js`.
 `PaymentStatusToggle` already updates optimistically and `StaffList` already
 used `SubmitButton`.
+
+### The guide caught up, and the docs learned to brief a stranger
+
+**Guide, both languages.** It had never covered two things the owner uses:
+correcting a customer's details, and the manual adjustment — which is the one
+control that confused him in the first place, so leaving it undocumented was
+the wrong gap to have. Added, along with the whole-rupee rule.
+
+The Customers card then became ten lines covering six different operations,
+which is worse for someone learning than the four-line cards beside it. Split
+into **Customers** (pay, add, opening balance — the routine) and **Fixing a
+customer** (edit details, adjust the balance, remove — rare, owner-only), with
+the pencil icon on the second. Both languages checked by shape afterwards:
+7 setup steps, 7 daily, 7 occasional, 10 rules, 7 role rows, matching icons.
+
+**Two docs additions aimed at a session that has not been here before**, since
+the next piece of work mentioned is an offline Electron build:
+
+- A **"Where things stand"** section at the top of this file. Ten narrative
+  entries in theme order is the right shape for *why*, and the wrong shape for
+  *what is true today* — so there is now a table of the recent work and a list
+  of the three things that are load-bearing and easy to break.
+- A **"If you are porting this off Supabase"** section in `README.md`, because
+  the most misleading thing about this codebase is how little of the important
+  logic is in the JavaScript. Thirty-four migrations of triggers and
+  constraints hold the rules that make the books trustworthy, and swapping
+  Postgres for SQLite silently drops all of them — nothing in the UI would
+  complain, because the UI check was only ever the courtesy. It also names what
+  is genuinely Supabase-shaped (the clients, `proxy.js`, every `.rpc()` call,
+  RLS as the real access control) against what ports unchanged (all the
+  components, the helpers, the guide content, the Excel export).
