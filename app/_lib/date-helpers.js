@@ -43,7 +43,22 @@ const isoDateFormatter = new Intl.DateTimeFormat('en-CA', {
 });
 
 export function todayISO() {
-  return isoDateFormatter.format(new Date());
+  return isoDateAtPump(new Date());
+}
+
+/**
+ * Which calendar day, at the pump, a given instant fell on.
+ *
+ * todayISO() is this with `now` passed in, and it is split out because the
+ * activity log needs the same question asked of a stored timestamp: was this
+ * entry filed against the day it was typed on, or an earlier one? Re-deriving
+ * the formatter at the call site is how the two would drift, which is the
+ * mistake this whole file exists to prevent.
+ */
+export function isoDateAtPump(instant) {
+  const at = instant instanceof Date ? instant : new Date(instant);
+  if (Number.isNaN(at.getTime())) return null;
+  return isoDateFormatter.format(at);
 }
 
 /**
@@ -115,6 +130,39 @@ export function formatDateLong(value) {
   if (!y || !m || !d) return String(value);
   const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
   return `${weekday}, ${String(d).padStart(2, '0')} ${MONTHS[m - 1]} ${y}`;
+}
+
+/**
+ * A timestamp -> "07 Aug 2026, 7:42 pm", at the pump.
+ *
+ * The only place in this app that shows a time of day rather than a date, and
+ * the timezone matters more here than anywhere else: the activity log's whole
+ * job is saying when something happened, and the row is written by Postgres in
+ * UTC while the person reading it is standing in Pakistan. Rendered on the
+ * server without pinning, "7:42 pm" would be printed as "2:42 pm" and quietly
+ * exonerate whoever was on the evening shift.
+ *
+ * Note this is a real instant, so `new Date()` is correct here - unlike the
+ * plain calendar dates above, which are split as strings for the reason
+ * formatDate gives.
+ */
+const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: PUMP_TIMEZONE,
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
+export function formatDateTime(value) {
+  if (!value) return '';
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return String(value);
+  // en-GB gives "07 Aug 2026, 07:42 pm"; the space before the meridiem is a
+  // narrow no-break space, which is fine on screen but awkward to search for.
+  return dateTimeFormatter.format(at).replace(/ /g, ' ');
 }
 
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July',

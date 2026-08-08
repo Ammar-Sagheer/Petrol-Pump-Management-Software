@@ -128,6 +128,14 @@ const PATHS = {
       <path d="M12 6.8V20" />
     </>
   ),
+  // Activity: a clock turning back - the section is a history, not a list.
+  activity: (
+    <>
+      <circle cx="12" cy="12.5" r="7.5" />
+      <path d="M12 8.5v4l2.8 1.8" />
+      <path d="M4.5 6.5v3.2h3.2" />
+    </>
+  ),
   chevronRight: <path d="m9.5 5.5 6.5 6.5-6.5 6.5" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,

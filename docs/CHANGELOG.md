@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **034**.
+logins, one pump. Migrations run to **035**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -36,6 +36,7 @@ logins, one pump. Migrations run to **034**.
 | Settings | The rate panel previews five changes (rounded up to a whole date) instead of seven days, so it no longer scrolls inside itself. |
 | Dashboard | The charts take a 7 / 14 / 30 / 90-day window (`<TrendRange>`), carried through the day arrows by `<DateNav extraParams>`. |
 | All fuel rates | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card. |
+| Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 
 **Three things that are load-bearing and easy to break:**
 
@@ -45,7 +46,14 @@ logins, one pump. Migrations run to **034**.
 2. **Whole rupees on the ledger, two decimals on the meter.** Different
    rounding for different reasons, and three places must agree — see
    `docs/UI_CONVENTIONS.md`.
-3. **The business day is `Asia/Karachi`**, never the server clock.
+3. **The business day is `Asia/Karachi`**, never the server clock. The activity
+   log is the one place a *time of day* is shown, and it is pinned the same way
+   — rendered on a UTC server without pinning, an evening entry prints as an
+   afternoon one.
+4. **`activity_log` is written only by trigger and can never be edited.** If a
+   future change adds a table that holds money, attach the trigger to it in the
+   same migration; if one is renamed, the log line degrades rather than
+   breaking, so nothing will tell you.
 
 ## Foundation
 
@@ -1552,3 +1560,97 @@ change what the whole page is about, and landing at the top of the new content
 is the right behaviour there. The rule is narrower than "links should not
 scroll": **a control that changes only what sits beside it should not move the
 page.**
+
+## An audit trail
+
+### Who did what, written by the database
+
+*"Add trail logs and log the user activity and create a tabular log data in
+the navigation menu after guide button."*
+
+The owner has staff logins, and the app deliberately lets a past day be
+corrected — necessary, and also the exact shape of a mistake being quietly
+tidied away. Nothing recorded who did either. Migration **035** adds
+`activity_log` and one trigger across sixteen tables; `/admin/activity` reads
+it, owner only, below the Guide in the sidebar.
+
+**It is in the database, not the Server Actions.** An app-level log records
+only what went through the app — not a second tab, not the Supabase console,
+not a future script, and not whichever action someone forgets to instrument.
+The one time an audit trail gets opened is the time something happened that
+nobody expected, which is precisely the case an app-level log misses.
+
+**One function serves all sixteen tables** by going through `to_jsonb(NEW)`
+rather than naming columns, so a column renamed later degrades to a vaguer log
+line instead of breaking the write. Each line is built as a finished English
+sentence *at write time* — "Unit 1 · Nozzle A — 151.15 L, Rs 50,055" — because
+half these rows describe something that no longer exists, and a log that joined
+back to the row at read time would render a deletion as blanks.
+
+**It can never block a write.** The trigger body ends in `exception when others
+then return coalesce(new, old)`. A pump that cannot record its evening because
+the logging is broken is worse than a pump with no log. The cost is that a bug
+in it is invisible except as a gap, which is why every branch was exercised
+before it shipped rather than after.
+
+**Three things it deliberately stays quiet about**, each found by running it:
+
+- *Stock recalculation.* `tanks.current_stock_litres` is recomputed by trigger
+  after every reading, so logging it would bury each real event under a line of
+  machine bookkeeping. An update whose only changed columns are ignored is not
+  logged at all.
+- *The ledger row a credit slip posts for itself.* One event, described twice,
+  and the slip is the half a person recognises.
+- *The cascade under a deleted reading.* Deleting a reading deletes its credit
+  slips, and each slip's `on delete set null` then UPDATEs the ledger row it had
+  posted. The log said "Charge to a customer changed" underneath the deletion
+  that caused it. `credit_sale_id` and `lubricant_sale_id` joined the ignore
+  list.
+
+**Append-only, and unforgeable.** No insert policy at all — the only writer is
+the security-definer trigger — plus update and delete triggers that raise the
+way the ledger's do. Verified in an aborted transaction: the owner sees the
+rows and a staff login sees none; anon is refused at the grant; an insert by
+hand violates the policy; update and delete match zero rows through the API,
+and raise the append-only message even from a role RLS does not filter.
+
+**Testing against a live pump.** Every branch was run against real rows inside
+transactions that ended in `raise exception`, so nothing committed. Row counts
+were re-checked afterwards — readings 42, customers 6, rates 10, bank
+transactions 8, all unchanged — and the log was empty when the migration
+landed. Three test attempts failed on generated columns (`litres_sold`,
+`gain_loss`, `rate_per_litre` cannot be inserted), which is the schema being
+right and the test being wrong.
+
+**One wording bug the screenshots caught.** `entry_date` exists so the page can
+say "filed against 07 Aug" when an entry was made against an older day than it
+was typed on — the shape of both an honest correction and a dishonest one.
+Populating it for a fuel rate printed "filed against 08 Aug 2026" under a line
+already reading "from 08 Aug 2026": a repetition, and the wrong word. Rates no
+longer set it.
+
+### The log stopped being a table
+
+It was a `<table>` first, like every other list here, and at 400px it measured
+clean — nothing clipped, no page scroll — and looked broken: two narrow columns
+of timestamps beside acres of white, because the row heights were set by a
+700px sentence sitting off the right-hand edge. The app's usual answer, let the
+table scroll inside its card, works for Purchases because every cell there is a
+short number. Here the column that matters is a paragraph, and scrolling right
+to find out what happened defeats the page.
+
+`<ActivityTable>` is now one piece of markup that is four columns above
+`@[54rem]` and a stack below, using `@[54rem]:contents` so the when/who/amount
+wrapper dissolves into grid cells on a wide screen instead of being written
+twice. Full note in `docs/UI_CONVENTIONS.md`.
+
+The column widths were measured rather than guessed, and the first guess was
+wrong in the way this project keeps punishing: at a 46rem threshold the columns
+cramped at a 1024px window and **"Rs 7,686,000" wrapped onto two lines**. The
+DOM had reported no clipping and no overflow both times. 54rem with
+12/12/1fr/8rem, `whitespace-nowrap` on the timestamp and the figure but not on
+the name — a name may wrap, a number may not.
+
+Screenshotted at 1440 / 1152 / 1024 / 768 / 400 / 360, with the sidebar's 240px
+mocked into the devcheck so the container widths matched the real app rather
+than the viewport.
