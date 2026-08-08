@@ -19,6 +19,7 @@ import PurchaseForm from '@/app/_components/admin/PurchaseForm';
 import LubricantPurchaseForm from '@/app/_components/admin/LubricantPurchaseForm';
 import PaymentStatusToggle from '@/app/_components/admin/PaymentStatusToggle';
 import DeletePurchaseButton from '@/app/_components/admin/DeletePurchaseButton';
+import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 
 export const metadata = { title: 'Purchases' };
 
@@ -32,8 +33,11 @@ export const metadata = { title: 'Purchases' };
  * carries the tank for fuel and the product for a lubricant; the badge beside
  * it is what makes the two tell apart at a glance.
  */
-export default async function PurchasesPage() {
+const PER_PAGE = 25;
+
+export default async function PurchasesPage({ searchParams }) {
   const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  const page = pageFrom(await searchParams);
   const [tanks, fuelPurchases, lubricantPurchases, lubricants] = await Promise.all([
     getTanks(),
     getPurchases(),
@@ -42,6 +46,10 @@ export default async function PurchasesPage() {
   ]);
 
   const isOwner = profile.role === ROLES.SUPER_ADMIN;
+
+  // The shelf and the shed buy from different people and get their own button.
+  const packedLubricants = lubricants.filter((row) => !row.sold_loose);
+  const looseDrums = lubricants.filter((row) => row.sold_loose);
 
   // One shape for both, so the table below does not have to keep asking which
   // kind of row it is looking at. `kind` travels with the row because the
@@ -80,6 +88,18 @@ export default async function PurchasesPage() {
     return a.createdAt < b.createdAt ? 1 : -1;
   });
 
+  /*
+   * Sliced here rather than paged in the database, because both figures below
+   * are worked out from EVERY row - what is still owed to suppliers, and what
+   * the lubricant shelf has cost. A database page would make each of them a
+   * total of whatever happened to be on screen. Deliveries are a few a week, so
+   * the whole set is small; see getPurchases for when that stops being true.
+   *
+   * The two tables also cannot be paged in Postgres without a union view, since
+   * a page of this list can hold rows from either.
+   */
+  const pageRows = rows.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   const pendingTotal = rows
     .filter((row) => row.paymentStatus === 'pending')
     .reduce((total, row) => total + Number(row.cost), 0);
@@ -93,13 +113,23 @@ export default async function PurchasesPage() {
     <>
       <PageHeader
         title="Purchases"
-        description="Everything bought in — fuel into the tanks, lubricants onto the shelf. Recording one adds it to stock."
+        description="Everything bought in — fuel into the tanks, lubricants onto the shelf, a drum of loose oil into the shed. Recording one adds it to stock."
       >
-        {/* Both behind dialogs rather than sitting open on the page: a delivery
+        {/* All behind dialogs rather than sitting open on the page: a delivery
             is logged once a day at most, and the table below already needs the
-            page's full width - see the comment on PurchaseForm itself. */}
+            page's full width - see the comment on PurchaseForm itself.
+
+            A drum gets its own button rather than being one more option in the
+            lubricant dropdown. It arrives from a different supplier with no
+            brand on it, and the form asks slightly different questions - so
+            splitting it here is what lets each form say the right thing rather
+            than hedging between the two. The button appears only once a drum
+            exists to buy for. */}
         <PurchaseForm tanks={tanks} />
-        <LubricantPurchaseForm lubricants={lubricants} />
+        <LubricantPurchaseForm lubricants={packedLubricants} />
+        {looseDrums.length > 0 ? (
+          <LubricantPurchaseForm lubricants={looseDrums} kind="loose" />
+        ) : null}
       </PageHeader>
 
       <div>
@@ -141,7 +171,7 @@ export default async function PurchasesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100">
-                {rows.map((row) => (
+                {pageRows.map((row) => (
                   <tr key={`${row.kind}-${row.id}`}>
                     <td className="td whitespace-nowrap">{formatDate(row.date)}</td>
                     {/* Badge and name on ONE line. The name sat under the badge
@@ -204,6 +234,16 @@ export default async function PurchasesPage() {
             </table>
           </div>
         )}
+
+        {rows.length > 0 ? (
+          <Pager
+            page={page}
+            perPage={PER_PAGE}
+            total={rows.length}
+            hrefFor={(n) => `/admin/purchases?page=${n}`}
+            label="Purchase pages"
+          />
+        ) : null}
 
         {isOwner && lubricantSpend > 0 ? (
           <p className="mt-3 text-sm text-ink-600">

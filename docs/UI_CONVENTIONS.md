@@ -52,7 +52,25 @@ several look simplifiable and were already tried that way once.
   rounds to whole rupees — right for a day's takings, wrong for anything
   per-litre. `formatRate` (`app/_lib/format-helpers.js`) always shows two
   decimals, so Rs 339.48 does not display as "Rs 339" and Rs 339.50 does not
-  display as "Rs 339.5". `format-helpers.js` exists for the same reason
+  display as "Rs 339.5".
+- **There is no paisa in this app's money, because there is no paisa coin in
+  Pakistan.** `formatPKR` everywhere; a `formatPKRExact` that showed the ledger
+  to two decimals was removed. Rates are the one exception, and only because a
+  rate is a price on a board rather than something anyone hands over.
+
+  This is a **storage** rule before it is a display one. `roundRupees` in
+  `helpers.js` is applied to every write that becomes a customer debt or a
+  payment — credit slips, payments, adjustments, lubricant sales — while
+  `roundMoney` (2 dp) stays for the meter arithmetic, where litres × rate
+  genuinely carries paisa and rounding would break reconciliation against
+  stock. Rounding only the display would have been the worse half: three hidden
+  0.28s make a rupee, and the running balance drifts away from the rows above
+  it.
+
+  Anything that *tests* a balance has to round the same way, or the screen and
+  the rule disagree — see `delete_customer`, which refuses removal on a
+  non-zero balance and had to round too, otherwise an account reading "Rs 0"
+  could not be removed and the reason quoted a figure nobody can pay. `format-helpers.js` exists for the same reason
   `date-helpers.js` does: `helpers.js` reads request cookies and so cannot
   enter a client bundle, which previously left client components formatting
   inline and drifting. Server code imports both through `helpers.js`.
@@ -78,6 +96,19 @@ backdrop from the browser, not hand-rolled. On a phone it fills the screen
 as a sheet rather than floating as a cramped centered box. Props: `open`,
 `onClose`, `title`, `subtitle` (optional node), `size` (`'md'` default,
 `'lg'` for content that needs more width, e.g. a table).
+
+**It does not close on a click outside**, deliberately. A `click` event
+fires on the nearest common ancestor of `mousedown` and `mouseup`, so
+selecting text in a field and releasing the button a few pixels past the
+panel edge produced an event targeting the `<dialog>` itself — identical to
+a real backdrop click, and it threw away a half-typed form. Every dialog
+here holds entry someone is part-way through, so the affordances are all
+deliberate ones: Escape, the header `✕`, and the form's own Cancel. Give
+every dialog form a Cancel button; it is the visible way out.
+
+The one intentional exception is the nav drawer in `AdminSidebar.js`, which
+*does* close on its backdrop — it holds no input, and tap-outside-to-dismiss
+is what people expect of a menu.
 
 **When to put a form behind a dialog**: when the thing it creates is set up
 rarely (an account, a staff login, a tank, a delivery) rather than read or
@@ -370,6 +401,40 @@ one to copy if another follows.
   a phone, keep their text selectable and readable at any size — and the same
   markup renders in Urdu without anything being redrawn.
 
+## Paging: `<Pager>`, and where the slice happens
+
+`<Pager>` (`app/_components/ui/Pager.js`) is the row under every paged table:
+a "Showing 21 to 39 of 39" sentence and the Previous/Next nav. It takes
+`page`, `perPage`, `total` and **`hrefFor(page)`** — a function, not a base
+path, because these tables already carry a date, a month or a customer id in
+the query string and a pager that rebuilt the URL would silently drop them.
+`pageFrom(searchParams)` beside it reads and clamps `?page=`.
+
+**What needs paging.** Anything that shows everything since the pump opened:
+Purchases, Banking, Stock checks, a customer's ledger. A table scoped to one
+day or one month is bounded by how much can happen in that time and does not
+need it — with one exception, the two sales tables, where a busy day runs to
+dozens of rows and pushes the stock table below them out of reach.
+
+**Where to slice — this is the part that bites.** Two options, and the wrong
+one silently corrupts a figure:
+
+- **Page in the database** (`range()` + `count: 'exact'`) when the list is
+  *only* a list. The customer ledger is the clean case: the balance and the
+  fuel breakdown come from `get_customer_statement`, which sums in Postgres
+  over everything, so paging the rows changes only what is displayed.
+- **Fetch it all and `slice()`** when the page derives anything from the whole
+  set. Purchases totals what is still owed to suppliers; Banking counts
+  transactions per account; Stock checks looks up the check belonging to the
+  date on screen. A database page would turn each of those into "…of whatever
+  is on this screen".
+
+The same trap had already been laid by plain `.limit()` defaults, which is
+worse because nothing on screen says a cap was applied: `getPurchases` stopped
+at 100, so the hundred-and-first delivery pushed the oldest unpaid ones out of
+the "still owed" total. **A cap on a list you are going to total is a cap on
+the total.** Those caps were removed rather than paged around.
+
 ## Long tables get their own paged page
 
 A table that grows without bound does not belong sitting open on a page that
@@ -391,7 +456,41 @@ third should copy it rather than invent another:
   rather than 25 rows and the page count falls out of the distance between
   the first trading day and today.
 - A dead pager button is a `<span>`, not a link styled to look disabled — a
-  disabled-looking link is still focusable and still navigates.
+  disabled-looking link is still focusable and still navigates. This now lives
+  inside `<Pager>`; do not hand-roll it again.
+
+## "Remove" means delete-or-retire, and the database decides
+
+Two screens take something off a list — a lubricant, and a customer — and both
+work the same way, so a third should copy it rather than invent a variant.
+
+The button says **Remove**, never "Delete", because only one of the two
+outcomes is actually a delete:
+
+- **Never traded** — a typo, or an account opened and never used. Nothing to
+  preserve, so the row goes.
+- **Has history** — deleting would tear a hole in months already reported and
+  exported. The row is *retired*: `is_active = false`, out of the working list
+  and out of every dropdown, with its history left intact.
+
+The caller cannot tell which applies from the row in front of them, so the RPC
+decides and **returns which one happened** (`{ name, removed: true|false }`)
+and the confirmation says so afterwards. A button that promised "Delete" would
+be lying half the time.
+
+Two things this pattern always needs:
+
+- **A way back.** A retired row must stay findable and restorable, or "removed"
+  is indistinguishable from "lost" — a *Removed* section under the main table
+  with a **Bring back** button. `LubricantManager` and the Customers page are
+  the two examples.
+- **A guard on anything retiring would hide.** A retired customer drops out of
+  `get_customer_balances`, which is what the Customers page totals "still
+  outstanding" from — so removing someone who owes Rs 50,000 would quietly drop
+  Rs 50,000 from what the pump believes it is owed. Removal is therefore
+  refused while the balance is non-zero, **in both directions**: money the
+  customer owes, and money the pump owes them. Before adding this pattern to a
+  third screen, ask what disappears from a total when the row leaves the list.
 
 ## Icons
 

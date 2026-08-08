@@ -25,6 +25,9 @@ export const ROUTE_ACCESS = {
   '/admin': [ROLES.SUPER_ADMIN],
   '/admin/readings': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/lubricants': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
+  // The drum, sold by the rupee. Its own page under Lubricants rather than a
+  // nav entry - it is the same job, done from the other end.
+  '/admin/lubricants/loose': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/purchases': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/stock-checks': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   '/admin/customers': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
@@ -159,12 +162,21 @@ export function formatPKR(value) {
   return `Rs ${moneyFormat.format(n)}`;
 }
 
-/** 140000 -> "Rs 140,000.50" - for a ledger, where every paisa should show. */
-export function formatPKRExact(value) {
-  const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return 'Rs 0';
-  return `Rs ${numberFormat.format(n)}`;
-}
+/*
+ * There WAS a formatPKRExact here, showing the ledger to the paisa on the
+ * reasoning that a customer account should account for every last unit.
+ *
+ * Removed, because Pakistan has no coin below one rupee. Nobody hands over
+ * 28 paisa, so a 28-paisa balance is not a debt - it is arithmetic left over
+ * from litres times a rate, and it can never be paid off. Showing it made the
+ * customer page contradict itself: the headline read "Rs -5,000" through
+ * formatPKR while the table under it read "Rs -4,999.72".
+ *
+ * The ledger now uses formatPKR like everything else, and roundRupees below
+ * keeps new paisa from reaching it in the first place. Rounding only the
+ * DISPLAY would have been the worse half of the fix - three hidden 0.28s add
+ * up to a rupee, and the running balance would drift from the rows above it.
+ */
 
 /** 500 -> "500 L" */
 export function formatLitres(value) {
@@ -189,7 +201,7 @@ export { todayISO, shiftISODate, formatDate, formatDateLong, monthRange, formatM
  * Same arrangement for the formatters the client forms also need - see
  * format-helpers.js.
  */
-export { formatRate } from './format-helpers';
+export { formatRate, formatLitresFine } from './format-helpers';
 
 /**
  * Whether the "empty everything" button exists on this deployment.
@@ -219,6 +231,26 @@ export function fullResetAllowed() {
 /** Money is rounded to 2 decimals the same way Postgres rounds it. */
 export function roundMoney(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Whole rupees, for anything a person actually hands over or owes.
+ *
+ * The distinction against roundMoney matters and is not cosmetic:
+ *
+ *   roundMoney (2 dp)  - the arithmetic of the meter. litres x rate genuinely
+ *                        carries paisa, and a day's sale_amount must keep them
+ *                        or the takings stop reconciling against stock.
+ *   roundRupees        - the customer ledger. A debt is settled with notes, and
+ *                        the smallest note or coin is one rupee, so a balance
+ *                        that cannot be paid in cash should never be created.
+ *
+ * Where a whole-rupee credit is taken out of a fractional sale, the CASH side
+ * absorbs the remainder - which is right, because cash is the residual and is
+ * counted in notes anyway.
+ */
+export function roundRupees(value) {
+  return Math.round(Number(value) + Number.EPSILON);
 }
 
 export function litresSold(opening, closing) {

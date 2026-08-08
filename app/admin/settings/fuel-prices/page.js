@@ -5,6 +5,7 @@ import EmptyState from '@/app/_components/ui/EmptyState';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import Icon from '@/app/_components/ui/Icon';
 import FuelPriceTable from '@/app/_components/admin/FuelPriceTable';
+import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 
 export const metadata = { title: 'All fuel rates' };
 
@@ -26,14 +27,9 @@ export default async function FuelPricesPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
 
   const params = await searchParams;
-  const requested = Number.parseInt(params?.page, 10);
-  const page = Number.isInteger(requested) && requested > 0 ? requested : 1;
+  const page = pageFrom(params);
 
   const { rows, total } = await getFuelPricesPage({ page, perPage: PER_PAGE });
-
-  const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
-  const first = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
-  const last = Math.min(page * PER_PAGE, total);
 
   return (
     <>
@@ -59,64 +55,14 @@ export default async function FuelPricesPage({ searchParams }) {
         <>
           <FuelPriceTable prices={rows} />
 
-          {/* The count sits outside the pager so it still reads as a sentence
-              when there is only one page and the buttons are both dead. */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-ink-600">
-              Showing <span className="font-semibold text-ink-800">{first}</span> to{' '}
-              <span className="font-semibold text-ink-800">{last}</span> of{' '}
-              <span className="font-semibold text-ink-800">{total}</span>
-            </p>
-
-            {lastPage > 1 ? (
-              <nav aria-label="Pages" className="flex items-center gap-2">
-                <PagerLink
-                  href={`/admin/settings/fuel-prices?page=${page - 1}`}
-                  disabled={page <= 1}
-                  label="Previous page"
-                >
-                  <Icon name="chevronRight" className="h-5 w-5 rotate-180" />
-                  <span className="hidden sm:inline">Previous</span>
-                </PagerLink>
-
-                <span className="text-sm font-semibold text-ink-700">
-                  Page {page} of {lastPage}
-                </span>
-
-                <PagerLink
-                  href={`/admin/settings/fuel-prices?page=${page + 1}`}
-                  disabled={page >= lastPage}
-                  label="Next page"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <Icon name="chevronRight" className="h-5 w-5" />
-                </PagerLink>
-              </nav>
-            ) : null}
-          </div>
+          <Pager
+            page={page}
+            perPage={PER_PAGE}
+            total={total}
+            hrefFor={(n) => `/admin/settings/fuel-prices?page=${n}`}
+          />
         </>
       )}
     </>
-  );
-}
-
-/**
- * A page button that is a real link when it goes somewhere and a disabled
- * button when it does not - rather than a link styled to look dead, which is
- * still focusable and still navigates.
- */
-function PagerLink({ href, disabled, label, children }) {
-  if (disabled) {
-    return (
-      <span className="btn-secondary cursor-not-allowed opacity-50" aria-disabled="true">
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <PendingLink href={href} className="btn-secondary" aria-label={label}>
-      {children}
-    </PendingLink>
   );
 }

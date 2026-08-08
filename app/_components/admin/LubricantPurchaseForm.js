@@ -27,8 +27,16 @@ const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
  * box does the multiplication in front of whoever is typing, so the mistake is
  * visible before it is saved rather than a month later when the stock figure
  * makes no sense.
+ *
+ * `kind="loose"` records a DRUM instead. Same delivery note, same two figures,
+ * same supplier - which is exactly why it is this component with a flag rather
+ * than a second one. What changes is only the wording and the hint: a drum has
+ * no brand and no cartons to count, so the pack arithmetic would be noise, and
+ * the buying rate a litre is the figure worth showing back because it is what
+ * the selling rate has to clear.
  */
-export default function LubricantPurchaseForm({ lubricants }) {
+export default function LubricantPurchaseForm({ lubricants, kind = 'pack' }) {
+  const isLoose = kind === 'loose';
   const formRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -36,7 +44,10 @@ export default function LubricantPurchaseForm({ lubricants }) {
 
   const [state, formAction] = useActionState(createLubricantPurchase, null);
 
-  const [lubricantId, setLubricantId] = useState('');
+  // One drum is the normal case, and there is nothing to ask about it.
+  const [lubricantId, setLubricantId] = useState(
+    isLoose && lubricants.length === 1 ? lubricants[0].id : '',
+  );
   const [quantity, setQuantity] = useState('');
   const [totalCost, setTotalCost] = useState('');
 
@@ -49,11 +60,11 @@ export default function LubricantPurchaseForm({ lubricants }) {
       setIsOpen(false);
       setNotice({ message: state.message });
       formRef.current?.reset();
-      setLubricantId('');
+      setLubricantId(isLoose && lubricants.length === 1 ? lubricants[0].id : '');
       setQuantity('');
       setTotalCost('');
     }
-  }, [state]);
+  }, [state, isLoose, lubricants]);
 
   const selected = lubricants.find((row) => row.id === lubricantId) ?? null;
   const litresTyped = Number(quantity);
@@ -63,8 +74,18 @@ export default function LubricantPurchaseForm({ lubricants }) {
   const showRate = Number.isFinite(derivedRate) && derivedRate > 0;
 
   // How many cartons that many litres works out at, when it divides evenly.
-  const packSize = selected ? Number(selected.pack_size_litres) : null;
+  // Meaningless for a drum, which is not made of packs.
+  const packSize = selected && !isLoose ? Number(selected.pack_size_litres) : null;
   const packs = packSize && hasLitres ? litresTyped / packSize : null;
+
+  /*
+   * For a drum, whether this delivery leaves the selling rate above water. The
+   * one mistake that matters here is buying at a rate the shelf price no longer
+   * clears, and it is invisible unless the two are put next to each other.
+   */
+  const sellRate = isLoose && selected ? Number(selected.sale_rate_per_litre) : null;
+  const marginWarning =
+    showRate && Number.isFinite(sellRate) && sellRate > 0 && derivedRate >= sellRate;
 
   return (
     <>
@@ -80,10 +101,14 @@ export default function LubricantPurchaseForm({ lubricants }) {
         <span aria-hidden="true" className="text-base leading-none">
           +
         </span>
-        Record a lubricant purchase
+        {isLoose ? 'Record a loose oil purchase' : 'Record a lubricant purchase'}
       </button>
 
-      <Dialog open={isOpen} onClose={() => setIsOpen(false)} title="Record a lubricant purchase">
+      <Dialog
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={isLoose ? 'Record a loose oil purchase' : 'Record a lubricant purchase'}
+      >
         <form
           ref={formRef}
           action={(formData) => {
@@ -92,32 +117,51 @@ export default function LubricantPurchaseForm({ lubricants }) {
           }}
           className="space-y-4 p-4"
         >
-          <div>
-            <label className="label" htmlFor="purchase_lubricant_id">
-              Lubricant
-            </label>
-            <select
-              id="purchase_lubricant_id"
-              name="lubricant_id"
-              required
-              value={lubricantId}
-              onChange={(event) => setLubricantId(event.target.value)}
-              className="input"
-            >
-              <option value="">Choose a lubricant…</option>
-              {lubricants.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.name}
-                </option>
-              ))}
-            </select>
-            {selected ? (
-              <p className="mt-1 text-sm text-ink-600">
-                Holds {litreFormat.format(selected.current_stock_litres ?? 0)} L today · sold in{' '}
-                {litreFormat.format(selected.pack_size_litres)} L packs
-              </p>
-            ) : null}
-          </div>
+          {/* With one drum there is nothing to choose. Keeps the form down to
+              the three things actually written on the delivery note. */}
+          {isLoose && lubricants.length === 1 ? (
+            <input type="hidden" name="lubricant_id" value={lubricants[0].id} />
+          ) : (
+            <div>
+              <label className="label" htmlFor="purchase_lubricant_id">
+                {isLoose ? 'Which drum' : 'Lubricant'}
+              </label>
+              <select
+                id="purchase_lubricant_id"
+                name="lubricant_id"
+                required
+                value={lubricantId}
+                onChange={(event) => setLubricantId(event.target.value)}
+                className="input"
+              >
+                <option value="">{isLoose ? 'Choose a drum…' : 'Choose a lubricant…'}</option>
+                {lubricants.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {selected ? (
+            <p className="text-sm text-ink-600">
+              {isLoose ? (
+                <>
+                  <span className="font-semibold">{selected.name}</span> holds{' '}
+                  {litreFormat.format(selected.current_stock_litres ?? 0)} L today
+                  {Number(selected.sale_rate_per_litre) > 0
+                    ? ` · selling at ${formatRate(selected.sale_rate_per_litre)} a litre`
+                    : ''}
+                </>
+              ) : (
+                <>
+                  Holds {litreFormat.format(selected.current_stock_litres ?? 0)} L today · sold in{' '}
+                  {litreFormat.format(selected.pack_size_litres)} L packs
+                </>
+              )}
+            </p>
+          ) : null}
 
           <div>
             <label className="label" htmlFor="lubricant_purchase_date">
@@ -136,7 +180,7 @@ export default function LubricantPurchaseForm({ lubricants }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label" htmlFor="lubricant_quantity">
-                Litres
+                {isLoose ? 'Litres in the drum' : 'Litres'}
               </label>
               <NumberInput
                 id="lubricant_quantity"
@@ -176,14 +220,32 @@ export default function LubricantPurchaseForm({ lubricants }) {
             </p>
           ) : null}
 
+          {isLoose && !packs ? (
+            <p className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-xs text-ink-600">
+              How many litres the drum holds — 200 for a full barrel. This is what goes onto the
+              stock; the pours are taken off it as they are sold.
+            </p>
+          ) : null}
+
           {showRate ? (
             <p className="rounded-lg bg-ink-900 px-4 py-3 text-white">
               <span className="text-xs font-medium uppercase tracking-wide text-ink-300">
-                Works out at
+                {isLoose ? 'Bought at' : 'Works out at'}
               </span>
               <span className="tabular mt-0.5 block text-xl font-bold">
                 {formatRate(derivedRate)} <span className="text-base font-semibold">/ litre</span>
               </span>
+            </p>
+          ) : null}
+
+          {marginWarning ? (
+            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <span className="font-semibold">
+                This drum costs {formatRate(derivedRate)} a litre and is being sold at{' '}
+                {formatRate(sellRate)}.
+              </span>{' '}
+              There is nothing to stop you saving it, but the selling rate is worth raising under
+              “Manage lubricants” — every pour off this drum loses money until it is.
             </p>
           ) : null}
 
@@ -197,7 +259,7 @@ export default function LubricantPurchaseForm({ lubricants }) {
               type="text"
               required
               className="input"
-              placeholder="e.g. Shell distributor"
+              placeholder={isLoose ? 'e.g. Ali Oil Traders' : 'e.g. Shell distributor'}
             />
           </div>
 

@@ -5,6 +5,7 @@ import {
   shiftISODate,
   formatDate,
   formatLitres,
+  formatLitresFine,
   formatPKR,
   formatRate,
 } from '@/app/_lib/helpers';
@@ -22,8 +23,19 @@ import LubricantSaleForm from '@/app/_components/admin/LubricantSaleForm';
 import LubricantManager from '@/app/_components/admin/LubricantManager';
 import DeleteLubricantSaleButton from '@/app/_components/admin/DeleteLubricantSaleButton';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
+import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 
 export const metadata = { title: 'Lubricants' };
+
+/*
+ * A day, not a history - so this is bounded by how much can be sold in one day
+ * rather than growing forever. It is paged anyway: a busy Saturday can run to
+ * dozens of sales, and the shelf table below them is the thing that then
+ * becomes unreachable. Sliced from the day already fetched, because the RPC
+ * returns the whole day in one round trip and the totals above are worked out
+ * from all of it.
+ */
+const PER_PAGE = 20;
 
 /**
  * The lubricant counter: what was sold today, and what is left to sell.
@@ -42,6 +54,7 @@ export default async function LubricantsPage({ searchParams }) {
   const isOwner = profile.role === ROLES.SUPER_ADMIN;
 
   const params = await searchParams;
+  const page = pageFrom(params);
   const date =
     typeof params?.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
       ? params.date
@@ -56,15 +69,34 @@ export default async function LubricantsPage({ searchParams }) {
   ]);
 
   const totals = day.totals ?? {};
-  const sales = day.sales ?? [];
 
-  // Only what is still stocked can be sold. Retired products stay in `stock`
-  // while they have something left on the shelf, but they are not offered.
-  const sellable = stock.filter((row) => row.is_active);
+  /*
+   * This page is the SHELF. The drum has its own page, because a run of
+   * rupee-priced pours reads nothing like a handful of carton sales and each
+   * was burying the other in one table.
+   *
+   * The split is by product, not by how the row was typed: `sold_loose` lives
+   * on the lubricant, so a sale can only ever belong to one of the two pages.
+   * The shelf table at the bottom deliberately keeps BOTH - it is stock on
+   * hand, and someone checking what is in the building wants the whole answer
+   * in one place.
+   */
+  const packSales = (day.sales ?? []).filter((sale) => !sale.sold_loose);
+  const sellable = stock.filter((row) => row.is_active && !row.sold_loose);
+  const hasDrum = stock.some((row) => row.sold_loose);
 
-  const amount = Number(totals.amount ?? 0);
-  const creditAmount = Number(totals.credit_amount ?? 0);
-  const creditShare = amount > 0 ? Math.round((creditAmount / amount) * 100) : 0;
+  // The RPC totals the day and the drum; the shelf is the difference. Derived
+  // here rather than added to the RPC as a third set of sums that could fall
+  // out of step with the other two.
+  const packAmount = Number(totals.pack_amount ?? 0);
+  const packCash = Number(totals.cash_amount ?? 0) - Number(totals.loose_cash ?? 0);
+  const packCredit = Number(totals.credit_amount ?? 0) - Number(totals.loose_credit ?? 0);
+  const creditShare = packAmount > 0 ? Math.round((packCredit / packAmount) * 100) : 0;
+
+  const pageSales = packSales.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const looseCount = Number(totals.loose_count ?? 0);
+  const looseAmount = Number(totals.loose_amount ?? 0);
 
   return (
     <>
@@ -104,7 +136,19 @@ export default async function LubricantsPage({ searchParams }) {
         </div>
       </div>
 
-      {sellable.length === 0 ? (
+      {/* A pump that keeps only a drum is a real setup, and it must not land on
+          "nothing here" - the drum's page is where its work happens, so send
+          them there rather than telling them to add a carton they do not sell. */}
+      {sellable.length === 0 && hasDrum ? (
+        <EmptyState
+          title="Nothing packed on the shelf"
+          description="This pump sells loose oil only. Record those sales on the loose oil page."
+        >
+          <PendingLink href={`/admin/lubricants/loose?date=${date}`} className="btn-primary">
+            Go to loose oil
+          </PendingLink>
+        </EmptyState>
+      ) : sellable.length === 0 ? (
         <EmptyState
           title="No lubricants on the shelf yet"
           description={
@@ -115,27 +159,61 @@ export default async function LubricantsPage({ searchParams }) {
         />
       ) : (
         <>
-          <div className="mb-6" aria-label="Lubricant sales for the day">
+          <div className="mb-6" aria-label="Packed lubricant sales for the day">
             <StatGrid>
-              <StatTile label="Sales" value={String(Number(totals.sales_count ?? 0))} />
-              <StatTile label="Litres sold" value={formatLitres(totals.litres)} />
-              <StatTile label="Cash" value={formatPKR(totals.cash_amount)} />
+              <StatTile label="Sales" value={String(Number(totals.pack_count ?? 0))} />
+              <StatTile label="Litres sold" value={formatLitres(totals.pack_litres)} />
+              <StatTile label="Cash" value={formatPKR(packCash)} />
               <StatTile
                 label="On credit"
-                value={formatPKR(creditAmount)}
-                sub={amount > 0 ? `${creditShare}% of the day` : null}
+                value={formatPKR(packCredit)}
+                sub={packAmount > 0 ? `${creditShare}% of the shelf` : null}
               />
             </StatGrid>
           </div>
+
+          {/* The drum's day, summarised with a way through to it. Here rather
+              than only in the nav because someone standing on this page has
+              just recorded a sale and is the person most likely to need the
+              other kind next - and because a day is not finished until both
+              halves are in. */}
+          {hasDrum ? (
+            <PendingLink
+              href={`/admin/lubricants/loose?date=${date}`}
+              className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-xl border border-ink-200 bg-white px-4 py-3 hover:border-brand-600 hover:bg-brand-50"
+            >
+              <span>
+                <span className="block text-sm font-bold text-ink-900">Loose oil</span>
+                <span className="block text-sm text-ink-600">
+                  Sold by the rupee, out of the drum
+                </span>
+              </span>
+              <span className="flex items-center gap-6">
+                <span className="text-right">
+                  <span className="figure-label block">Sales</span>
+                  <span className="figure-value block">{looseCount}</span>
+                </span>
+                <span className="text-right">
+                  <span className="figure-label block">Taken</span>
+                  <span className="figure-value block whitespace-nowrap">
+                    {formatPKR(looseAmount)}
+                  </span>
+                </span>
+                <span aria-hidden="true" className="text-lg font-bold text-brand-700">
+                  →
+                </span>
+              </span>
+            </PendingLink>
+          ) : null}
 
           <h2 className="section-heading">
             Sold on {formatDate(date)}
           </h2>
 
-          {sales.length === 0 ? (
+          {packSales.length === 0 ? (
             <EmptyState
               title="Nothing sold yet on this date"
-              description="Record a sale with the button above. Cash or credit, a sealed pack or a loose pour — it all comes off the same stock."
+              description="Record a sale with the button above. A sealed carton or a bottle off the shelf — cash or credit."
             />
           ) : (
             <div className="card table-scroll">
@@ -157,7 +235,7 @@ export default async function LubricantsPage({ searchParams }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100">
-                  {sales.map((sale) => (
+                  {pageSales.map((sale) => (
                     <tr key={sale.id}>
                       <td className="td">
                         <span className="font-medium">{sale.name}</span>
@@ -203,6 +281,16 @@ export default async function LubricantsPage({ searchParams }) {
             </div>
           )}
 
+          {packSales.length > 0 ? (
+            <Pager
+              page={page}
+              perPage={PER_PAGE}
+              total={packSales.length}
+              hrefFor={(n) => `/admin/lubricants?date=${date}&page=${n}`}
+              label="Sale pages"
+            />
+          ) : null}
+
           {/* The shelf, as at the date on screen. Here as well as on Stock
               because it is what someone recording a sale needs to know, and
               sending them to another tab to find it is how a sale gets typed
@@ -228,20 +316,36 @@ export default async function LubricantsPage({ searchParams }) {
                     <tr key={row.id}>
                       <td className="td font-medium">
                         {row.name}
+                        {row.sold_loose ? (
+                          <span className="badge ml-2 bg-amber-100 text-amber-900">loose</span>
+                        ) : null}
                         {row.is_active ? null : (
                           <span className="badge ml-2 bg-ink-100 text-ink-600">retired</span>
                         )}
                       </td>
-                      <td className="td-num text-ink-500">{formatLitres(row.pack_size_litres)}</td>
+                      {/* A drum has no pack size worth printing, and its
+                          quantities are fractions of a litre - so it gets the
+                          finer formatter while the shelf keeps the plain one. */}
+                      <td className="td-num text-ink-500">
+                        {row.sold_loose ? '—' : formatLitres(row.pack_size_litres)}
+                      </td>
                       <td className="td-num">{formatLitres(row.purchased_litres)}</td>
-                      <td className="td-num">{formatLitres(row.sold_litres)}</td>
+                      <td className="td-num">
+                        {row.sold_loose
+                          ? formatLitresFine(row.sold_litres)
+                          : formatLitres(row.sold_litres)}
+                      </td>
                       <td
                         className={[
                           'td-num font-bold',
-                          left <= 0 ? 'text-red-700' : left < Number(row.pack_size_litres) ? 'text-amber-800' : 'text-ink-900',
+                          left <= 0
+                            ? 'text-red-700'
+                            : left < (row.sold_loose ? 10 : Number(row.pack_size_litres))
+                              ? 'text-amber-800'
+                              : 'text-ink-900',
                         ].join(' ')}
                       >
-                        {formatLitres(left)}
+                        {row.sold_loose ? formatLitresFine(left) : formatLitres(left)}
                       </td>
                     </tr>
                   );

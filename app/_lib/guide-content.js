@@ -83,6 +83,10 @@ export const GUIDE = {
           title: 'Lubricants',
           body: 'Lubricants → Manage lubricants. Add each brand the pump stocks, the pack size, and how many litres are on the shelf today. Only needed if oil is sold.',
         },
+        {
+          title: 'Loose oil, if a drum is kept',
+          body: 'Same screen, but choose “Loose oil” as the kind instead of “Sealed packs”. Give it a name and — this one is required — the rate you sell it at per litre. That rate is what turns “Rs 20 of oil” into litres off the drum, so keep it up to date whenever the price changes.',
+        },
       ],
     },
 
@@ -116,6 +120,11 @@ export const GUIDE = {
           title: 'Oil sold over the counter',
           body: 'Lubricants → Record a sale, as each tin is sold rather than at the end. Pick the product, tap the pack size or type the litres, and say whether it was cash or credit. Credit lands on the same customer account as fuel.',
         },
+        {
+          title: 'Loose oil, sold by the rupee',
+          body: 'Lubricants → Loose oil, its own page. Here you type what the customer PAID — tap Rs 20, Rs 30, Rs 50, or write any amount — and the app works out how much oil that is and takes it off the drum. You never measure the pour. The Lubricants page shows the day’s loose total with a link across, so it is easy to see whether both halves are in.',
+          tip: 'If the drum on the ground empties faster or slower than the app says, the selling rate is the thing to check — the litres are worked out from it.',
+        },
       ],
     },
 
@@ -135,7 +144,7 @@ export const GUIDE = {
         {
           icon: 'customers',
           name: 'Customers',
-          when: 'When someone pays off their account. Open the customer, record the payment, and their balance comes down. Their full history is on the same screen.',
+          when: 'When someone pays off their account. Open the customer, record the payment, and their balance comes down. Their full history is on the same screen. A name added by mistake can be taken off with Remove — the owner only, and only once the account is settled.',
         },
         {
           icon: 'banking',
@@ -164,6 +173,9 @@ export const GUIDE = {
         'A customer’s ledger can never be edited or deleted, by anyone. A mistake is corrected by a new entry the other way, so the history always adds up.',
         'Deleting a reading does not erase its credit slips — it posts the opposite entry, so the customer’s balance comes back to correct and the history still shows what happened.',
         'A tank cannot be given more stock than it holds, and a bank account cannot go below zero.',
+        'Enter days oldest first. Two readings for one nozzle can never cover the same litres, so if a later day is already saved, the day underneath it will be refused — the message names the day to clear first.',
+        'Loose oil must have a selling rate before it can be sold. Without one there is no way to tell how much oil a rupee figure is.',
+        'A customer still carrying a balance cannot be removed — in either direction, whether they owe the pump or the pump owes them. Settle the account first, or the money would quietly leave the books.',
       ],
     },
 
@@ -253,6 +265,10 @@ export const GUIDE = {
           title: 'آئل (لبریکنٹ)',
           body: 'لبریکنٹ ← لبریکنٹ سنبھالیں۔ پمپ پر جو برانڈ رکھے جاتے ہیں وہ، اُن کا پیک سائز، اور آج شیلف پر کتنے لٹر موجود ہیں، درج کریں۔ یہ صرف اُس صورت میں ضروری ہے جب آئل بھی بکتا ہو۔',
         },
+        {
+          title: 'کھلا آئل، اگر ڈرم رکھا جاتا ہو',
+          body: 'اِسی اسکرین پر، «بند ڈبے» کے بجائے قسم میں «کھلا آئل» منتخب کریں۔ نام لکھیں اور — یہ لازمی ہے — فی لٹر فروخت کا ریٹ بھی درج کریں۔ یہی ریٹ «بیس روپے کا آئل» کو ڈرم میں سے نکلنے والے لٹروں میں بدلتا ہے، اِس لیے قیمت بدلے تو ریٹ بھی بدل دیں۔',
+        },
       ],
     },
 
@@ -286,6 +302,11 @@ export const GUIDE = {
           title: 'کاؤنٹر پر بکنے والا آئل',
           body: 'لبریکنٹ ← فروخت درج کریں۔ یہ دن کے آخر میں نہیں بلکہ جیسے ہی ڈبہ بکے، اُسی وقت درج کریں۔ پروڈکٹ منتخب کریں، پیک سائز پر ٹیپ کریں یا لٹر لکھیں، اور بتائیں کہ نقد تھا یا ادھار۔ ادھار اُسی گاہک کے کھاتے میں جاتا ہے جس میں تیل کا۔',
         },
+        {
+          title: 'کھلا آئل، روپوں کے حساب سے',
+          body: 'لبریکنٹ ← کھلا آئل، اِس کا اپنا الگ صفحہ ہے۔ یہاں آپ وہ رقم لکھتے ہیں جو گاہک نے دی — بیس، تیس یا پچاس روپے پر ٹیپ کریں، یا کوئی بھی رقم لکھ دیں — اور ایپ خود حساب لگا کر اُتنا آئل ڈرم میں سے کم کر دیتی ہے۔ ناپنے کی ضرورت نہیں۔ لبریکنٹ والے صفحے پر دن کا کھلا آئل کا کل بھی نظر آتا ہے اور وہاں سے یہاں آنے کا لنک بھی، تاکہ پتہ چل جائے کہ دونوں حصے درج ہوئے یا نہیں۔',
+          tip: 'اگر ڈرم ایپ کے حساب سے جلدی یا دیر سے خالی ہو رہا ہو تو فروخت کا ریٹ دیکھیں — لٹر اُسی سے نکالے جاتے ہیں۔',
+        },
       ],
     },
 
@@ -305,7 +326,7 @@ export const GUIDE = {
         {
           icon: 'customers',
           name: 'گاہک',
-          when: 'جب کوئی اپنا ادھار چکائے۔ گاہک کھولیں، ادائیگی درج کریں، بقایا کم ہو جائے گا۔ اُس کا پورا حساب اِسی اسکرین پر موجود ہے۔',
+          when: 'جب کوئی اپنا ادھار چکائے۔ گاہک کھولیں، ادائیگی درج کریں، بقایا کم ہو جائے گا۔ اُس کا پورا حساب اِسی اسکرین پر موجود ہے۔ غلطی سے لکھا گیا نام «ہٹائیں» سے فہرست سے نکالا جا سکتا ہے — یہ صرف مالک کر سکتا ہے، اور تبھی جب حساب برابر ہو چکا ہو۔',
         },
         {
           icon: 'banking',
@@ -334,6 +355,9 @@ export const GUIDE = {
         'گاہک کے کھاتے میں کوئی اندراج، کسی کے لیے بھی، نہ بدلا جا سکتا ہے نہ مٹایا جا سکتا ہے۔ غلطی کی درستی الٹی طرف کا نیا اندراج ڈال کر ہوتی ہے، تاکہ حساب ہمیشہ پورا رہے۔',
         'ریڈنگ مٹانے سے اُس کی ادھار پرچیاں مٹتی نہیں — اُلٹا اندراج ڈال دیا جاتا ہے، تاکہ گاہک کا بقایا درست ہو جائے اور تاریخ میں یہ بھی لکھا رہے کہ ہوا کیا تھا۔',
         'ٹینک میں اُس کی گنجائش سے زیادہ اسٹاک درج نہیں ہو سکتا، اور بینک اکاؤنٹ صفر سے نیچے نہیں جا سکتا۔',
+        'دن پرانی تاریخ سے شروع کر کے ترتیب سے درج کریں۔ ایک نوزل کی دو ریڈنگیں ایک ہی لٹر دو بار شمار نہیں کر سکتیں، اِس لیے اگر آگے کا دن پہلے سے محفوظ ہو تو اُس سے پچھلا دن قبول نہیں ہوگا — پیغام میں لکھا ہوتا ہے کہ پہلے کون سا دن مٹانا ہے۔',
+        'کھلا آئل بیچنے سے پہلے اُس کا فی لٹر ریٹ درج ہونا ضروری ہے۔ ریٹ کے بغیر یہ معلوم نہیں ہو سکتا کہ اِتنے روپے کا آئل کتنا بنتا ہے۔',
+        'جس گاہک کا حساب برابر نہ ہو، اُسے فہرست سے نہیں ہٹایا جا سکتا — چاہے اُس نے دینا ہو یا پمپ نے۔ پہلے حساب برابر کریں، ورنہ رقم خاموشی سے کتاب سے نکل جائے گی۔',
       ],
     },
 

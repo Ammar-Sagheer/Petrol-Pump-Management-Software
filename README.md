@@ -166,6 +166,18 @@ amount of application code can get around them.
 - **A lubricant sale must balance and must be attributable.** Cash plus credit
   has to equal the amount charged, and any credit on it has to name the customer
   it is owed by.
+- **A loose oil product must have a selling rate.** The rate is the only thing
+  turning "Rs 20 of oil" into litres off the drum, so without one a sale could
+  take money and no stock, and the drum would read full for ever.
+- **A customer carrying a balance cannot be removed** — in either direction,
+  whether they owe the pump or the pump owes them. Judged to the nearest rupee,
+  so the most it can forgive is 49 paisa, less than the smallest coin that
+  exists; anything a customer could actually be asked for still blocks removal
+  and is named in the message. A removed customer drops out
+  of the outstanding total, so this would write a debt off (or lose a credit)
+  with nothing on screen to say it had happened. Settle the account first. A
+  customer who never traded is deleted outright; one with history is retired,
+  and can be brought back from the **Removed** list.
 - **Tank and lubricant stock are recalculated from history**, never incremented,
   so the cached figures cannot drift away from the purchases, sales and dips
   that produced them.
@@ -208,6 +220,7 @@ app/
     page.js                dashboard - owner only
     readings/              the daily entry screen
     lubricants/            counter sales, and the shelf
+      loose/               the drum, sold by the rupee
     purchases/             fuel deliveries and lubricant restocks
     stock-checks/          dip readings, gain/loss, and lubricant stock
     customers/             list, new, and [id] detail with ledger
@@ -279,6 +292,11 @@ Applied in order:
 | `025_lubricants_in_reports.sql` | Lubricants in the dashboard, the trend, the monthly report and the export |
 | `026_readings_may_not_overlap.sql` | A nozzle's readings may not overlap: two rows cannot cover the same litres |
 | `027_no_backfill_without_room.sql` | And a day the next reading already covers whole cannot be entered at all |
+| `028_loose_oil.sql` | Loose oil: a drum sold by the rupee, and litres to three decimals |
+| `029_lubricant_trend.sql` | A day-by-day series for the shelf and the drum, for the dashboard chart |
+| `030_loose_oil_in_the_export.sql` | The workbook's loose oil split and its Kind column |
+| `031_remove_a_customer.sql` | Removing a customer: delete if never traded, retire if not, never while owing |
+| `032_ledger_in_whole_rupees.sql` | The removal guard rounds to the rupee, matching the ledger |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -317,13 +335,40 @@ the numbers are fast and cannot be altered client-side.
   one `PUMP_TIMEZONE` line if the pump ever moves.
 - **Number grouping** is `140,000` style. For the lakh style (`1,40,000`), change
   `'en-US'` to `'en-IN'` in the two formatters in `app/_lib/helpers.js`.
+- **The customer ledger is in whole rupees**, because Pakistan has no coin below
+  one. A credit slip is litres × rate, which produced debts like Rs 3,734.28 —
+  the customer paid the Rs 3,734 he was asked for and 28 paisa stayed on his
+  account for ever, since no payment can clear it. `roundRupees` is now applied
+  to every ledger write (credit slips, payments, adjustments, lubricant sales).
+  The **meter arithmetic keeps its paisa**: `sale_amount` is litres × rate and
+  rounding it would put a day's takings out of step with the litres behind
+  them. Where a whole-rupee credit comes out of a fractional sale, the
+  difference lands on the cash side — which is right, cash being the residual
+  and counted in notes.
 - **Lubricant stock is always in litres**, whether it leaves as a sealed 4 litre
-  carton or as 250 ml poured loose from an open drum. The pack size on a product
-  is only a shortcut on the sale form — it fills the litres box in one tap — so
-  a pump that sells both records both without switching to a different kind of
-  entry. A purchase is entered in litres too: twelve 4 litre cartons is 48, and
-  the form does that multiplication in front of you rather than letting 12 be
-  typed.
+  carton or as 30 rupees' worth poured out of a drum. A purchase is entered in
+  litres too: twelve 4 litre cartons is 48, and the form does that
+  multiplication in front of you rather than letting 12 be typed.
+- **There are two kinds of lubricant, and the product says which.** A product
+  carries a `sold_loose` flag, and it decides which number the sale form asks
+  for:
+  - **Sealed packs** — type the litres; the amount is prefilled from the rate.
+    The pack size is a one-tap shortcut into the litres box.
+  - **Loose oil** — a drum, bought from a supplier the way fuel is, with no
+    brand on it. Type the **rupees**; the litres are worked out from the drum's
+    rate and are never accepted from the browser. Recorded on its own page,
+    `/admin/lubricants/loose`, because a long run of Rs 20 and Rs 50 pours
+    reads nothing like a handful of carton sales and each buried the other.
+
+  Everything downstream treats a drum as an ordinary lubricant — the same stock
+  triggers, the same customer ledger, the same monthly report line — so the flag
+  changes the *entry*, not the accounting.
+- **Loose oil litres carry three decimals.** Rs 20 out of a drum priced at
+  Rs 580 a litre is 0.0345 L, which at two decimals is 0.03 — a tenth of every
+  pour lost, always in the same direction, on the kind of sale that happens
+  dozens of times a day. The drum's book level is therefore only as good as its
+  rate: if the level here drifts from the level in the shed, the rate is the
+  first thing to check.
 - **Removing a lubricant means one of two things, and the database picks.** A
   product never bought or sold is deleted outright — it was a typo. One with
   history is *retired*: it stops appearing on the sale form, its past sales and

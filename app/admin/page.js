@@ -9,12 +9,13 @@ import {
   formatLitres,
   formatPKR,
 } from '@/app/_lib/helpers';
-import { getDailySummary, getSalesTrend } from '@/app/_lib/data-service';
+import { getDailySummary, getSalesTrend, getLubricantTrend } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import DateNav from '@/app/_components/admin/DateNav';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
 import CashCreditChart from '@/app/_components/admin/CashCreditChart';
+import LubricantTrendChart from '@/app/_components/admin/LubricantTrendChart';
 
 export const metadata = { title: 'Dashboard' };
 
@@ -29,9 +30,10 @@ export default async function DashboardPage({ searchParams }) {
       ? params.date
       : todayISO();
 
-  const [summary, trend] = await Promise.all([
+  const [summary, trend, lubricantTrend] = await Promise.all([
     getDailySummary(date),
     getSalesTrend(shiftISODate(date, -(TREND_DAYS - 1)), date),
+    getLubricantTrend(shiftISODate(date, -(TREND_DAYS - 1)), date),
   ]);
 
   const totals = summary.totals ?? {};
@@ -357,6 +359,16 @@ export default async function DashboardPage({ searchParams }) {
         <section className="card p-4">
           <h3 className="mb-3 text-base font-bold text-ink-900">Fuel: cash vs credit</h3>
           <CashCreditChart data={trend} />
+        </section>
+        {/* The oil side gets the full width of the row rather than a third
+            column. Its two series stack into one bar per day, and squeezed to a
+            third of the page the quiet days become slivers - which is exactly
+            where the drum's takings live. */}
+        <section className="card p-4 lg:col-span-2">
+          <h3 className="mb-3 text-base font-bold text-ink-900">
+            Oil sales — packed and loose
+          </h3>
+          <LubricantTrendChart data={lubricantTrend} />
         </section>
       </div>
     </>

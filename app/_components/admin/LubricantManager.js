@@ -114,11 +114,20 @@ function ProductRow({ lubricant, retired = false, onEdit }) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 px-3 py-3">
       <div className="min-w-0">
-        <p className={`text-sm font-semibold ${retired ? 'text-ink-500' : 'text-ink-900'}`}>
+        <p
+          className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${
+            retired ? 'text-ink-500' : 'text-ink-900'
+          }`}
+        >
           {lubricant.name}
+          {lubricant.sold_loose ? (
+            <span className="badge bg-amber-100 text-amber-900">loose</span>
+          ) : null}
         </p>
         <p className="text-sm text-ink-600">
-          {litreFormat.format(lubricant.pack_size_litres)} L pack
+          {lubricant.sold_loose
+            ? 'Sold by the rupee'
+            : `${litreFormat.format(lubricant.pack_size_litres)} L pack`}
           {Number(lubricant.sale_rate_per_litre) > 0
             ? ` · Rs ${litreFormat.format(lubricant.sale_rate_per_litre)} a litre`
             : ''}
@@ -151,6 +160,14 @@ function ProductForm({ lubricant, onDone }) {
   const isEdit = Boolean(lubricant);
   const [state, formAction] = useActionState(isEdit ? updateLubricant : createLubricant, null);
 
+  /*
+   * Which of the two kinds this is decides what the rest of the form asks for,
+   * so it is a choice at the top rather than a checkbox buried among the
+   * fields. A drum has no pack size worth typing and cannot do without a rate;
+   * a carton is the other way round.
+   */
+  const [soldLoose, setSoldLoose] = useState(Boolean(lubricant?.sold_loose));
+
   // Leave the dialog on the list once it has saved, so the change can be seen.
   const handled = useRef(state);
   useEffect(() => {
@@ -162,6 +179,25 @@ function ProductForm({ lubricant, onDone }) {
   return (
     <form action={formAction} className="space-y-4 p-4">
       {isEdit ? <input type="hidden" name="lubricant_id" value={lubricant.id} /> : null}
+      <input type="hidden" name="sold_loose" value={soldLoose ? 'true' : 'false'} />
+
+      <fieldset>
+        <legend className="label">What kind of stock is this?</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <KindChoice
+            active={!soldLoose}
+            onPick={() => setSoldLoose(false)}
+            title="Sealed packs"
+            detail="Cartons and bottles off the shelf. Sold by the litre."
+          />
+          <KindChoice
+            active={soldLoose}
+            onPick={() => setSoldLoose(true)}
+            title="Loose oil"
+            detail="A drum poured from. Sold by the rupee."
+          />
+        </div>
+      </fieldset>
 
       <div>
         <label className="label" htmlFor="lubricant_name">
@@ -174,50 +210,59 @@ function ProductForm({ lubricant, onDone }) {
           required
           defaultValue={lubricant?.name ?? ''}
           className="input"
-          placeholder="e.g. Shell Helix HX5 20W-50"
+          placeholder={soldLoose ? 'e.g. Loose oil' : 'e.g. Shell Helix HX5 20W-50'}
         />
         <p className="mt-1 text-sm text-ink-600">
-          Whatever is written on the carton — brand, grade and all. It is what staff will pick from
-          when recording a sale.
+          {soldLoose
+            ? 'Loose oil has no brand on it, so a plain name is fine. If more than one drum is kept, name the grade — “Loose oil 20W-50”.'
+            : 'Whatever is written on the carton — brand, grade and all. It is what staff will pick from when recording a sale.'}
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="pack_size_litres">
-            Pack size (litres)
-          </label>
-          <NumberInput
-            id="pack_size_litres"
-            name="pack_size_litres"
-            step="0.01"
-            min="0.01"
-            required
-            defaultValue={lubricant?.pack_size_litres ?? 4}
-            className="input-number"
-          />
-          <p className="mt-1 text-sm text-ink-600">
-            The usual carton — 4, 3 or 1. Only a shortcut on the sale form; loose oil is still sold
-            by the quarter litre.
-          </p>
-        </div>
+        {/* A drum is not sold in packs, so the field is not shown - but the
+            column is NOT NULL and above zero, so a hidden 1 goes with it. */}
+        {soldLoose ? (
+          <input type="hidden" name="pack_size_litres" value="1" />
+        ) : (
+          <div>
+            <label className="label" htmlFor="pack_size_litres">
+              Pack size (litres)
+            </label>
+            <NumberInput
+              id="pack_size_litres"
+              name="pack_size_litres"
+              step="0.01"
+              min="0.01"
+              required
+              defaultValue={lubricant?.pack_size_litres ?? 4}
+              className="input-number"
+            />
+            <p className="mt-1 text-sm text-ink-600">
+              The usual carton — 4, 3 or 1. Only a shortcut on the sale form.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="label" htmlFor="sale_rate_per_litre">
-            Selling rate a litre <span className="font-normal text-ink-500">(optional)</span>
+            Selling rate a litre{' '}
+            {soldLoose ? null : <span className="font-normal text-ink-500">(optional)</span>}
           </label>
           <NumberInput
             id="sale_rate_per_litre"
             name="sale_rate_per_litre"
             step="0.01"
             min="0.01"
+            required={soldLoose}
             defaultValue={lubricant?.sale_rate_per_litre ?? ''}
             className="input-number"
             placeholder="0"
           />
           <p className="mt-1 text-sm text-ink-600">
-            Used to fill in the amount when a sale is typed. It can always be changed on the sale
-            itself.
+            {soldLoose
+              ? 'Required. This is what turns “Rs 20 of oil” into litres off the drum, so the drum’s level stays honest. Change it whenever the price changes.'
+              : 'Used to fill in the amount when a sale is typed. It can always be changed on the sale itself.'}
           </p>
         </div>
       </div>
@@ -255,6 +300,9 @@ function ProductForm({ lubricant, onDone }) {
       <p className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-xs text-ink-600">
         Stock is worked out from this figure forward: opening stock, plus everything bought since,
         minus everything sold. Purchases and sales dated before that day are not counted.
+        {soldLoose
+          ? ' For a drum, what comes off is worked out from the rate above — so if the level on the dipstick drifts from the level here, the rate is the thing to check.'
+          : ''}
       </p>
 
       <FormMessage state={state} />
@@ -268,6 +316,32 @@ function ProductForm({ lubricant, onDone }) {
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * One of the two kinds of stock. A card rather than a radio dot: it is the
+ * choice the rest of the form hangs off, and the second line is what tells the
+ * owner which one his drum is without having to know the app's vocabulary.
+ */
+function KindChoice({ active, onPick, title, detail }) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-pressed={active}
+      className={[
+        'rounded-lg border px-3 py-2 text-left transition',
+        active
+          ? 'border-brand-600 bg-brand-50 text-brand-900'
+          : 'border-ink-300 bg-white text-ink-700 hover:bg-ink-50',
+      ].join(' ')}
+    >
+      <span className="block text-sm font-semibold">{title}</span>
+      <span className={`block text-xs ${active ? 'text-brand-800' : 'text-ink-600'}`}>
+        {detail}
+      </span>
+    </button>
   );
 }
 

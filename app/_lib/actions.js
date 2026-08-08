@@ -23,9 +23,11 @@ import {
   requireRole,
   ROLES,
   roundMoney,
+  roundRupees,
   landingPageFor,
   fullResetAllowed,
   formatLitres,
+  formatLitresFine,
   formatPKR,
   formatRate,
 } from './helpers';
@@ -274,10 +276,22 @@ export async function saveReading(_prevState, formData) {
       return fail('Every credit slip needs an amount above zero.');
     }
 
+    /*
+     * WHOLE RUPEES ON THE SLIP, two decimals on the litres.
+     *
+     * The slip becomes a debit on the customer's ledger, and a debt is settled
+     * with notes - the smallest of which is one rupee. Left at two decimals,
+     * 11 litres at Rs 339.48 posted Rs 3,734.28, the customer paid the Rs 3,734
+     * he was asked for, and 28 paisa sat on his account for ever because no
+     * payment can clear it. See roundRupees in helpers.js.
+     *
+     * The sale itself keeps its paisa; the CASH side absorbs the difference,
+     * which is where it belongs, cash being the residual and counted in notes.
+     */
     cleanedLines.push({
       customer_id: customerId,
       litres: roundMoney(litres),
-      amount: roundMoney(amount),
+      amount: roundRupees(amount),
     });
   }
 
@@ -599,8 +613,13 @@ export async function setPurchasePaymentStatus(_prevState, formData) {
 // on the shelf to begin with - so it belongs to the owner, like the tanks.
 // ---------------------------------------------------------------------------
 
-/** Litres, rounded the way Postgres rounds them. Two decimals fits 0.25 L. */
-const roundLitres = (value) => roundMoney(value);
+/**
+ * Litres, rounded the way Postgres rounds them - three decimals, matching
+ * lubricant_sales.litres since migration 028. The third decimal is there for
+ * loose oil: Rs 20 out of a drum at Rs 580 a litre is 0.0345 L, and at two
+ * decimals that becomes 0.03 - a tenth of the sale lost, every time.
+ */
+const roundLitres = (value) => Math.round((value + Number.EPSILON) * 1000) / 1000;
 
 export async function createLubricant(_prevState, formData) {
   let profile;
@@ -615,6 +634,7 @@ export async function createLubricant(_prevState, formData) {
   const saleRate = number(formData, 'sale_rate_per_litre');
   const openingStock = number(formData, 'opening_stock_litres');
   const openingDate = text(formData, 'opening_stock_date');
+  const soldLoose = text(formData, 'sold_loose') === 'true';
 
   if (!name) return fail('Enter the lubricant’s name.');
   if (packSize === null || packSize <= 0) return fail('Enter the pack size in litres.');
@@ -623,6 +643,16 @@ export async function createLubricant(_prevState, formData) {
     return fail('The opening stock cannot be negative.');
   }
   if (!openingDate) return fail('Enter the date the opening stock counts from.');
+  // The rate is the only thing turning rupees into litres off a drum, so a
+  // loose product without one could take money and no stock. The database
+  // refuses this too (lubricants_loose_needs_rate); this is the friendlier of
+  // the two messages.
+  if (soldLoose && (saleRate === null || saleRate <= 0)) {
+    return fail(
+      'Loose oil needs a selling rate per litre — it is what turns “Rs 20 of oil” ' +
+        'into litres off the drum.',
+    );
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from('lubricants').insert({
@@ -631,6 +661,7 @@ export async function createLubricant(_prevState, formData) {
     sale_rate_per_litre: saleRate,
     opening_stock_litres: openingStock ?? 0,
     opening_stock_date: openingDate,
+    sold_loose: soldLoose,
     created_by: profile.id,
   });
 
@@ -655,6 +686,7 @@ export async function updateLubricant(_prevState, formData) {
   const saleRate = number(formData, 'sale_rate_per_litre');
   const openingStock = number(formData, 'opening_stock_litres');
   const openingDate = text(formData, 'opening_stock_date');
+  const soldLoose = text(formData, 'sold_loose') === 'true';
 
   if (!lubricantId) return fail('Missing the lubricant.');
   if (!name) return fail('Enter the lubricant’s name.');
@@ -662,6 +694,12 @@ export async function updateLubricant(_prevState, formData) {
   if (saleRate !== null && saleRate <= 0) return fail('The selling rate must be above zero.');
   if (openingStock === null || openingStock < 0) return fail('Enter the opening stock.');
   if (!openingDate) return fail('Enter the date the opening stock counts from.');
+  if (soldLoose && (saleRate === null || saleRate <= 0)) {
+    return fail(
+      'Loose oil needs a selling rate per litre — it is what turns “Rs 20 of oil” ' +
+        'into litres off the drum.',
+    );
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -672,6 +710,7 @@ export async function updateLubricant(_prevState, formData) {
       sale_rate_per_litre: saleRate,
       opening_stock_litres: openingStock,
       opening_stock_date: openingDate,
+      sold_loose: soldLoose,
     })
     .eq('id', lubricantId);
 
@@ -818,7 +857,6 @@ export async function createLubricantSale(_prevState, formData) {
 
   const lubricantId = text(formData, 'lubricant_id');
   const saleDate = text(formData, 'sale_date');
-  const litres = number(formData, 'litres');
   const amount = number(formData, 'amount');
   const creditAmount = number(formData, 'credit_amount') ?? 0;
   const customerId = text(formData, 'customer_id');
@@ -826,12 +864,68 @@ export async function createLubricantSale(_prevState, formData) {
 
   if (!lubricantId) return fail('Choose which lubricant was sold.');
   if (!saleDate) return fail('Missing the date.');
-  if (litres === null || litres <= 0) return fail('Enter how many litres were sold.');
   if (amount === null || amount <= 0) return fail('Enter what the customer was charged.');
   if (creditAmount < 0) return fail('The credit amount cannot be negative.');
 
-  const total = roundMoney(amount);
-  const credit = roundMoney(creditAmount);
+  /*
+   * Whole rupees, and rounded HERE rather than further down, because the loose
+   * litres are worked out from this figure - deriving them from an unrounded
+   * amount and then storing the rounded one would put the two slightly out of
+   * step. A counter sale is money handed over the counter and the smallest
+   * thing anyone can hand over is a rupee, so "Rs 462.50 of oil" is not a real
+   * sale and a credit of Rs 462.50 is a debt nobody can pay off. Rounding both
+   * sides keeps paisa off the customer ledger through this door as well as
+   * through the readings one.
+   */
+  const total = roundRupees(amount);
+  if (total <= 0) return fail('A sale has to be at least one rupee.');
+
+  const supabase = await createClient();
+  const { data: product, error: productError } = await supabase
+    .from('lubricants')
+    .select('name, sold_loose, sale_rate_per_litre')
+    .eq('id', lubricantId)
+    .single();
+
+  if (productError || !product) {
+    return fail(describe(productError, 'Could not find that lubricant.'));
+  }
+
+  /*
+   * Which number was typed depends on the product.
+   *
+   * A packed product is sold by the litre - the form asks for litres and the
+   * amount is whatever was charged for them. A drum is sold by the rupee, so
+   * the litres are ARITHMETIC ON THE RATE and are worked out here rather than
+   * accepted from the browser. Deriving them server-side is what stops a
+   * hand-edited form recording Rs 500 of oil against a teaspoon of stock, and
+   * it means the drum's book level can only ever disagree with the drum
+   * because the rate is wrong - which is one explanation to check, not two.
+   */
+  let litres;
+
+  if (product.sold_loose) {
+    const rate = Number(product.sale_rate_per_litre);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      return fail(
+        `${product.name} has no selling rate, so there is no way to tell how much oil ` +
+          `Rs ${total} is. Set a rate per litre under “Manage lubricants” first.`,
+      );
+    }
+    litres = roundLitres(total / rate);
+    if (litres <= 0) {
+      return fail(
+        `That is too small to record — at ${formatRate(rate)} a litre it works out at ` +
+          'under a millilitre.',
+      );
+    }
+  } else {
+    litres = number(formData, 'litres');
+    if (litres === null || litres <= 0) return fail('Enter how many litres were sold.');
+    litres = roundLitres(litres);
+  }
+
+  const credit = roundRupees(creditAmount);
 
   if (credit > total) {
     return fail('The amount on credit is more than the sale itself. Check the figures.');
@@ -842,11 +936,10 @@ export async function createLubricantSale(_prevState, formData) {
 
   const cash = roundMoney(total - credit);
 
-  const supabase = await createClient();
   const { error } = await supabase.from('lubricant_sales').insert({
     lubricant_id: lubricantId,
     sale_date: saleDate,
-    litres: roundLitres(litres),
+    litres,
     amount: total,
     cash_amount: cash,
     credit_amount: credit,
@@ -859,14 +952,25 @@ export async function createLubricantSale(_prevState, formData) {
   if (error) return fail(describe(error, 'Could not save the sale.'));
 
   revalidatePath('/admin/lubricants');
+  revalidatePath('/admin/lubricants/loose');
   revalidatePath('/admin/stock-checks');
   revalidatePath('/admin');
   if (credit > 0) revalidatePath('/admin/customers');
 
+  /*
+   * The confirmation leads with whichever number the owner actually typed. On
+   * a drum that is the money - reading back "0.034 L sold" to someone who
+   * typed "20" is an answer to a question nobody asked, and it looks wrong
+   * besides.
+   */
+  const sold = product.sold_loose
+    ? `${formatPKR(total)} of ${product.name} (${formatLitresFine(litres)})`
+    : formatLitres(litres);
+
   return ok(
     credit > 0
-      ? `Saved. ${formatLitres(litres)} sold, ${formatPKR(credit)} of it on credit and posted to the ledger.`
-      : `Saved. ${formatLitres(litres)} sold for cash.`,
+      ? `Saved. ${sold} sold, ${formatPKR(credit)} of it on credit and posted to the ledger.`
+      : `Saved. ${sold} sold for cash.`,
   );
 }
 
@@ -1000,6 +1104,76 @@ export async function createCustomer(_prevState, formData) {
 }
 
 /**
+ * Takes a customer off the list - a name typed wrong, a duplicate, or an
+ * account that has genuinely finished.
+ *
+ * Owner only, and the database decides which of the two possible meanings
+ * applies: an account that never traded is deleted outright, one with history
+ * is retired so the months it appears in keep adding up. It refuses either way
+ * while the balance is not zero, because a retired customer drops out of
+ * "total outstanding" and a debt must not vanish quietly. The message says
+ * which happened, and names the figure when it refuses - see delete_customer
+ * in migration 031.
+ */
+export async function deleteCustomer(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const customerId = text(formData, 'customer_id');
+  if (!customerId) return fail('Missing the customer.');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('delete_customer', {
+    p_customer_id: customerId,
+  });
+
+  if (error) return fail(describe(error, 'Could not remove the customer.'));
+
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
+
+  const name = data?.name ?? 'The customer';
+
+  if (data?.removed) {
+    return ok(`${name} removed. They had never taken anything on credit.`);
+  }
+
+  return ok(
+    `${name} removed from the list. Their past credit and payments stay on the ` +
+      'books, and they can be brought back at any time.',
+  );
+}
+
+/** Puts a removed customer back on the list. */
+export async function setCustomerActive(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const customerId = text(formData, 'customer_id');
+  const isActive = text(formData, 'is_active') === 'true';
+
+  if (!customerId) return fail('Missing the customer.');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('customers')
+    .update({ is_active: isActive })
+    .eq('id', customerId);
+
+  if (error) return fail(describe(error, 'Could not update the customer.'));
+
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
+  return ok(isActive ? 'Back on the customer list.' : 'Removed from the list.');
+}
+
+/**
  * Records a payment from a customer, reducing what they owe.
  *
  * This is an ordinary append to the ledger. Fuel taken on credit gets there by
@@ -1022,11 +1196,16 @@ export async function recordPayment(_prevState, formData) {
   if (amount === null || amount <= 0) return fail('Enter how much they paid.');
   if (!entryDate) return fail('Enter the date of the payment.');
 
+  // Whole rupees: this is cash over the counter, and there is nothing smaller
+  // to hand over.
+  const paid = roundRupees(amount);
+  if (paid <= 0) return fail('A payment has to be at least one rupee.');
+
   const supabase = await createClient();
   const { error } = await supabase.from('ledger_entries').insert({
     customer_id: customerId,
     entry_type: 'credit',
-    amount,
+    amount: paid,
     entry_date: entryDate,
     note: note || 'Payment received',
     created_by: profile.id,
@@ -1066,11 +1245,17 @@ export async function recordLedgerAdjustment(_prevState, formData) {
   if (!entryDate) return fail('Enter a date.');
   if (!note) return fail('Write a note explaining this adjustment - it stays on the record permanently.');
 
+  // Whole rupees, like every other entry on the ledger. An adjustment is the
+  // tool for squaring an account, and one that could itself leave paisa behind
+  // would not finish the job.
+  const adjustment = roundRupees(amount);
+  if (adjustment <= 0) return fail('An adjustment has to be at least one rupee.');
+
   const supabase = await createClient();
   const { error } = await supabase.from('ledger_entries').insert({
     customer_id: customerId,
     entry_type: entryType,
-    amount,
+    amount: adjustment,
     entry_date: entryDate,
     note,
     created_by: profile.id,
