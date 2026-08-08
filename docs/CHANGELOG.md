@@ -34,6 +34,8 @@ logins, one pump. Migrations run to **034**.
 | Feedback | Every destructive submit shows a pending state; delete triggers are a trash icon. |
 | Guide | Location chips, bold rule titles and a folded setup section — a fifth shorter than before, and scannable. |
 | Settings | The rate panel previews five changes (rounded up to a whole date) instead of seven days, so it no longer scrolls inside itself. |
+| Dashboard | The charts take a 7 / 14 / 30 / 90-day window (`<TrendRange>`), carried through the day arrows by `<DateNav extraParams>`. |
+| All fuel rates | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card. |
 
 **Three things that are load-bearing and easy to break:**
 
@@ -1476,3 +1478,54 @@ Rendered at 1440 / 1152 / 1024 / 400 with the owner's own rows as fixtures:
 no clipped figures. Edge cases checked against the loop directly — a date
 corrected six times over still returns whole (6 rows), fewer rows than the cap
 returns all of them, no rows returns none.
+
+### A window on the dashboard charts, and eight rates to a page
+
+Two requests, both about a screen being fixed at a size that no longer suited
+it: *"the graphs on dashboard also need date filter"* and *"this page should
+show 8 max and next page the remaining, means the pagination is set at max 8
+so scroll bar does not appear."*
+
+**The charts can now be asked for 7, 14, 30 or 90 days.** They were hard-wired
+to 14. `<TrendRange>` is four fixed windows rather than a from/to pair,
+because the day they *end* on is already chosen by `<DateNav>` at the top of
+the page — the only thing missing was how far back to reach, and asked as a
+range that would be two date pickers, four taps, and a window that can be
+entered backwards or empty. One tap, no invalid state. 90 is the outer limit
+on purpose: at 400px that is a 2px bar, and past it the right answer is a
+month-by-month chart, not a longer axis.
+
+The heading now spells out the span underneath — "Last 30 days / 10 Jul 2026
+to 08 Aug 2026" — because these charts end on the day the page is showing, and
+"Last 30 days" is a lie the moment the reader has stepped back a week.
+
+**`<DateNav>` learned to carry a filter.** Its arrows, its date box and "Back
+to today" all rebuild the query string from scratch, so without this, stepping
+one day with a 90-day window open would drop back to 14 and the reader would
+blame the arrow. `extraParams` threads it through all three, plus the hidden
+fields the `noscript` GET form needs. `trendDaysFrom()` validates against the
+allowed set rather than `Number() || 14`, so `?days=999` cannot ask Postgres
+for three years of daily rows.
+
+**All fuel rates pages by eight instead of 25.** 25 rows overran
+`.table-scroll`'s 70vh cap, so the card grew a scrollbar inside a page that
+already scrolls and the wheel did one of two things depending on where the
+pointer sat. Eight clears the cap everywhere this app is read, and
+`FuelPriceTable` now sets `max-h-none` to drop the cap outright — neither
+caller can reach it any more, and the sticky heading it existed to support is
+no loss when the whole table is visible. Even on purpose, so a day's petrol
+and diesel do not straddle the fold.
+
+Verified at 1440 / 1152 / 1024 / 400 across all four windows: 8 rows, no
+scrollbar inside the card, no sideways page scroll, no clipped figures. The
+query-string carry was checked by reading the rendered hrefs — both arrows,
+"Back to today" and the hidden field all hold the window, `?days=999` falls
+back to 14, and the current window renders as a `<span>` with no `href`.
+
+**One measurement worth writing down, because it inverts the usual lesson.**
+The 90-day chart screenshotted at 400px as a flat line of slivers and looked
+like a real bug. It was not: recharts animates 90 bars for longer than
+`networkidle` plus 500ms, and the shot caught them mid-grow. Querying the
+rendered geometry gave heights of 84–184px, and a re-shot after 2.5s matched.
+Screenshots catch what the DOM hides, and this once it was the other way
+round — when a chart looks wrong, measure a bar before believing the picture.

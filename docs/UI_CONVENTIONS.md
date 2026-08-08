@@ -546,6 +546,15 @@ third should copy it rather than invent another:
 - The history is its own route with a pager: `/admin/settings/fuel-prices`
   and `/admin/reports/daily`. The page number is a **query string**, so Back
   works through it and any page can be linked to or reloaded.
+- **Size the page to the viewport, not to a round number.** 25 rates a page
+  overran `.table-scroll`'s 70vh cap and the card grew its own scrollbar, so
+  the wheel did one of two different things depending on where the pointer
+  was. Eight rows clear the cap at every width this app is read at, and
+  `FuelPriceTable` sets `max-h-none` to drop the cap entirely now that neither
+  of its callers can reach it — the sticky heading goes with it, and is no
+  loss when the whole table is on screen. Keep the page size **even** where
+  the rows come in pairs, so a day's petrol and diesel do not straddle the
+  fold.
 - The table itself is a shared component (`FuelPriceTable`,
   `DailySalesTable`) used by both, so the columns cannot drift apart between
   the summary and the history.
@@ -557,6 +566,33 @@ third should copy it rather than invent another:
 - A dead pager button is a `<span>`, not a link styled to look disabled — a
   disabled-looking link is still focusable and still navigates. This now lives
   inside `<Pager>`; do not hand-roll it again.
+
+## Filtering a chart: fixed windows, not a date range
+
+`<TrendRange>` (`app/_components/admin/TrendRange.js`) is how the Dashboard
+charts are filtered, and the shape to copy for the next set.
+
+- **The end of the window is already chosen elsewhere.** `<DateNav>` at the top
+  of the page picks the day; the filter only says how far back to reach. Asked
+  as a from/to pair it would be two date pickers, four taps, and a range that
+  can be entered backwards or empty — none of which can happen here.
+- **Four fixed windows** (7 / 14 / 30 / 90 days), one tap each. 90 is the point
+  where a daily bar stops being readable at this width; past that the answer is
+  a different chart, not a longer axis.
+- **The current window is a `<span>`, not a link** — the same rule as the dead
+  button in `<Pager>`. A link styled to look inert still takes focus and still
+  navigates, to the page you are already on.
+- **Two controls on one page means each carries the other's value.**
+  `<DateNav extraParams={{ days }}>` threads the window through the day arrows,
+  the date box (including the `noscript` GET form's hidden fields) and "Back to
+  today". Miss one and stepping a day silently resets the filter, which reads
+  as the arrow being broken.
+- **State the span in words under the heading.** "Last 30 days" is ambiguous
+  the moment the reader has stepped back a week — these charts end on the day
+  the page is showing, not on today, so the dates are spelled out beneath it.
+- **Validate the query string against the allowed set**, never `Number() || 14`.
+  `trendDaysFrom()` returns the default for anything not in `TREND_WINDOWS`, so
+  `?days=999` cannot ask the database for three years of daily rows.
 
 ## Moving money by hand: say which way, then show the result
 

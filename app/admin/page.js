@@ -16,10 +16,9 @@ import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
 import CashCreditChart from '@/app/_components/admin/CashCreditChart';
 import LubricantTrendChart from '@/app/_components/admin/LubricantTrendChart';
+import TrendRange, { trendDaysFrom } from '@/app/_components/admin/TrendRange';
 
 export const metadata = { title: 'Dashboard' };
-
-const TREND_DAYS = 14;
 
 export default async function DashboardPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
@@ -30,10 +29,17 @@ export default async function DashboardPage({ searchParams }) {
       ? params.date
       : todayISO();
 
+  /* The charts end on the day the rest of the dashboard is showing; this is
+     only how far back they reach. Both controls write to the query string, so
+     each one has to carry the other's value forward or picking a window would
+     silently throw the reader back to today. */
+  const trendDays = trendDaysFrom(params);
+  const trendFrom = shiftISODate(date, -(trendDays - 1));
+
   const [summary, trend, lubricantTrend] = await Promise.all([
     getDailySummary(date),
-    getSalesTrend(shiftISODate(date, -(TREND_DAYS - 1)), date),
-    getLubricantTrend(shiftISODate(date, -(TREND_DAYS - 1)), date),
+    getSalesTrend(trendFrom, date),
+    getLubricantTrend(trendFrom, date),
   ]);
 
   const totals = summary.totals ?? {};
@@ -68,6 +74,7 @@ export default async function DashboardPage({ searchParams }) {
           basePath="/admin"
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
+          extraParams={{ days: trendDays }}
         />
       </div>
 
@@ -348,9 +355,23 @@ export default async function DashboardPage({ searchParams }) {
       )}
 
       {/* ---- trends ---- */}
-      <h2 className="section-heading">
-        Last {TREND_DAYS} days
-      </h2>
+      {/* The heading and the control share a line, and the heading states the
+          span in full underneath. "Last 30 days" alone is ambiguous the moment
+          the reader has stepped back a week with the arrows above - these
+          charts end on the day the page is showing, not on today. */}
+      <div className="mb-3 mt-8 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="section-heading mb-0 mt-0">Last {trendDays} days</h2>
+          <p className="mt-1 text-sm text-ink-600">
+            {formatDate(trendFrom)} to {formatDate(date)}
+          </p>
+        </div>
+
+        <TrendRange
+          days={trendDays}
+          hrefFor={(window) => `/admin?date=${date}&days=${window}`}
+        />
+      </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
           <h3 className="mb-3 text-base font-bold text-ink-900">Daily fuel sales</h3>
