@@ -748,3 +748,24 @@ stale:
 
 `CLAUDE.md` needed nothing — its pointers to the three docs, the devcheck
 route, the Playwright path and `npm run build` are all still accurate.
+### Dialogs no longer close on a click outside
+
+The owner reported a form vanishing when a drag that started inside the
+panel ended just outside it. The cause is not obvious from reading the
+handler: a `click` event is dispatched on the nearest common ancestor of
+`mousedown` and `mouseup`, so pressing inside a text field and releasing a
+few pixels past the panel edge fires `click` with `event.target` set to the
+`<dialog>` element itself — indistinguishable from a real backdrop click.
+The half-typed entry went with it.
+
+Backdrop-close was removed from `ui/Dialog.js` outright rather than made
+drag-aware by tracking the `mousedown` target. Every dialog in this app is
+a form holding data someone is part-way through typing, the ways out are
+already obvious (Escape, the header `✕`, a Cancel button on each form), and
+nothing here benefits from dismiss-by-tapping-away enough to justify a
+close path that can be triggered by accident.
+
+The nav drawer in `AdminSidebar.js` keeps its backdrop-close deliberately.
+It is a menu, it holds no input, and closing it by tapping the page is what
+people expect — noted in `docs/UI_CONVENTIONS.md` so the two are not
+"fixed" into agreement later.

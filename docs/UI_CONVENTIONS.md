@@ -79,6 +79,19 @@ as a sheet rather than floating as a cramped centered box. Props: `open`,
 `onClose`, `title`, `subtitle` (optional node), `size` (`'md'` default,
 `'lg'` for content that needs more width, e.g. a table).
 
+**It does not close on a click outside**, deliberately. A `click` event
+fires on the nearest common ancestor of `mousedown` and `mouseup`, so
+selecting text in a field and releasing the button a few pixels past the
+panel edge produced an event targeting the `<dialog>` itself — identical to
+a real backdrop click, and it threw away a half-typed form. Every dialog
+here holds entry someone is part-way through, so the affordances are all
+deliberate ones: Escape, the header `✕`, and the form's own Cancel. Give
+every dialog form a Cancel button; it is the visible way out.
+
+The one intentional exception is the nav drawer in `AdminSidebar.js`, which
+*does* close on its backdrop — it holds no input, and tap-outside-to-dismiss
+is what people expect of a menu.
+
 **When to put a form behind a dialog**: when the thing it creates is set up
 rarely (an account, a staff login, a tank, a delivery) rather than read or
 edited continuously the way a table on the same page is. A form that sits
