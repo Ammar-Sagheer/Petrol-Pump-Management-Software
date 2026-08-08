@@ -20,6 +20,7 @@ import EmptyState from '@/app/_components/ui/EmptyState';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import DateNav from '@/app/_components/admin/DateNav';
 import LubricantSaleForm from '@/app/_components/admin/LubricantSaleForm';
+import LooseOilSaleForm from '@/app/_components/admin/LooseOilSaleForm';
 import LubricantManager from '@/app/_components/admin/LubricantManager';
 import DeleteLubricantSaleButton from '@/app/_components/admin/DeleteLubricantSaleButton';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
@@ -83,6 +84,7 @@ export default async function LubricantsPage({ searchParams }) {
    */
   const packSales = (day.sales ?? []).filter((sale) => !sale.sold_loose);
   const sellable = stock.filter((row) => row.is_active && !row.sold_loose);
+  const sellableDrums = stock.filter((row) => row.is_active && row.sold_loose);
   const hasDrum = stock.some((row) => row.sold_loose);
 
   // The RPC totals the day and the drum; the shelf is the difference. Derived
@@ -127,12 +129,26 @@ export default async function LubricantsPage({ searchParams }) {
         />
         <div className="flex flex-wrap items-center gap-2">
           {isOwner ? <LubricantManager lubricants={products} /> : null}
+          {/* Both ways of selling oil sit together, where someone who has just
+              served a customer is already looking. The drum's button used to
+              exist only inside its summary card further down the page, which
+              put the more frequent of the two sales in the harder place to
+              find. Each says which kind it records - "Record a sale" beside a
+              second sale button says nothing. */}
           <LubricantSaleForm
             lubricants={sellable}
             customers={customers}
             date={date}
             dateLabel={formatDate(date)}
           />
+          {sellableDrums.length > 0 ? (
+            <LooseOilSaleForm
+              drums={sellableDrums}
+              customers={customers}
+              date={date}
+              dateLabel={formatDate(date)}
+            />
+          ) : null}
         </div>
       </div>
 

@@ -1123,7 +1123,73 @@ export async function createCustomer(_prevState, formData) {
   if (error) return fail(describe(error, 'Could not create the customer.'));
 
   revalidatePath('/admin/customers');
-  redirect(`/admin/customers/${newId}`);
+
+  /*
+   * Returns rather than redirects. This form lives in a dialog on the customer
+   * list now, so the useful ending is the dialog closing over a list that
+   * already has the new name on it - not being thrown onto a detail page that
+   * shows nothing except what was typed a second ago.
+   *
+   * The opening balance is repeated back because it is the one figure here
+   * that came from a choice rather than a text box, and this is the last
+   * chance to notice it went the wrong way before it is on the ledger for good.
+   */
+  if (opening > 0) {
+    return ok(
+      openingDirection === 'owes'
+        ? `${name} added, owing ${formatPKR(opening)}.`
+        : `${name} added, with ${formatPKR(opening)} paid ahead.`,
+    );
+  }
+
+  return ok(`${name} added.`);
+}
+
+/**
+ * Correcting a customer's details - a misspelled name, a new phone number, a
+ * different vehicle, a raised credit limit.
+ *
+ * DETAILS ONLY. Nothing here can touch the balance: that lives in the ledger,
+ * which is append-only, and is moved with a payment or an adjustment. Keeping
+ * the two apart is what makes this safe to hand to staff - the worst outcome
+ * of a mistake here is a wrong spelling, not a wrong figure.
+ *
+ * Same roles as creating one. Someone who can add a customer with a typo
+ * should be able to fix the typo.
+ */
+export async function updateCustomer(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const customerId = text(formData, 'customer_id');
+  const name = text(formData, 'name');
+  const vehicleNumber = text(formData, 'vehicle_number');
+  const phone = text(formData, 'phone');
+  const creditLimit = number(formData, 'credit_limit');
+
+  if (!customerId) return fail('Missing the customer.');
+  if (!name) return fail('Enter the customer’s name.');
+  if (creditLimit !== null && creditLimit < 0) return fail('The credit limit cannot be negative.');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('customers')
+    .update({
+      name,
+      vehicle_number: vehicleNumber || null,
+      phone: phone || null,
+      credit_limit: creditLimit,
+    })
+    .eq('id', customerId);
+
+  if (error) return fail(describe(error, 'Could not update the customer.'));
+
+  revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath('/admin/customers');
+  return ok('Details updated.');
 }
 
 /**

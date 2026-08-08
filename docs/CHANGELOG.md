@@ -1241,3 +1241,54 @@ Two changes, and the second is the one that actually works:
 The general rule is now in `docs/UI_CONVENTIONS.md`: **any control where both
 choices are valid and only the operator knows which is right should show its
 consequence before it is committed.**
+
+### Adding a customer became a dialog, and details became editable
+
+**The New customer page is gone.** Adding a customer is a rare setup act done
+from the list and finished by looking at the list — the same argument
+`BankAccountForm` and `PurchaseForm` already follow. The old route also cost
+two navigations, each paying a round trip, to land on a detail page showing
+nothing but what had just been typed. `createCustomer` now returns instead of
+redirecting, and the dialog closes over a list that already has the new name on
+it. `/admin/customers/new` was deleted rather than left as a second way in.
+
+**Made to fit without scrolling, which took more than tightening.** A form that
+arrives already scrolled hides its own Save button. Stacked in the default 32rem
+dialog it ran **195px** past a 1024×768 laptop once an opening balance was being
+entered. Shrinking the three choice cards would have undone the readability they
+were added for a commit earlier, so the dialog went to `size="lg"` with two
+columns — contact fields left, opening balance right. Measured after, not
+assumed:
+
+    new-1024x768        fits, no scrollbar   (was: scrolls by 35px)
+    new-1024x768-owes   fits, no scrollbar   (was: scrolls by 195px)
+    new-1440x900-owes   fits, no scrollbar   (was: scrolls by 76px)
+    edit-1024x768       fits, no scrollbar
+
+The 400px phone still scrolls and that is correct — the dialog is a full-screen
+sheet there and the columns stack.
+
+**Name, phone, vehicle and credit limit are now editable** from the customer's
+own page. They were not, so the only way to fix a misspelled name was to add a
+second customer and split the history across the two — the worst possible
+outcome for a ledger. `updateCustomer` touches details only: the balance lives
+in the append-only ledger and still moves solely by payment or adjustment, which
+is what makes this safe to leave with staff.
+
+### Both oil sale buttons, in one place, saying which is which
+
+The drum's sale button existed only inside its summary card halfway down the
+Lubricants page — the more frequent of the two sales in the harder place to
+find. Both now sit in the header, and both say what they record: **Record a
+lubricant sale** and **Record a loose oil sale**. "Record a sale" was fine while
+it was the only one; beside a second sale button it says nothing.
+
+Both are `.btn-primary`, which is a deliberate departure from one-primary-per-
+view: they are peers, and demoting either would point the reader at the wrong
+one. Noted in `docs/UI_CONVENTIONS.md` so it is not "corrected" later.
+
+*Process note*: `npx prettier` was run on `CustomerForm.js` without checking the
+repo first. There is no prettier config here and the codebase uses single quotes
+at a 100 column width, so the default run rewrote the whole file to double
+quotes. Re-run as `--single-quote --print-width 100`, which reproduces existing
+files byte-for-byte — worth using if prettier is ever run again.

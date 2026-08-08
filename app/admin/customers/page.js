@@ -5,6 +5,7 @@ import { getCustomerBalances, getRetiredCustomers } from '@/app/_lib/data-servic
 import PageHeader from '@/app/_components/ui/PageHeader';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import EmptyState from '@/app/_components/ui/EmptyState';
+import CustomerForm from '@/app/_components/admin/CustomerForm';
 import RemoveCustomerButton, {
   RestoreCustomerButton,
   PurgeCustomerButton,
@@ -38,9 +39,7 @@ export default async function CustomersPage() {
         title="Customers"
         description="Credit accounts and what each one currently owes."
       >
-        <Link href="/admin/customers/new" className="btn-primary">
-          + New customer
-        </Link>
+        <CustomerForm />
       </PageHeader>
 
       {customers.length === 0 ? (
@@ -48,9 +47,7 @@ export default async function CustomersPage() {
           title="No customers yet"
           description="Add the people who take fuel on credit. Once they exist you can attach them to credit slips on the readings screen."
         >
-          <Link href="/admin/customers/new" className="btn-primary">
-            Add the first customer
-          </Link>
+          <CustomerForm />
         </EmptyState>
       ) : (
         <>

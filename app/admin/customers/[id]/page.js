@@ -7,6 +7,7 @@ import PageHeader from '@/app/_components/ui/PageHeader';
 import PaymentForm from '@/app/_components/admin/PaymentForm';
 import LedgerAdjustmentForm from '@/app/_components/admin/LedgerAdjustmentForm';
 import CustomerLedgerTable from '@/app/_components/admin/CustomerLedgerTable';
+import EditCustomerButton from '@/app/_components/admin/EditCustomerButton';
 import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 
 export async function generateMetadata({ params }) {
@@ -50,6 +51,7 @@ export default async function CustomerDetailPage({ params, searchParams }) {
         title={customer.name}
         description={[customer.vehicle_number, customer.phone].filter(Boolean).join(' · ') || null}
       >
+        <EditCustomerButton customer={customer} />
         <Link href="/admin/customers" className="btn-secondary">
           Back to customers
         </Link>

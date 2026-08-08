@@ -119,7 +119,7 @@ export default function LooseOilSaleForm({ drums, customers, date, dateLabel }) 
         <span aria-hidden="true" className="text-base leading-none">
           +
         </span>
-        Record a loose sale
+        Record a loose oil sale
       </button>
 
       <Dialog
