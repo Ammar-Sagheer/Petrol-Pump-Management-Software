@@ -500,6 +500,16 @@ Two things this pattern always needs:
   is indistinguishable from "lost" — a *Removed* section under the main table
   with a **Bring back** button. `LubricantManager` and the Customers page are
   the two examples.
+- **A third state, when retiring is not enough.** A name added by mistake that
+  picked up entries is retired for ever and sits in the Removed list looking
+  like a real customer who left. `PurgeCustomerButton` is the way out: offered
+  **only from the Removed list**, so getting there is two deliberate decisions,
+  and confirmed by **typing the name** rather than pressing Yes. Everything
+  else destructive in this app is recoverable — a retired row comes back, a
+  deleted sale posts a reversal — so the one action that is not asks for
+  something a mis-aimed click cannot produce. The typed name is checked in the
+  database as well as the browser; the browser copy only keeps the button
+  disabled so the refusal is rare rather than routine.
 - **A guard on anything retiring would hide.** A retired customer drops out of
   `get_customer_balances`, which is what the Customers page totals "still
   outstanding" from — so removing someone who owes Rs 50,000 would quietly drop

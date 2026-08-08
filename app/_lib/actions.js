@@ -1147,6 +1147,58 @@ export async function deleteCustomer(_prevState, formData) {
   );
 }
 
+/**
+ * Deletes a customer for good - the row and their ledger entries with it.
+ *
+ * The step beyond Remove, for a name added by mistake that picked up entries
+ * and would otherwise sit in the Removed list for ever looking like a real
+ * customer who left.
+ *
+ * The database decides whether it is allowed, and the line is narrow on
+ * purpose: only an account whose whole footprint is entries the owner typed
+ * himself. A credit slip belongs to a nozzle reading and a day already
+ * reported, so a customer who genuinely traded can only ever be retired - the
+ * refusal says so and points at clearing the day instead. See purge_customer
+ * in migration 033.
+ *
+ * The typed name is checked in the database rather than only in the browser,
+ * because it is the last thing standing between a mis-aimed click and money
+ * records that do not come back.
+ */
+export async function purgeCustomer(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const customerId = text(formData, 'customer_id');
+  const confirmName = text(formData, 'confirm_name');
+
+  if (!customerId) return fail('Missing the customer.');
+  if (!confirmName) return fail('Type the customer\u2019s name to confirm.');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('purge_customer', {
+    p_customer_id: customerId,
+    p_confirm_name: confirmName,
+  });
+
+  if (error) return fail(describe(error, 'Could not delete the customer.'));
+
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
+
+  const name = data?.name ?? 'The customer';
+  const gone = Number(data?.entries_deleted ?? 0);
+
+  return ok(
+    gone > 0
+      ? `${name} deleted for good, along with ${gone} ledger ${gone === 1 ? 'entry' : 'entries'}.`
+      : `${name} deleted for good.`,
+  );
+}
+
 /** Puts a removed customer back on the list. */
 export async function setCustomerActive(_prevState, formData) {
   try {
