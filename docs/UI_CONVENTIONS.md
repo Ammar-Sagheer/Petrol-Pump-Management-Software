@@ -52,7 +52,25 @@ several look simplifiable and were already tried that way once.
   rounds to whole rupees — right for a day's takings, wrong for anything
   per-litre. `formatRate` (`app/_lib/format-helpers.js`) always shows two
   decimals, so Rs 339.48 does not display as "Rs 339" and Rs 339.50 does not
-  display as "Rs 339.5". `format-helpers.js` exists for the same reason
+  display as "Rs 339.5".
+- **There is no paisa in this app's money, because there is no paisa coin in
+  Pakistan.** `formatPKR` everywhere; a `formatPKRExact` that showed the ledger
+  to two decimals was removed. Rates are the one exception, and only because a
+  rate is a price on a board rather than something anyone hands over.
+
+  This is a **storage** rule before it is a display one. `roundRupees` in
+  `helpers.js` is applied to every write that becomes a customer debt or a
+  payment — credit slips, payments, adjustments, lubricant sales — while
+  `roundMoney` (2 dp) stays for the meter arithmetic, where litres × rate
+  genuinely carries paisa and rounding would break reconciliation against
+  stock. Rounding only the display would have been the worse half: three hidden
+  0.28s make a rupee, and the running balance drifts away from the rows above
+  it.
+
+  Anything that *tests* a balance has to round the same way, or the screen and
+  the rule disagree — see `delete_customer`, which refuses removal on a
+  non-zero balance and had to round too, otherwise an account reading "Rs 0"
+  could not be removed and the reason quoted a figure nobody can pay. `format-helpers.js` exists for the same reason
   `date-helpers.js` does: `helpers.js` reads request cookies and so cannot
   enter a client bundle, which previously left client components formatting
   inline and drifting. Server code imports both through `helpers.js`.

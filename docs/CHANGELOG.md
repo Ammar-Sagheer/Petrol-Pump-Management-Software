@@ -944,3 +944,59 @@ Customers. The two languages were diffed by shape afterwards, not by eye: same
 number of stages, setup steps, daily steps, occasional items, rules and role
 rows, and the same icon keys in the same order. That check is the point of
 keeping the guide as data.
+
+## The ledger works in whole rupees
+
+The owner pointed at a customer page showing "Rs -4,999.72" and said the paisa
+were useless — there is no coin below one rupee in Pakistan. He was right, and
+the display was the smaller half of the problem.
+
+**Where the paisa came from.** A credit slip's amount is litres × rate, so 11 L
+at Rs 339.48 posted a debit of Rs 3,734.28. The customer paid the Rs 3,734 he
+was asked for, and 28 paisa stayed on his account — not as a debt, because
+nobody can hand over 28 paisa, but as arithmetic no payment will ever clear.
+The page then contradicted itself: the headline read "Rs -5,000" through
+`formatPKR` while the table under it read "Rs -4,999.72" through a
+`formatPKRExact` added specifically so "every paisa should show".
+
+**Fixed at the write, not just the render.** `roundRupees` now applies to every
+value that becomes a customer debt or a payment — credit slips, payments,
+adjustments, and lubricant sale amounts and their credit. `formatPKRExact` was
+deleted; the ledger uses `formatPKR` like everything else.
+
+Rounding only the display would have been the worse half of the fix: three
+hidden 0.28s make a rupee, and the running balance drifts away from the rows
+printed above it. The stored value and the shown value have to agree.
+
+**What deliberately keeps its paisa.** The meter arithmetic.
+`nozzle_readings.sale_amount` is litres × rate and genuinely carries them;
+rounding it would put a day's takings out of step with the litres that produced
+them. Where a whole-rupee credit comes out of a fractional sale the difference
+lands on the **cash** side, which is where it belongs — cash is the residual,
+and it is counted in notes. A survey before changing anything showed why this
+distinction matters: 41 of 42 readings carried paisa, but only 1 credit slip
+and 1 ledger entry did. The problem was never widespread, it was just in the
+one place that hurt.
+
+**The guard had to move with it.** `delete_customer` refused removal unless the
+balance was exactly zero. Once the ledger displays whole rupees, a legacy
+28-paisa residue reads as "Rs 0", still refuses, and explains itself by quoting
+a figure the owner has no way to pay — an account that looks settled and cannot
+be closed. So the guard rounds too (migration 032). It forgives at most 49
+paisa, less than the smallest coin in circulation; anything a customer could
+actually be asked for still blocks removal and is still named.
+
+Verified on a fixture built and rolled back inside one aborted transaction, so
+the boundary could be walked exactly rather than depending on live rows:
+
+    0.28 residue   >> removed (treated as square)
+    0.60 residue   >> BLOCKED, "still owes Rs 1"
+    Rs 4,500 owed  >> BLOCKED, "still owes Rs 4500"
+
+Then rendered: the legacy ledger's rows now read 3,734 → 0 → −5,000 and agree
+with the −5,000 headline above them.
+
+**One live account still carries the old residue.** Usama Bahawalpur is at
+−4,999.72. Nothing was written to fix it — it now reads as Rs 0 against the
+rupee and no longer blocks anything, and the ledger is append-only, so if it is
+ever to be squared exactly that is an adjustment for the owner to post.

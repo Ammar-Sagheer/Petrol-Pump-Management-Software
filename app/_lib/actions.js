@@ -23,6 +23,7 @@ import {
   requireRole,
   ROLES,
   roundMoney,
+  roundRupees,
   landingPageFor,
   fullResetAllowed,
   formatLitres,
@@ -275,10 +276,22 @@ export async function saveReading(_prevState, formData) {
       return fail('Every credit slip needs an amount above zero.');
     }
 
+    /*
+     * WHOLE RUPEES ON THE SLIP, two decimals on the litres.
+     *
+     * The slip becomes a debit on the customer's ledger, and a debt is settled
+     * with notes - the smallest of which is one rupee. Left at two decimals,
+     * 11 litres at Rs 339.48 posted Rs 3,734.28, the customer paid the Rs 3,734
+     * he was asked for, and 28 paisa sat on his account for ever because no
+     * payment can clear it. See roundRupees in helpers.js.
+     *
+     * The sale itself keeps its paisa; the CASH side absorbs the difference,
+     * which is where it belongs, cash being the residual and counted in notes.
+     */
     cleanedLines.push({
       customer_id: customerId,
       litres: roundMoney(litres),
-      amount: roundMoney(amount),
+      amount: roundRupees(amount),
     });
   }
 
@@ -854,6 +867,19 @@ export async function createLubricantSale(_prevState, formData) {
   if (amount === null || amount <= 0) return fail('Enter what the customer was charged.');
   if (creditAmount < 0) return fail('The credit amount cannot be negative.');
 
+  /*
+   * Whole rupees, and rounded HERE rather than further down, because the loose
+   * litres are worked out from this figure - deriving them from an unrounded
+   * amount and then storing the rounded one would put the two slightly out of
+   * step. A counter sale is money handed over the counter and the smallest
+   * thing anyone can hand over is a rupee, so "Rs 462.50 of oil" is not a real
+   * sale and a credit of Rs 462.50 is a debt nobody can pay off. Rounding both
+   * sides keeps paisa off the customer ledger through this door as well as
+   * through the readings one.
+   */
+  const total = roundRupees(amount);
+  if (total <= 0) return fail('A sale has to be at least one rupee.');
+
   const supabase = await createClient();
   const { data: product, error: productError } = await supabase
     .from('lubricants')
@@ -883,12 +909,10 @@ export async function createLubricantSale(_prevState, formData) {
     if (!Number.isFinite(rate) || rate <= 0) {
       return fail(
         `${product.name} has no selling rate, so there is no way to tell how much oil ` +
-          'Rs ' +
-          amount +
-          ' is. Set a rate per litre under “Manage lubricants” first.',
+          `Rs ${total} is. Set a rate per litre under “Manage lubricants” first.`,
       );
     }
-    litres = roundLitres(amount / rate);
+    litres = roundLitres(total / rate);
     if (litres <= 0) {
       return fail(
         `That is too small to record — at ${formatRate(rate)} a litre it works out at ` +
@@ -901,8 +925,7 @@ export async function createLubricantSale(_prevState, formData) {
     litres = roundLitres(litres);
   }
 
-  const total = roundMoney(amount);
-  const credit = roundMoney(creditAmount);
+  const credit = roundRupees(creditAmount);
 
   if (credit > total) {
     return fail('The amount on credit is more than the sale itself. Check the figures.');
@@ -1173,11 +1196,16 @@ export async function recordPayment(_prevState, formData) {
   if (amount === null || amount <= 0) return fail('Enter how much they paid.');
   if (!entryDate) return fail('Enter the date of the payment.');
 
+  // Whole rupees: this is cash over the counter, and there is nothing smaller
+  // to hand over.
+  const paid = roundRupees(amount);
+  if (paid <= 0) return fail('A payment has to be at least one rupee.');
+
   const supabase = await createClient();
   const { error } = await supabase.from('ledger_entries').insert({
     customer_id: customerId,
     entry_type: 'credit',
-    amount,
+    amount: paid,
     entry_date: entryDate,
     note: note || 'Payment received',
     created_by: profile.id,
@@ -1217,11 +1245,17 @@ export async function recordLedgerAdjustment(_prevState, formData) {
   if (!entryDate) return fail('Enter a date.');
   if (!note) return fail('Write a note explaining this adjustment - it stays on the record permanently.');
 
+  // Whole rupees, like every other entry on the ledger. An adjustment is the
+  // tool for squaring an account, and one that could itself leave paisa behind
+  // would not finish the job.
+  const adjustment = roundRupees(amount);
+  if (adjustment <= 0) return fail('An adjustment has to be at least one rupee.');
+
   const supabase = await createClient();
   const { error } = await supabase.from('ledger_entries').insert({
     customer_id: customerId,
     entry_type: entryType,
-    amount,
+    amount: adjustment,
     entry_date: entryDate,
     note,
     created_by: profile.id,

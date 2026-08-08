@@ -170,7 +170,10 @@ amount of application code can get around them.
   turning "Rs 20 of oil" into litres off the drum, so without one a sale could
   take money and no stock, and the drum would read full for ever.
 - **A customer carrying a balance cannot be removed** — in either direction,
-  whether they owe the pump or the pump owes them. A removed customer drops out
+  whether they owe the pump or the pump owes them. Judged to the nearest rupee,
+  so the most it can forgive is 49 paisa, less than the smallest coin that
+  exists; anything a customer could actually be asked for still blocks removal
+  and is named in the message. A removed customer drops out
   of the outstanding total, so this would write a debt off (or lose a credit)
   with nothing on screen to say it had happened. Settle the account first. A
   customer who never traded is deleted outright; one with history is retired,
@@ -293,6 +296,7 @@ Applied in order:
 | `029_lubricant_trend.sql` | A day-by-day series for the shelf and the drum, for the dashboard chart |
 | `030_loose_oil_in_the_export.sql` | The workbook's loose oil split and its Kind column |
 | `031_remove_a_customer.sql` | Removing a customer: delete if never traded, retire if not, never while owing |
+| `032_ledger_in_whole_rupees.sql` | The removal guard rounds to the rupee, matching the ledger |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -331,6 +335,16 @@ the numbers are fast and cannot be altered client-side.
   one `PUMP_TIMEZONE` line if the pump ever moves.
 - **Number grouping** is `140,000` style. For the lakh style (`1,40,000`), change
   `'en-US'` to `'en-IN'` in the two formatters in `app/_lib/helpers.js`.
+- **The customer ledger is in whole rupees**, because Pakistan has no coin below
+  one. A credit slip is litres × rate, which produced debts like Rs 3,734.28 —
+  the customer paid the Rs 3,734 he was asked for and 28 paisa stayed on his
+  account for ever, since no payment can clear it. `roundRupees` is now applied
+  to every ledger write (credit slips, payments, adjustments, lubricant sales).
+  The **meter arithmetic keeps its paisa**: `sale_amount` is litres × rate and
+  rounding it would put a day's takings out of step with the litres behind
+  them. Where a whole-rupee credit comes out of a fractional sale, the
+  difference lands on the cash side — which is right, cash being the residual
+  and counted in notes.
 - **Lubricant stock is always in litres**, whether it leaves as a sealed 4 litre
   carton or as 30 rupees' worth poured out of a drum. A purchase is entered in
   litres too: twelve 4 litre cartons is 48, and the form does that
