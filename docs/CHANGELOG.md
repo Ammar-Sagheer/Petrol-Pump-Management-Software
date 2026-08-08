@@ -1100,3 +1100,63 @@ two deliberate decisions. Checked in the database as well as the browser.
 No tombstone: the owner asked for gone, and a hidden record of the name would
 mean it never really left. The record of a purge is this entry and the
 migration.
+
+## Why navigation felt slow, and what prefetch actually does
+
+The owner asked why moving to the Guide still shows a loading skeleton, and
+whether caching could help without serving stale figures. Worth writing down
+because the answer was measured, and two of the measurements contradicted what
+seemed obvious.
+
+**Where the time goes.** Every `/admin` page is dynamic, because
+`requirePageRole()` reads cookies. Before any HTML exists the server does
+`getClaims()` plus a `profiles` SELECT - at least one Supabase round trip. The
+Guide's own content is a compile-time constant in `guide-content.js`, so for
+that page the round trip *is* the entire wait, and `loading.js` covers it with
+a full-page skeleton that makes 300ms read as a page load.
+
+`proxy.js` and the layout are already clean: the proxy uses `getSession()` (no
+round trip unless the token is expiring) and `getSessionProfile` is wrapped in
+React `cache()`, so the layout and the page share one lookup.
+
+**A shortcut that does not work.** The Guide is open to both roles, so the role
+query looks like waste. It is not: the same query checks `is_active`, which is
+what locks out a deactivated staff login on their next navigation. Load-bearing.
+
+**Deleting the skeleton does not work either.** Tested with two throwaway
+routes: a child segment with no `loading.js` of its own **inherits the
+parent's**. Removing `app/admin/guide/loading.js` would give the Guide the
+*dashboard's* skeleton, which is worse.
+
+**What does work, measured on a production build** (dev mode is not
+representative - it showed no benefit at all, which nearly led to the wrong
+conclusion):
+
+    default prefetch   skeleton at 65ms, content at 874ms
+    prefetch={true}    content at 70ms, no skeleton
+
+And on the staleness question the owner actually asked:
+
+    prefetched copy still reused after 45s   (the window is real, not momentary)
+    mutate + revalidatePath, then navigate   -> shows the NEW value, in 70ms
+
+So prefetch and the 81 `revalidatePath` calls already in `actions.js` work
+together: fast, and busted the moment anything is saved **in the same
+browser**. The residual gap is another person's session - their action cannot
+clear this browser's router cache, so a figure could be up to ~45s old until
+the next load.
+
+**Applied to the Guide only.** Not for staleness reasons - the Guide has no
+data - but for cost. App Router prefetches on viewport entry, and the whole
+sidebar is in the viewport on a laptop, so prefetching all eleven links would
+run ten extra page renders with their queries on every admin page view. On a
+cheap tablet over mobile data those compete with the page actually being waited
+for.
+
+**Still open, and both are infrastructure rather than code.** The database is
+in `ap-southeast-1` (Singapore) and there is no `vercel.json`, so functions run
+in whatever region Vercel chose - often Washington DC. If so, every round trip
+crosses the Pacific twice, which would dominate everything above. And the
+`profiles` lookup could move into the JWT as a custom claim, removing a round
+trip from every page, at the cost of a deactivated login staying valid until
+its token refreshes.

@@ -50,7 +50,28 @@ const LINKS = [
   { href: '/admin/settings', label: 'Settings', icon: 'settings', roles: ['super_admin'] },
   // Last, and open to both roles - the person most likely to need it is a new
   // member of staff on their first evening, not the owner.
-  { href: '/admin/guide', label: 'Guide', icon: 'guide', roles: ['super_admin', 'data_entry'] },
+  //
+  // `prefetch` is set on this one alone. Measured on a production build, it
+  // takes the navigation from 874ms with a loading skeleton to 70ms with none
+  // at all - and the guide is the only section where it is free of any
+  // consequence, because its content is a compile-time constant in
+  // guide-content.js. There is no query to run early and nothing that can go
+  // stale between the prefetch and the click.
+  //
+  // NOT DONE FOR THE OTHER TEN, and the reason is cost rather than staleness.
+  // App Router prefetches when a link enters the viewport, and the whole
+  // sidebar is in the viewport on a laptop - so prefetching all of them would
+  // run ten full page renders, with their queries, on every single admin page
+  // view. On a cheap tablet over mobile data those ten requests compete with
+  // the page the reader is actually waiting for, which is the opposite of the
+  // intent.
+  {
+    href: '/admin/guide',
+    label: 'Guide',
+    icon: 'guide',
+    roles: ['super_admin', 'data_entry'],
+    prefetch: true,
+  },
 ];
 
 export default function AdminSidebar({ profile }) {
@@ -150,6 +171,7 @@ export default function AdminSidebar({ profile }) {
       <li key={link.href}>
         <PendingLink
           href={link.href}
+          prefetch={link.prefetch ?? undefined}
           aria-current={active ? 'page' : undefined}
           className={[
             'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition',
