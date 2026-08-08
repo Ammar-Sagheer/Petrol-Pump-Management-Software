@@ -23,8 +23,20 @@ export default function DateNav({
   previousDate,
   nextDate,
   paramName = 'date',
+  extraParams,
   children,
 }) {
+  /*
+   * Anything else already in the query string that must survive stepping a
+   * day. The Dashboard's chart window is the only one so far: without this,
+   * pressing the next-day arrow with a 90-day window open would drop back to
+   * 14 and the reader would blame the arrow.
+   */
+  const carried = new URLSearchParams(extraParams ?? {}).toString();
+  const dateHref = (value) =>
+    `${basePath}?${paramName}=${value}${carried ? `&${carried}` : ''}`;
+  const todayHref = carried ? `${basePath}?${carried}` : basePath;
+
   const today = todayISO();
   const isToday = date === today;
   const isYesterday = date === shiftISODate(today, -1);
@@ -83,7 +95,7 @@ export default function DateNav({
 
       <div className="flex flex-wrap items-center gap-2">
         <PendingLink
-          href={`${basePath}?${paramName}=${previousDate}`}
+          href={dateHref(previousDate)}
           className="btn-secondary px-3"
           aria-label={`Go to ${formatDate(previousDate)}`}
           spinnerOnly
@@ -91,10 +103,10 @@ export default function DateNav({
           <Icon name="chevronRight" className="h-5 w-5 rotate-180" />
         </PendingLink>
 
-        <DateJump date={date} basePath={basePath} paramName={paramName} />
+        <DateJump date={date} basePath={basePath} paramName={paramName} extraParams={extraParams} />
 
         <PendingLink
-          href={`${basePath}?${paramName}=${nextDate}`}
+          href={dateHref(nextDate)}
           className="btn-secondary px-3"
           aria-label={`Go to ${formatDate(nextDate)}`}
           spinnerOnly
@@ -104,7 +116,7 @@ export default function DateNav({
 
         {/* Only worth showing when it would actually do something. */}
         {!isToday ? (
-          <PendingLink href={basePath} className="btn-primary py-2 text-sm">
+          <PendingLink href={todayHref} className="btn-primary py-2 text-sm">
             Back to today
           </PendingLink>
         ) : null}
