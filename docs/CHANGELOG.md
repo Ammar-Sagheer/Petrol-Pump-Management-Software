@@ -33,6 +33,7 @@ logins, one pump. Migrations run to **034**.
 | Speed | Functions moved to Singapore beside the database; the Guide is prefetched. |
 | Feedback | Every destructive submit shows a pending state; delete triggers are a trash icon. |
 | Guide | Location chips, bold rule titles and a folded setup section — a fifth shorter than before, and scannable. |
+| Settings | The rate panel previews five changes (rounded up to a whole date) instead of seven days, so it no longer scrolls inside itself. |
 
 **Three things that are load-bearing and easy to break:**
 
@@ -1444,3 +1445,34 @@ the page** — `/devcheck` sits outside `app/admin/layout.js`, so it lacks the
 hung 16px off each edge. Wrapping the devcheck page in the same container as
 the real layout is now part of using it; without that, every full-bleed table
 in the app looks broken at 400px.
+
+### The rate panel on Settings shows five changes, not seven days
+
+*"Show only the recent 5 readings, rest should be visible in view all."*
+
+The slice was seven whole **days**, and the reason it was counted in days
+rather than rows is still right: the rate for both fuels usually moves
+together, so a plain `limit` shows diesel's new rate with petrol's cut off the
+bottom, and the owner reads the two as a pair to check both moved.
+
+But at two fuels a day, seven days is fourteen rows — the panel had grown its
+own scrollbar, a small scrolling table inside a page that already scrolls.
+
+`getRecentFuelPrices()` now takes a **row cap that cuts on a date boundary**:
+keep rows until there are five, then keep going only while the date has not
+changed. Five or six rows, and a day is never half-told. Both properties are
+kept; only the thing setting the height changed.
+
+Two things came with it. The query now orders by `fuel_type` after the date,
+matching `getFuelPricesPage()`, so a day's pair reads in the same order on the
+panel and on the full history instead of in whatever order the rows were saved
+— the screenshot that prompted this showed Petrol above Diesel on one day and
+below it on the next. And the heading dropped its day count: "The most recent
+changes", because a number in that sentence has to be re-checked every time
+the cut changes, and it told the reader nothing they wanted.
+
+Rendered at 1440 / 1152 / 1024 / 400 with the owner's own rows as fixtures:
+6 rows, no scrollbar inside the panel at any width, no sideways page scroll,
+no clipped figures. Edge cases checked against the loop directly — a date
+corrected six times over still returns whole (6 rows), fewer rows than the cap
+returns all of them, no rows returns none.
