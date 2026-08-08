@@ -32,6 +32,7 @@ logins, one pump. Migrations run to **034**.
 | Money precision | The ledger moved to **whole rupees**, storage as well as display — there is no coin below one rupee. Migration 032. |
 | Speed | Functions moved to Singapore beside the database; the Guide is prefetched. |
 | Feedback | Every destructive submit shows a pending state; delete triggers are a trash icon. |
+| Guide | Location chips, bold rule titles and a folded setup section — a fifth shorter than before, and scannable. |
 
 **Three things that are load-bearing and easy to break:**
 
@@ -1403,3 +1404,43 @@ the next piece of work mentioned is an offline Electron build:
   is genuinely Supabase-shaped (the clients, `proxy.js`, every `.rpc()` call,
   RLS as the real access control) against what ports unchanged (all the
   components, the helpers, the guide content, the Excel export).
+
+### The guide had too much detail to be read
+
+The owner's verdict on the guide, after it had been brought up to date: *"too
+much detail... add some visual markers instead, so that it does not become
+boring to read."* It measured **4,603px** — five screens on a laptop — and the
+reader it is written for is an attendant who has opened it to find one answer.
+
+Where the height was: setup 1,133px (24%), the evening routine 1,127px (24%),
+the rules 779px (17%), the section map 668px (14%), roles 442px (10%).
+
+**Three markers replaced prose, and one section folded away:**
+
+- **Location chips.** Ten steps across the two languages said, in a sentence,
+  where to go. They now carry `where: { icon, path }` and render it as a pill
+  under the step heading — `Lubricants → Record a lubricant sale`, with the
+  *same icon as the sidebar tab*, so it points at something already on screen.
+- **Rules lead with the claim.** `rules.items` went from strings to
+  `{ title, body }`; the title is bold. Ten rules are now ten scannable lines
+  rather than ten paragraphs behind ten identical warning triangles — the
+  repeated icon was marking nothing, and the eye had nowhere to land.
+- **The one-time setup folds.** The page already tells the reader to skip it,
+  so it is now a native `<details>` styled as a card row. No JavaScript, no
+  state, still found by the browser's own search.
+
+The chips *raised* the height first — 4,603 → 4,957px — which is worth
+recording, because it is the shape of this kind of change: a marker costs
+vertical space and buys scanning speed. Folding the setup is what paid for
+them. Final: **3,850px English, 3,718px Urdu**, a fifth shorter than it began
+while carrying more signposting than before.
+
+Checked in both languages at 1152px and 400px, and by shape after every edit
+(3 stages / 7 setup / 7 daily / 7 occasional / 10 rules / 7 role rows, icons
+matching). One measurement worth not repeating: a first pass reported the
+phone width scrolling sideways, and the culprit was the **devcheck route, not
+the page** — `/devcheck` sits outside `app/admin/layout.js`, so it lacks the
+`px-4` that `.table-scroll`'s `-mx-4` is there to cancel, and the roles table
+hung 16px off each edge. Wrapping the devcheck page in the same container as
+the real layout is now part of using it; without that, every full-bleed table
+in the app looks broken at 400px.

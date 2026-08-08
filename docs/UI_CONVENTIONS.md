@@ -460,6 +460,38 @@ one to copy if another follows.
   a phone, keep their text selectable and readable at any size — and the same
   markup renders in Urdu without anything being redrawn.
 
+## A long instruction page is read by scanning, not by reading
+
+The Guide is the one screen in this app nobody reads front to back. It is
+opened by an attendant who wants one answer, and closed again. Four devices
+keep it scannable; copy these before adding prose to it.
+
+- **A location chip instead of a sentence about where to go.** A step that
+  happens somewhere carries `where: { icon, path }` in `guide-content.js`, and
+  `GuideSteps` renders it under the heading as a brand-tinted pill with the
+  nav icon: `⛽ Lubricants → Record a lubricant sale`. It uses the *same icon
+  as the sidebar tab*, so it points at something the reader can already see.
+  This is not the icons-carry-no-meaning-alone exception — the path is written
+  out in words beside it.
+- **A rule leads with its claim, in bold, then explains.** `rules.items` is
+  `{ title, body }`, not a string, so ten rules can be taken in by reading ten
+  short bold lines. Ten full paragraphs behind ten identical warning triangles
+  gave the eye nowhere to land — the repeated icon marked nothing.
+- **What is done once folds away.** The one-time setup was a quarter of the
+  page height for a reader who will never do it. It is a native `<details>`
+  with a `<summary>` styled as a card row: no JavaScript, no state, still
+  found by the browser's own Ctrl-F, and the chevron rotates with
+  `group-open:-rotate-90`. Fold anything the *usual* reader does not need,
+  not anything that is merely long.
+- **Cards are split by how often they are used, not by subject.** "Customers"
+  became "Customers" (pay, add — routine) and "Fixing a customer" (edit,
+  adjust, remove — rare, owner-only). A ten-line card covering six operations
+  teaches worse than two four-line ones.
+
+Both languages carry every marker or neither: after any edit, check the shape
+(stages, steps, rules, role rows, and the icon on each) matches between `en`
+and `ur`. Adding a chip to one language only is the easy mistake.
+
 ## Paging: `<Pager>`, and where the slice happens
 
 `<Pager>` (`app/_components/ui/Pager.js`) is the row under every paged table:
