@@ -51,6 +51,19 @@ export default function TrendRange({ days, hrefFor }) {
           <PendingLink
             key={window}
             href={hrefFor(window)}
+            /*
+             * STAY WHERE THE READER IS. A Link resets the scroll to the top by
+             * default, which is right when the whole page changes and wrong
+             * here: the charts are the last thing on the Dashboard, so asking
+             * for 30 days instead of 7 threw the reader back up past the tiles
+             * and the tanks to look at a chart they were already looking at.
+             * The only thing that changes is inside the two cards below.
+             *
+             * Measured both ways rather than assumed: without it the page went
+             * from scrollY 1087 to 0 and the control jumped from 379px down
+             * the viewport to 1466px off the top of it.
+             */
+            scroll={false}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold
                        text-ink-700 hover:bg-ink-100 hover:text-ink-900"
           >

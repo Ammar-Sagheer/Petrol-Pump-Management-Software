@@ -587,6 +587,12 @@ charts are filtered, and the shape to copy for the next set.
   the date box (including the `noscript` GET form's hidden fields) and "Back to
   today". Miss one and stepping a day silently resets the filter, which reads
   as the arrow being broken.
+- **`scroll={false}` on the window links.** A `<Link>` resets the scroll to the
+  top, which is right when the whole page changes and wrong for a filter: the
+  charts are the last thing on the Dashboard, so asking for 30 days instead of
+  7 threw the reader back up past the tiles and the tanks to look at a chart
+  they were already looking at. The rule generalises — **a control that changes
+  only what is beside it should not move the page.**
 - **State the span in words under the heading.** "Last 30 days" is ambiguous
   the moment the reader has stepped back a week — these charts end on the day
   the page is showing, not on today, so the dates are spelled out beneath it.
