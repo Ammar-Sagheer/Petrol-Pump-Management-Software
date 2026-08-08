@@ -343,6 +343,16 @@ the numbers are fast and cannot be altered client-side.
 - **Shifts.** Readings are recorded once per nozzle per day. The `shift` column
   already accepts `day` and `night`, so splitting the day later is a UI change,
   not a data migration.
+- **The app runs in Singapore (`sin1`), next to the database.** `vercel.json`
+  pins it, and the reason is worth keeping: the functions were defaulting to
+  `iad1` (Washington DC) while the Supabase project sits in `ap-southeast-1`.
+  That put the Pacific between the app and its own data, so a page making two
+  or three queries paid roughly 230ms *per query*, plus another 230ms getting
+  the request from Pakistan to Virginia in the first place. Co-locating with
+  the database matters more than sitting closer to the reader, because one
+  navigation makes one user round trip and several database ones. If the
+  database is ever moved, move this with it. (Hobby plan allows one region; the
+  same setting lives in Vercel under Settings → Functions.)
 - **The business day is pinned to `Asia/Karachi`**, in `app/_lib/date-helpers.js`.
   It is deliberately *not* taken from the machine's clock: the browser sits in
   Pakistan but a Vercel server runs in UTC, so between midnight and 5am the two
