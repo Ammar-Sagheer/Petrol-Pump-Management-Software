@@ -1000,3 +1000,43 @@ with the −5,000 headline above them.
 −4,999.72. Nothing was written to fix it — it now reads as Rs 0 against the
 rupee and no longer blocks anything, and the ledger is append-only, so if it is
 ever to be squared exactly that is an adjustment for the owner to post.
+
+### The warning that disagreed with the column
+
+Reported straight after the whole-rupee change: an account showing **Rs 0**
+still warned "This account is not settled" when Remove was pressed.
+
+Both halves of the fix had been written, but only one had been applied.
+`delete_customer` was moved to whole rupees in migration 032; the browser-side
+courtesy check in `RemoveCustomerButton` was left on its original `0.01`
+threshold. So a 28-paisa residue displayed as Rs 0, warned that it was not
+settled, and would then have been removed perfectly happily by the database —
+the warning was wrong, not the rule. A courtesy check that contradicts the rule
+it is previewing is worse than no check at all.
+
+Checking the boundary properly turned up two more, neither of which the
+original report mentioned:
+
+- **`Math.round` is the wrong rounding.** Postgres `round()` and `Intl` both
+  send −0.5 to −1, but JavaScript's `Math.round(-0.5)` is `-0` — it rounds half
+  toward +Infinity. A balance of −0.50 therefore printed as "Rs -1" in the
+  column while the button called it settled. `roundRupees` now rounds half away
+  from zero, matching both.
+- **`Intl` renders negative zero.** `formatPKR(-0.28)` returned the string
+  `"Rs -0"`, so a customer a few paisa the wrong side of zero had a nonsense
+  figure in the Owes column. Collapsed in `formatPKR`.
+
+Verified by running the real `formatPKR` and `roundRupees` source over the
+boundary and printing what the column shows beside what the button warns, which
+is a stronger claim than a screenshot of one row:
+
+    balance   OWES      warns   roundRupees
+    0.28      Rs 0      false   0
+    -0.28     Rs 0      false   0
+    0.49      Rs 0      false   0
+    0.5       Rs 1      true    1
+    -0.5      Rs -1     true    -1
+    4500      Rs 4,500  true    4500
+
+`roundRupees` was checked against Postgres `round()` at each of those points
+and agrees. Then rendered, with every confirmation open at once.
