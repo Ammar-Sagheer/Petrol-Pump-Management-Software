@@ -72,7 +72,23 @@ export function GuideSteps({ steps, labels }) {
 
             <div className={isLast ? 'pb-0' : 'pb-6'}>
               <h3 className="text-lg font-bold text-ink-900">{step.title}</h3>
-              <p className="mt-1 text-base text-ink-700">{step.body}</p>
+
+              {/* WHERE TO GO, as a chip rather than the first sentence.
+                  Every step used to open with "Settings → Tanks." in the same
+                  prose as the explanation, so the one piece someone rereads
+                  the guide to find - which screen? - was the hardest thing on
+                  the page to spot. Lifted out, it carries the nav's own icon,
+                  which is the same shape they will be looking for in the
+                  sidebar. */}
+              {step.where ? (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-brand-50 px-2.5 py-1
+                              text-sm font-semibold text-brand-800">
+                  <Icon name={step.where.icon} className="h-4 w-4" />
+                  {step.where.path}
+                </p>
+              ) : null}
+
+              <p className="mt-1.5 text-base text-ink-700">{step.body}</p>
 
               {step.tip ? (
                 <p className="mt-2 rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-700">

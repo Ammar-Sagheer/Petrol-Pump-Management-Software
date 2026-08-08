@@ -71,12 +71,37 @@ export default async function GuidePage({ searchParams }) {
           <p className="card px-4 py-3 text-base text-ink-700">{t.startHere.body}</p>
         </section>
 
+        {/* FOLDED AWAY BY DEFAULT, and the page above already says why: "if
+            the pump has already been set up, skip to Every evening". These
+            seven steps are done once, by the owner, and they were a quarter of
+            the height of a page whose usual reader is an attendant looking for
+            the evening routine. Native <details>, so it opens without
+            JavaScript, is findable by the browser's own search, and needs no
+            state. */}
         <section>
-          <h2 className="section-heading">{t.setup.heading}</h2>
-          <p className="mb-4 text-base text-ink-600">{t.setup.note}</p>
-          <div className="card p-4 sm:p-6">
-            <GuideSteps steps={t.setup.steps} labels={t.labels} />
-          </div>
+          <details className="group">
+            <summary
+              className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl
+                         border border-ink-200 bg-white px-4 py-3
+                         hover:border-brand-600 hover:bg-brand-50"
+            >
+              <span>
+                <span className="block text-base font-bold text-ink-900">{t.setup.heading}</span>
+                <span className="block text-sm text-ink-600">{t.setup.note}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-brand-700">
+                {t.labels.showSteps}
+                <Icon
+                  name="chevronRight"
+                  className="h-5 w-5 rotate-90 transition group-open:-rotate-90"
+                />
+              </span>
+            </summary>
+
+            <div className="card mt-3 p-4 sm:p-6">
+              <GuideSteps steps={t.setup.steps} labels={t.labels} />
+            </div>
+          </details>
         </section>
 
         <section>
@@ -95,11 +120,19 @@ export default async function GuidePage({ searchParams }) {
         <section>
           <h2 className="section-heading">{t.rules.heading}</h2>
           <p className="mb-4 text-base text-ink-600">{t.rules.note}</p>
+          {/* Each rule leads with the claim in bold and puts the reasoning
+              after it, so the whole list can be taken in by reading ten short
+              lines - which is how anyone actually reads a page of rules. It
+              was ten full paragraphs behind ten identical warning triangles,
+              where the repeated icon marked nothing and the eye had nowhere
+              to land. */}
           <ul className="card divide-y divide-ink-100">
             {t.rules.items.map((rule) => (
-              <li key={rule} className="flex gap-3 px-4 py-3">
-                <Icon name="warning" className="mt-0.5 h-5 w-5 text-amber-600" />
-                <span className="text-base text-ink-700">{rule}</span>
+              <li key={rule.title} className="flex gap-3 px-4 py-3">
+                <Icon name="warning" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <span className="text-base text-ink-700">
+                  <span className="font-bold text-ink-900">{rule.title}</span> {rule.body}
+                </span>
               </li>
             ))}
           </ul>
