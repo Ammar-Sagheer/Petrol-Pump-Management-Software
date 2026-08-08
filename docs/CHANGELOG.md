@@ -1529,3 +1529,26 @@ like a real bug. It was not: recharts animates 90 bars for longer than
 rendered geometry gave heights of 84–184px, and a re-shot after 2.5s matched.
 Screenshots catch what the DOM hides, and this once it was the other way
 round — when a chart looks wrong, measure a bar before believing the picture.
+
+### The chart filter was throwing the reader back to the top
+
+Reported the day it went out: *"i deployed, its working, but changing from 7
+days to 14 moves the UI to the top."*
+
+A Next.js `<Link>` resets the scroll position, which is right when the whole
+page changes and wrong for a filter. The charts are the last thing on the
+Dashboard, so picking a different window scrolled back up past the tiles, the
+fuel cards and the tanks — to look at a chart the reader was already looking
+at. `scroll={false}` on the window links.
+
+Measured both ways rather than assumed, because "it stayed put" is the kind of
+result that also happens when the click did nothing: without the flag the page
+went from scrollY 1087 to 0 and the control moved from 379px down the viewport
+to 1466px off the top of it; with it, 1087 to 1087 and 379 to 379, at 1152px
+and 400px, across 7→14 and 14→90.
+
+Deliberately not applied to `<Pager>` or to the `<DateNav>` arrows. Those
+change what the whole page is about, and landing at the top of the new content
+is the right behaviour there. The rule is narrower than "links should not
+scroll": **a control that changes only what sits beside it should not move the
+page.**
