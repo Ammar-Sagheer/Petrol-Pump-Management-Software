@@ -144,7 +144,12 @@ export const GUIDE = {
         {
           icon: 'customers',
           name: 'Customers',
-          when: 'When someone pays off their account. Open the customer, record the payment, and their balance comes down. Their full history is on the same screen. A name added by mistake can be taken off with Remove — the owner only, and only once the account is settled. Removed names sit in a list underneath and can be brought back; one that never actually took fuel can be deleted for good from there by typing its name.',
+          when: 'When someone pays off their account. Open the customer, record the payment, and their balance comes down. Their full history is on the same screen. Add a new name with “New customer” — and if they already owe money from the old register, or have paid ahead, enter that on the same form rather than coming back later.',
+        },
+        {
+          icon: 'pencil',
+          name: 'Fixing a customer',
+          when: 'Owner only, and rare. “Edit details” corrects a name, phone, vehicle or credit limit and never touches what they owe. “Make a manual adjustment” is for the balance itself: say whether they owe MORE or LESS, and the app shows the balance that would result before you save — read that line, it is what catches a wrong choice. “Remove” takes a name off the list once the account is settled; removed names sit underneath and can be brought back, or deleted for good if they never took fuel.',
         },
         {
           icon: 'banking',
@@ -177,6 +182,7 @@ export const GUIDE = {
         'Loose oil must have a selling rate before it can be sold. Without one there is no way to tell how much oil a rupee figure is.',
         'A customer still carrying a balance cannot be removed — in either direction, whether they owe the pump or the pump owes them. Settle the account first, or the money would quietly leave the books.',
         'A customer who has ever taken fuel or oil on credit cannot be deleted for good, only removed from the list. Their slips belong to days already counted, so deleting them would change a month that has been reported.',
+        'Customer balances are kept in whole rupees, because there is no coin below one. A credit slip is rounded to the rupee when it is recorded, so a balance can always be paid off exactly.',
       ],
     },
 
@@ -327,7 +333,12 @@ export const GUIDE = {
         {
           icon: 'customers',
           name: 'گاہک',
-          when: 'جب کوئی اپنا ادھار چکائے۔ گاہک کھولیں، ادائیگی درج کریں، بقایا کم ہو جائے گا۔ اُس کا پورا حساب اِسی اسکرین پر موجود ہے۔ غلطی سے لکھا گیا نام «ہٹائیں» سے فہرست سے نکالا جا سکتا ہے — یہ صرف مالک کر سکتا ہے، اور تبھی جب حساب برابر ہو چکا ہو۔ ہٹائے گئے نام نیچے ایک الگ فہرست میں رہتے ہیں اور واپس لائے جا سکتے ہیں؛ جس نام پر کبھی تیل لیا ہی نہ گیا ہو، اُسے وہیں سے نام لکھ کر ہمیشہ کے لیے مٹایا جا سکتا ہے۔',
+          when: 'جب کوئی اپنا ادھار چکائے۔ گاہک کھولیں، ادائیگی درج کریں، بقایا کم ہو جائے گا۔ اُس کا پورا حساب اِسی اسکرین پر موجود ہے۔ نیا نام «نیا گاہک» سے شامل کریں — اور اگر پرانے رجسٹر کے مطابق اُس پر پہلے سے کچھ واجب ہے، یا اُس نے پیشگی رقم دے رکھی ہے، تو وہ بھی اِسی فارم میں لکھ دیں، بعد میں آنے کی ضرورت نہیں۔',
+        },
+        {
+          icon: 'pencil',
+          name: 'گاہک کی درستی',
+          when: 'صرف مالک کے لیے، اور کبھی کبھار۔ «تفصیل بدلیں» سے نام، فون، گاڑی یا ادھار کی حد درست ہوتی ہے، بقایا رقم پر کوئی اثر نہیں پڑتا۔ بقایا خود درست کرنا ہو تو «حساب میں ردوبدل»: بتائیں کہ واجب رقم بڑھے گی یا کم ہوگی، اور محفوظ کرنے سے پہلے ایپ دکھا دیتی ہے کہ نتیجہ کیا بقایا بنے گا — وہی سطر پڑھ لیں، غلط انتخاب اِسی سے پکڑا جاتا ہے۔ «ہٹائیں» سے نام فہرست سے نکل جاتا ہے، بشرطیکہ حساب برابر ہو؛ ہٹائے گئے نام نیچے رہتے ہیں اور واپس لائے جا سکتے ہیں، یا اگر اُن پر کبھی تیل لیا ہی نہ گیا ہو تو ہمیشہ کے لیے مٹائے جا سکتے ہیں۔',
         },
         {
           icon: 'banking',
@@ -360,6 +371,7 @@ export const GUIDE = {
         'کھلا آئل بیچنے سے پہلے اُس کا فی لٹر ریٹ درج ہونا ضروری ہے۔ ریٹ کے بغیر یہ معلوم نہیں ہو سکتا کہ اِتنے روپے کا آئل کتنا بنتا ہے۔',
         'جس گاہک کا حساب برابر نہ ہو، اُسے فہرست سے نہیں ہٹایا جا سکتا — چاہے اُس نے دینا ہو یا پمپ نے۔ پہلے حساب برابر کریں، ورنہ رقم خاموشی سے کتاب سے نکل جائے گی۔',
         'جس گاہک نے کبھی ادھار پر تیل یا آئل لیا ہو، اُسے ہمیشہ کے لیے نہیں مٹایا جا سکتا، صرف فہرست سے ہٹایا جا سکتا ہے۔ اُس کی پرچیاں اُن دنوں کا حصہ ہیں جو پہلے ہی حساب میں شامل ہو چکے، اور مٹانے سے وہ مہینہ بدل جائے گا جس کی رپورٹ بن چکی ہے۔',
+        'گاہک کا حساب پورے روپوں میں رکھا جاتا ہے، کیونکہ ایک روپے سے چھوٹا سکہ ہوتا ہی نہیں۔ ادھار کی پرچی درج ہوتے وقت روپے تک گول کر دی جاتی ہے، تاکہ بقایا ہمیشہ پورا چکایا جا سکے۔',
       ],
     },
 

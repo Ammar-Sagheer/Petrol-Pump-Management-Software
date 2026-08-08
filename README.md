@@ -281,6 +281,49 @@ the Next.js private-folder convention, which keeps them out of routing.
 
 ---
 
+## If you are porting this off Supabase
+
+Written for a session asked to build an offline or desktop version, because
+the single most misleading thing about this codebase is how little of the
+important logic is in the JavaScript.
+
+**The database is not a passive store.** Thirty-four migrations of triggers,
+check constraints and RPCs hold the rules that make the books trustworthy —
+balanced days, an append-only ledger, no two readings covering the same
+litres, stock recalculated from history rather than incremented, no account
+going below zero. Swap Postgres for SQLite and **all of it is gone unless it
+is rebuilt**, and nothing in the UI will complain, because the UI check was
+only ever the courtesy. The list to work through is "What the database will
+not let you do" above; the files are in `supabase/migrations/`.
+
+**What is genuinely Supabase-shaped**, and would need replacing rather than
+porting:
+
+- `app/_lib/supabase-server.js` / `supabase-auth.js` / `supabase.js` — clients.
+- `proxy.js` — session refresh and the signed-in gate.
+- Every `.rpc(...)` call in `app/_lib/data-service.js`. These are not
+  convenience wrappers; the aggregation happens in Postgres deliberately, so
+  the dashboard and the monthly report cannot arrive at different answers.
+- **RLS is the real access control.** `requireRole()` and `requirePageRole()`
+  are defence in depth, not the fence. A single-user desktop build may not
+  need RLS at all, but that is a decision to make on purpose, not by
+  forgetting.
+
+**What ports unchanged**: everything in `app/_components`, the formatting and
+date helpers, `guide-content.js`, and the Excel export (`excel-report.js` plus
+`report-template.xlsx`), which is pure XML manipulation with no server
+dependency.
+
+**Two behaviours worth carrying over deliberately**, because they were both
+arrived at the hard way and are documented in `docs/CHANGELOG.md`: the
+whole-rupee ledger with two-decimal meter arithmetic, and the `Asia/Karachi`
+business day. Both caused real, quiet wrongness before they were fixed.
+
+Server Actions and `revalidatePath` assume a server. An Electron build can
+keep them by running Next locally, or replace them with IPC — but if the
+caching model changes, re-read the prefetch/staleness measurements in the
+changelog before assuming a cache is safe.
+
 ## Database migrations
 
 Applied in order:
