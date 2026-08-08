@@ -1186,3 +1186,58 @@ round trip was only expensive *because* of the region; once the function sits
 beside the database it costs about 2ms. Trading immediate lockout of a
 deactivated staff login for 2ms is a bad deal, and it would have stayed in the
 codebase long after the reason for it disappeared. Not done.
+
+## Opening balances, and saying which way the money goes
+
+Two requests from the owner, and the second is the one that was quietly
+dangerous.
+
+### A customer can now be created with the balance they arrive with
+
+Almost nobody typed into this app is a new customer — they came out of a paper
+register, and plenty already owe money on the day the name is entered. The only
+route before was: create the customer, then remember to open their page and
+post a manual adjustment. The second half is the half that gets forgotten, and
+an account silently starting at zero when the man owes Rs 40,000 is a loss
+nobody notices until he stops paying.
+
+The New customer form now asks, with "Nothing owed — starting fresh" as the
+default so the ordinary case is still one tap.
+
+**Written in one transaction** (`create_customer_with_opening`, migration 034)
+rather than two inserts from the action, because two inserts can leave the
+customer created and the balance missing — which is exactly the silent zero the
+field exists to prevent. The amount is always positive and a separate direction
+says which way it goes; a signed figure would let "-500" and "they owe us"
+disagree, with nothing to settle the argument.
+
+### "Increases what they owe" was unreadable, and getting it wrong is silent
+
+The manual adjustment offered a dropdown reading *Increases what they owe* and
+*Reduces what they owe*. The owner could not tell them apart at a glance — two
+long phrases differing by one word in the middle, both starting the same shape.
+
+This is the worst place in the app for an ambiguous control. Picking the wrong
+direction does not fail: both are legal, no constraint can catch it, and the
+ledger is append-only, so the mistake is permanent and has to be corrected with
+a second entry. The only defence is not making it in the first place.
+
+Two changes, and the second is the one that actually works:
+
+- **Cards in yard language, shared between both forms.** `BalanceDirection`
+  gives "They owe more" / "They owe less", each with a line saying *when* to use
+  it — the situation is easier to recognise than the arithmetic. Shared so the
+  same two ideas are never described in two vocabularies, which is how the
+  confusion started.
+- **The resulting balance, shown before saving.**
+
+      Rs -4,999 → Rs -9,998
+      The pump would owe them Rs 9,998 after this.
+
+  A label can be misread. A figure going from 4,999 to 9,998 when you meant to
+  clear the account cannot. Rendered both directions against a customer owing
+  Rs 3,000 and one Rs 4,999 in credit, at 1152 and 400px.
+
+The general rule is now in `docs/UI_CONVENTIONS.md`: **any control where both
+choices are valid and only the operator knows which is right should show its
+consequence before it is committed.**

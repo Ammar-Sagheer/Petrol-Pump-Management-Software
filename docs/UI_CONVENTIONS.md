@@ -86,10 +86,11 @@ several look simplifiable and were already tried that way once.
 
   **And watch for negative zero in output.** `Intl` formats −0.28 as the string
   `"-0"`, so a customer a few paisa the wrong side of zero had an Owes column
-  reading "Rs -0". `formatPKR` collapses it. `format-helpers.js` exists for the same reason
-  `date-helpers.js` does: `helpers.js` reads request cookies and so cannot
-  enter a client bundle, which previously left client components formatting
-  inline and drifting. Server code imports both through `helpers.js`.
+  reading "Rs -0". `formatPKR` collapses it.
+- **`format-helpers.js` exists for the same reason `date-helpers.js` does**:
+  `helpers.js` reads request cookies and so cannot enter a client bundle, which
+  previously left client components formatting inline and drifting. Server code
+  imports both through `helpers.js`.
 - `<Spinner>` (`app/_components/ui/Spinner.js`) — the shared pending
   indicator. `border-current` means it inherits the colour of whatever it
   sits in, so there is no per-context variant. Used by `PendingLink` and by
@@ -474,6 +475,38 @@ third should copy it rather than invent another:
 - A dead pager button is a `<span>`, not a link styled to look disabled — a
   disabled-looking link is still focusable and still navigates. This now lives
   inside `<Pager>`; do not hand-roll it again.
+
+## Moving money by hand: say which way, then show the result
+
+Anywhere the owner moves a balance by hand — the manual adjustment, a new
+customer's opening balance — two things are required, and the second matters
+more than the first.
+
+**Name the direction in yard language, not bookkeeping.** The original control
+was a dropdown reading "Increases what they owe" / "Reduces what they owe", and
+the owner could not tell them apart: two long phrases differing by one word in
+the middle. Debit and credit would have been worse. `BalanceDirection`
+(`app/_components/admin/BalanceDirection.js`) is the shared control, so the
+same two ideas are never described in two vocabularies:
+
+    owes       they owe the pump MORE   (a debit)
+    in_credit  they owe the pump LESS   (a credit)
+
+Each card carries a second line saying *when* to use it, because the situation
+is easier to recognise than the arithmetic.
+
+**Then show the balance the choice would produce.** This is the part that
+actually prevents the mistake:
+
+    Rs -4,999 → Rs -9,998
+    The pump would owe them Rs 9,998 after this.
+
+Picking the wrong direction does not fail — it silently moves a real balance
+the wrong way, and no constraint can catch it because both directions are
+legal. A label can be misread; a figure going from 4,999 to 9,998 when you
+meant to clear an account cannot. **Any control where both choices are valid
+and only the operator knows which is right should show its consequence before
+it is committed.**
 
 ## "Remove" means delete-or-retire, and the database decides
 

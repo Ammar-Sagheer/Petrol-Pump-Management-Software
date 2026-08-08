@@ -1069,9 +1069,8 @@ export async function createStockCheck(_prevState, formData) {
 // ---------------------------------------------------------------------------
 
 export async function createCustomer(_prevState, formData) {
-  let profile;
   try {
-    profile = await requireRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+    await requireRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
   } catch (error) {
     return fail(error.message);
   }
@@ -1081,26 +1080,50 @@ export async function createCustomer(_prevState, formData) {
   const phone = text(formData, 'phone');
   const creditLimit = number(formData, 'credit_limit');
 
+  /*
+   * Most names typed into this app are not new customers - they came out of a
+   * paper register, and some already owe money while a few have paid ahead.
+   * The opening balance is asked for HERE rather than left as a second trip to
+   * the customer's own page, because the second trip is the one that gets
+   * forgotten - and an account silently starting at zero when the man owes
+   * Rs 40,000 is money leaving the books quietly.
+   *
+   * The amount is always positive and the direction says which way it goes. A
+   * signed figure would allow "-500" and "they owe us" to disagree, with
+   * nothing to settle the argument.
+   */
+  const openingDirection = text(formData, 'opening_direction');
+  const openingAmount = number(formData, 'opening_amount');
+
   if (!name) return fail('Enter the customer’s name.');
   if (creditLimit !== null && creditLimit < 0) return fail('The credit limit cannot be negative.');
+  if (openingAmount !== null && openingAmount < 0) {
+    return fail('Enter the opening balance as a positive figure and pick which way it goes.');
+  }
+
+  const opening = openingDirection ? roundRupees(openingAmount ?? 0) : 0;
+  if (opening > 0 && !['owes', 'in_credit'].includes(openingDirection)) {
+    return fail('Say whether the customer owes this amount or has paid ahead.');
+  }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('customers')
-    .insert({
-      name,
-      vehicle_number: vehicleNumber || null,
-      phone: phone || null,
-      credit_limit: creditLimit,
-      created_by: profile.id,
-    })
-    .select('id')
-    .single();
+
+  // One transaction for the customer and their opening entry - see migration
+  // 034. Two separate inserts could leave the customer created and the balance
+  // missing, which is the silent zero this is meant to prevent.
+  const { data: newId, error } = await supabase.rpc('create_customer_with_opening', {
+    p_name: name,
+    p_vehicle_number: vehicleNumber || null,
+    p_phone: phone || null,
+    p_credit_limit: creditLimit,
+    p_opening_amount: opening,
+    p_opening_direction: opening > 0 ? openingDirection : null,
+  });
 
   if (error) return fail(describe(error, 'Could not create the customer.'));
 
   revalidatePath('/admin/customers');
-  redirect(`/admin/customers/${data.id}`);
+  redirect(`/admin/customers/${newId}`);
 }
 
 /**
