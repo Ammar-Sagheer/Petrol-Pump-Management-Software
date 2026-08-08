@@ -3,6 +3,8 @@
 import { useActionState, useState } from 'react';
 
 import { deleteCustomer, purgeCustomer, setCustomerActive } from '@/app/_lib/actions';
+import IconButton from '@/app/_components/ui/IconButton';
+import SubmitButton from '@/app/_components/ui/SubmitButton';
 
 /**
  * Taking a customer off the list, and putting one back.
@@ -48,13 +50,12 @@ export default function RemoveCustomerButton({ customerId, name, balance }) {
 
   if (!confirming) {
     return (
-      <button
-        type="button"
+      <IconButton
+        name="trash"
+        label={`Remove ${name}`}
+        tone="danger"
         onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-700 hover:underline"
-      >
-        Remove
-      </button>
+      />
     );
   }
 
@@ -81,9 +82,12 @@ export default function RemoveCustomerButton({ customerId, name, balance }) {
       )}
 
       <div className="flex gap-2">
-        <button type="submit" className="btn-danger whitespace-nowrap px-2 py-1 text-xs">
+        <SubmitButton
+          className="btn-danger whitespace-nowrap px-2 py-1 text-xs"
+          pendingLabel="Removing…"
+        >
           Yes, remove
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}
@@ -108,9 +112,12 @@ export function RestoreCustomerButton({ customerId }) {
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="customer_id" value={customerId} />
       <input type="hidden" name="is_active" value="true" />
-      <button type="submit" className="text-xs font-semibold text-brand-700 hover:underline">
+      <SubmitButton
+        className="text-xs font-semibold text-brand-700 hover:underline"
+        pendingLabel="Bringing back…"
+      >
         Bring back
-      </button>
+      </SubmitButton>
       {state?.ok === false ? <span className="text-xs text-red-700">{state.message}</span> : null}
     </form>
   );
@@ -172,13 +179,13 @@ export function PurgeCustomerButton({ customerId, name }) {
       />
 
       <div className="flex gap-2">
-        <button
-          type="submit"
+        <SubmitButton
           disabled={!matches}
           className="btn-danger whitespace-nowrap px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          pendingLabel="Deleting…"
         >
           Delete for good
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => {
