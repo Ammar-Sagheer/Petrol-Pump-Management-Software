@@ -46,28 +46,39 @@ export async function getNozzles() {
 /**
  * The most recent rate changes, for the panel on Settings.
  *
- * Counted in DAYS, not rows. The rate for both fuels usually changes together,
- * so a row limit would cut a day in half and show diesel's new rate without
- * petrol's - the two are read as a pair. This takes the latest `days` distinct
- * dates and returns every row belonging to them.
+ * A ROW CAP THAT CUTS ON A DATE BOUNDARY, never inside one. This was seven
+ * whole days before, because a plain `limit` would show diesel's new rate for
+ * a day and leave petrol's off the bottom, and the two are read as a pair -
+ * the owner checks that both moved. Seven days is fourteen rows though, which
+ * is a scrolling wall in a panel meant to be glanced at; five is the glance.
  *
- * The overfetch is what makes one round trip enough: at two fuels a day, seven
- * days is fourteen rows, and 60 leaves room for a day that was corrected
- * several times over without going back to the database to find out.
+ * So: keep rows until there are `maxRows`, then keep going only while the date
+ * has not changed. The panel shows five or six rows rather than exactly five,
+ * and a day is never half-told. "View all rates" holds the rest.
+ *
+ * The overfetch is what makes one round trip enough: 60 rows leaves room for a
+ * day that was corrected several times over without a second query.
  */
-export async function getRecentFuelPrices(days = 7) {
+export async function getRecentFuelPrices(maxRows = 5) {
   const supabase = await createClient();
   const rows = unwrap(
     await supabase
       .from('fuel_prices')
       .select('*')
       .order('effective_from', { ascending: false })
+      // Matches the full history page, so a day's pair always reads in the
+      // same order in both places rather than in whatever order it was saved.
+      .order('fuel_type')
       .limit(60),
     'the fuel prices',
   );
 
-  const recentDates = [...new Set(rows.map((row) => row.effective_from))].slice(0, days);
-  return rows.filter((row) => recentDates.includes(row.effective_from));
+  const kept = [];
+  for (const row of rows) {
+    if (kept.length >= maxRows && row.effective_from !== kept.at(-1).effective_from) break;
+    kept.push(row);
+  }
+  return kept;
 }
 
 /**

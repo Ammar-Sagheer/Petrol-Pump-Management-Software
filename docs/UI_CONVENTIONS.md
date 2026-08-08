@@ -532,9 +532,17 @@ A table that grows without bound does not belong sitting open on a page that
 is read for something else. Two of them now follow the same shape, and a
 third should copy it rather than invent another:
 
-- The page it lives on keeps a **bounded, recent slice** — seven days of fuel
-  rates on Settings, the chosen month of daily sales on Reports — and links
-  to the full history.
+- The page it lives on keeps a **bounded, recent slice** — five rate changes
+  on Settings, the chosen month of daily sales on Reports — and links to the
+  full history.
+- **A preview is a glance, so size it to fit without scrolling.** The Settings
+  slice was seven whole *days* of rates, chosen so a day's petrol and diesel
+  could not be split; at two fuels a day that is fourteen rows, and the panel
+  came back with its own scrollbar — a small scrolling table inside a page you
+  scroll, which is the worst of both. The cap is now five rows, extended
+  forward to the end of whatever date the fifth row falls on (so it shows five
+  or six, never half a day). Keep the pairing rule; get the height from the
+  cap, not from the calendar.
 - The history is its own route with a pager: `/admin/settings/fuel-prices`
   and `/admin/reports/daily`. The page number is a **query string**, so Back
   works through it and any page can be linked to or reloaded.

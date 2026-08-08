@@ -17,10 +17,13 @@ import PendingLink from '@/app/_components/ui/PendingLink';
 
 export const metadata = { title: 'Settings' };
 
-/* Seven days of changes on this page, the rest behind "View all". The rate
-   moves most days, so left unbounded this table grew by two rows a day and
-   turned the pricing panel into a wall nobody read. */
-const RECENT_DAYS = 7;
+/* Five changes on this page, the rest behind "View all". The rate moves most
+   days, so left unbounded this table grew by two rows a day and turned the
+   pricing panel into a wall nobody read. Seven whole days was the first cut at
+   that and still ran to fourteen rows and a scrollbar; five rows is a glance.
+   getRecentFuelPrices() rounds up to the end of a date rather than splitting a
+   day's petrol and diesel, so this can show six. */
+const RECENT_ROWS = 5;
 
 export default async function SettingsPage() {
   await requirePageRole(ROLES.SUPER_ADMIN);
@@ -28,7 +31,7 @@ export default async function SettingsPage() {
   const [tanks, nozzles, prices, rates] = await Promise.all([
     getTanks(),
     getNozzles(),
-    getRecentFuelPrices(RECENT_DAYS),
+    getRecentFuelPrices(RECENT_ROWS),
     getCurrentRates(),
   ]);
 
@@ -71,9 +74,7 @@ export default async function SettingsPage() {
           {prices.length > 0 ? (
             <>
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm text-ink-600">
-                  Changes over the last {RECENT_DAYS} days
-                </p>
+                <p className="text-sm text-ink-600">The most recent changes</p>
                 <PendingLink
                   href="/admin/settings/fuel-prices"
                   className="text-sm font-semibold text-brand-700 hover:underline"
