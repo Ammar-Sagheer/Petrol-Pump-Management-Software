@@ -137,7 +137,7 @@ export default function LubricantSaleForm({ lubricants, customers, date, dateLab
         <span aria-hidden="true" className="text-base leading-none">
           +
         </span>
-        Record a sale
+        Record a lubricant sale
       </button>
 
       <Dialog

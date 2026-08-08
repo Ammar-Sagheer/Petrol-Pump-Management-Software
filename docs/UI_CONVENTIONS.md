@@ -23,6 +23,12 @@ several look simplifiable and were already tried that way once.
 ## Buttons
 
 - `.btn-primary` — the one confirming/positive action per view (green).
+  **One exception, deliberate**: the Lubricants header carries *Record a
+  lubricant sale* and *Record a loose oil sale* side by side, both primary.
+  They are peers — two kinds of the same job, and the drum is the more
+  frequent of the two — so demoting either would point the reader at the
+  wrong one. Two primaries are only right when neither action is subordinate;
+  if one is, it is `.btn-secondary`.
 - `.btn-secondary` — everything else that isn't primary or destructive
   (white, ink border).
 - `.btn-danger` — destructive or sign-out-style actions (white, red border
@@ -126,6 +132,18 @@ every dialog form a Cancel button; it is the visible way out.
 The one intentional exception is the nav drawer in `AdminSidebar.js`, which
 *does* close on its backdrop — it holds no input, and tap-outside-to-dismiss
 is what people expect of a menu.
+
+**A form that arrives already scrolled hides its own Save button**, so a
+dialog form should fit a short laptop — 1024×768 is the shortest worth
+checking, and the dialog caps itself at `90dvh`. `CustomerForm` did not: the
+opening-balance cards are tall, and stacked in the default 32rem width it ran
+195px past the bottom. Shrinking the cards would have undone the readability
+they exist for, so it uses `size="lg"` with a two-column grid instead — the
+contact fields on the left, the opening balance on the right. Reach for the
+width before shrinking the content.
+
+Phones are exempt: there the dialog is a full-screen sheet, the columns stack,
+and scrolling a form is ordinary.
 
 **When to put a form behind a dialog**: when the thing it creates is set up
 rarely (an account, a staff login, a tank, a delivery) rather than read or

@@ -245,7 +245,7 @@ app/
       loose/               the drum, sold by the rupee
     purchases/             fuel deliveries and lubricant restocks
     stock-checks/          dip readings, gain/loss, and lubricant stock
-    customers/             list, new, and [id] detail with ledger
+    customers/             list and [id] detail with ledger; adding is a dialog
     banking/               the owner's bank accounts - owner only
     expenses/              what the pump spends, by month - owner only
     reports/               monthly profit, charts, Excel export
