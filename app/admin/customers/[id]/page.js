@@ -151,7 +151,7 @@ export default async function CustomerDetailPage({ params, searchParams }) {
           <PaymentForm customerId={customer.id} balance={balance} />
 
           {profile.role === ROLES.SUPER_ADMIN ? (
-            <LedgerAdjustmentForm customerId={customer.id} />
+            <LedgerAdjustmentForm customerId={customer.id} balance={balance} />
           ) : null}
 
           <p className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-xs text-ink-600">

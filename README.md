@@ -183,6 +183,14 @@ amount of application code can get around them.
   with nothing on screen to say it had happened. Settle the account first. A
   customer who never traded is deleted outright; one with history is retired,
   and can be brought back from the **Removed** list.
+- **A customer's opening balance is created with them, in one transaction.**
+  Most names typed into this app came out of a paper register and already owe
+  money, so the New customer form asks. The customer row and the opening ledger
+  entry are written by one function (`create_customer_with_opening`) because
+  two separate inserts could leave the customer created and the balance
+  missing — which is the silent zero the field exists to prevent. The amount is
+  always positive and a direction says which way it goes; a signed figure would
+  let "-500" and "they owe us" disagree with nothing to settle it.
 - **A customer can only be deleted *for good* if they never actually traded.**
   From the **Removed** list, with the name typed to confirm. Allowed when the
   account is settled and its whole footprint is entries the owner typed
@@ -312,6 +320,7 @@ Applied in order:
 | `031_remove_a_customer.sql` | Removing a customer: delete if never traded, retire if not, never while owing |
 | `032_ledger_in_whole_rupees.sql` | The removal guard rounds to the rupee, matching the ledger |
 | `033_purge_a_mistyped_customer.sql` | Deleting a customer for good, but only one that never traded |
+| `034_customer_opening_balance.sql` | Creating a customer and the balance they arrive with, in one transaction |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

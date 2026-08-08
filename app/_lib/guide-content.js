@@ -77,7 +77,7 @@ export const GUIDE = {
         },
         {
           title: 'Credit customers',
-          body: 'Customers → Add customer. Anyone who takes fuel on credit needs to be here before their first slip can be recorded. A credit limit is optional.',
+          body: 'Customers → Add customer. Anyone who takes fuel on credit needs to be here before their first slip can be recorded. A credit limit is optional. If they already owe money from the old register — or have paid ahead — enter that on the same form under “Do they already owe anything?”, and the app shows you the balance they will start on before you save.',
         },
         {
           title: 'Lubricants',
@@ -260,7 +260,7 @@ export const GUIDE = {
         },
         {
           title: 'ادھار والے گاہک',
-          body: 'گاہک ← نیا گاہک۔ جو بھی ادھار پر تیل لیتا ہے، اُس کی پہلی پرچی درج کرنے سے پہلے اُس کا نام یہاں ہونا ضروری ہے۔ ادھار کی حد لگانا اختیاری ہے۔',
+          body: 'گاہک ← نیا گاہک۔ جو بھی ادھار پر تیل لیتا ہے، اُس کی پہلی پرچی درج کرنے سے پہلے اُس کا نام یہاں ہونا ضروری ہے۔ ادھار کی حد لگانا اختیاری ہے۔ اگر پرانے رجسٹر کے مطابق اُس پر پہلے سے کچھ واجب الادا ہے — یا اُس نے پیشگی رقم دے رکھی ہے — تو وہ بھی اِسی فارم میں «کیا اُس پر پہلے سے کچھ واجب ہے؟» کے نیچے لکھ دیں۔ محفوظ کرنے سے پہلے ایپ بتا دیتی ہے کہ گاہک کا حساب کس رقم سے شروع ہوگا۔',
         },
         {
           title: 'آئل (لبریکنٹ)',
