@@ -441,6 +441,39 @@ third should copy it rather than invent another:
   disabled-looking link is still focusable and still navigates. This now lives
   inside `<Pager>`; do not hand-roll it again.
 
+## "Remove" means delete-or-retire, and the database decides
+
+Two screens take something off a list — a lubricant, and a customer — and both
+work the same way, so a third should copy it rather than invent a variant.
+
+The button says **Remove**, never "Delete", because only one of the two
+outcomes is actually a delete:
+
+- **Never traded** — a typo, or an account opened and never used. Nothing to
+  preserve, so the row goes.
+- **Has history** — deleting would tear a hole in months already reported and
+  exported. The row is *retired*: `is_active = false`, out of the working list
+  and out of every dropdown, with its history left intact.
+
+The caller cannot tell which applies from the row in front of them, so the RPC
+decides and **returns which one happened** (`{ name, removed: true|false }`)
+and the confirmation says so afterwards. A button that promised "Delete" would
+be lying half the time.
+
+Two things this pattern always needs:
+
+- **A way back.** A retired row must stay findable and restorable, or "removed"
+  is indistinguishable from "lost" — a *Removed* section under the main table
+  with a **Bring back** button. `LubricantManager` and the Customers page are
+  the two examples.
+- **A guard on anything retiring would hide.** A retired customer drops out of
+  `get_customer_balances`, which is what the Customers page totals "still
+  outstanding" from — so removing someone who owes Rs 50,000 would quietly drop
+  Rs 50,000 from what the pump believes it is owed. Removal is therefore
+  refused while the balance is non-zero, **in both directions**: money the
+  customer owes, and money the pump owes them. Before adding this pattern to a
+  third screen, ask what disappears from a total when the row leaves the list.
+
 ## Icons
 
 - `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, drawn inline

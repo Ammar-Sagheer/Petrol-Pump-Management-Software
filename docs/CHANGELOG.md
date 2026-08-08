@@ -894,3 +894,53 @@ scroll, the number may not break.
 The workbook was built from a fixture and unzipped to confirm the Kind column
 is populated, the Summary carries the loose split, and the three-decimal litres
 survive into the cells.
+
+## Removing a customer
+
+Asked for after a name was added wrongly and there was no way to take it off.
+
+Built as the same **delete-or-retire** shape as `delete_lubricant`: an account
+that never traded is deleted outright, one with credit or payments behind it is
+retired, and the database decides which because the row on screen does not say.
+The button is therefore **Remove**, not Delete — "Delete" would be a lie half
+the time — and the confirmation reports what actually happened.
+
+**The guard that this pattern needed and the lubricant one did not.** A retired
+customer drops out of `get_customer_balances`, which is exactly what the
+Customers page totals "total outstanding" from. Retire someone owing Rs 50,000
+and the pump's own record of what it is owed falls by Rs 50,000 with nothing on
+screen to explain it. So removal is refused while the balance is non-zero — and
+in **both** directions, not just a debt:
+
+- they owe the pump → removing writes the debt off by accident
+- the pump owes them → they have paid ahead, or a payment landed on the wrong
+  name. Hiding that loses money belonging to a customer, which is worse
+
+The exception names the customer, the figure, and the next step, and it reaches
+the owner more or less verbatim. The row also states the same thing before the
+click, as a courtesy — the database is still the rule.
+
+A **Removed** section under the main table lists retired accounts with a
+**Bring back** button, so "removed" is never indistinguishable from "lost".
+Both are owner-only; staff do not fetch the retired list at all.
+
+Tested against the live database inside a block that deliberately aborts, so
+all three attempts rolled back:
+
+    overpaid account (pump owes Rs 4,999.72)  >> BLOCKED, naming the figure
+    credits but no debits (Rs 59,186)          >> BLOCKED, naming the figure
+    never traded                               >> deleted, removed: true
+
+The role gate had to be stubbed for that run or `is_super_admin()` would have
+masked every result; the stub is DDL and rolled back with everything else,
+which was checked afterwards rather than assumed.
+
+### Guide
+
+Both languages gained the loose oil drum (setup, and the rupees-first daily
+step), the new refusals — enter days oldest first, loose oil needs a rate, a
+customer with a balance cannot be removed — and a line about Remove under
+Customers. The two languages were diffed by shape afterwards, not by eye: same
+number of stages, setup steps, daily steps, occasional items, rules and role
+rows, and the same icon keys in the same order. That check is the point of
+keeping the guide as data.

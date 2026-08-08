@@ -1,16 +1,26 @@
 import Link from 'next/link';
 
 import { requirePageRole, ROLES, formatPKR } from '@/app/_lib/helpers';
-import { getCustomerBalances } from '@/app/_lib/data-service';
+import { getCustomerBalances, getRetiredCustomers } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import EmptyState from '@/app/_components/ui/EmptyState';
+import RemoveCustomerButton, {
+  RestoreCustomerButton,
+} from '@/app/_components/admin/RemoveCustomerButton';
 
 export const metadata = { title: 'Customers' };
 
 export default async function CustomersPage() {
-  await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
-  const customers = await getCustomerBalances();
+  const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  const isOwner = profile.role === ROLES.SUPER_ADMIN;
+
+  // Removed customers are only fetched for the owner, who is the only one who
+  // can act on them - staff would get a list they cannot use.
+  const [customers, retired] = await Promise.all([
+    getCustomerBalances(),
+    isOwner ? getRetiredCustomers() : Promise.resolve([]),
+  ]);
 
   const totalOwed = customers.reduce(
     (total, customer) => total + Math.max(0, Number(customer.balance)),
@@ -62,6 +72,11 @@ export default async function CustomersPage() {
                   <th className="th">Vehicle</th>
                   <th className="th text-right">Credit limit</th>
                   <th className="th text-right">Owes</th>
+                  {isOwner ? (
+                    <th className="th">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100">
@@ -100,6 +115,15 @@ export default async function CustomersPage() {
                       >
                         {formatPKR(balance)}
                       </td>
+                      {isOwner ? (
+                        <td className="td">
+                          <RemoveCustomerButton
+                            customerId={customer.customer_id}
+                            name={customer.name}
+                            balance={balance}
+                          />
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
@@ -108,6 +132,52 @@ export default async function CustomersPage() {
           </div>
         </>
       )}
+
+      {/* Removed accounts, and the way back. Without this, "removed" would be
+          indistinguishable from "lost" - and one of the two things Remove can
+          do is only a hide, so the owner has to be able to see what he hid. */}
+      {retired.length > 0 ? (
+        <>
+          <h2 className="section-heading">Removed</h2>
+          <p className="mb-3 text-sm text-ink-600">
+            Off the customer list and off the credit-slip dropdown. Everything they ever took or
+            paid still counts towards the months it belongs to.
+          </p>
+          <div className="card table-scroll">
+            <table className="w-full min-w-[36rem]">
+              <thead className="border-b border-ink-200 bg-ink-50">
+                <tr>
+                  <th className="th">Customer</th>
+                  <th className="th">Vehicle</th>
+                  <th className="th text-right">Owes</th>
+                  <th className="th">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {retired.map((customer) => (
+                  <tr key={customer.customer_id}>
+                    <td className="td">
+                      <Link
+                        href={`/admin/customers/${customer.customer_id}`}
+                        className="font-semibold text-ink-600 hover:underline"
+                      >
+                        {customer.name}
+                      </Link>
+                    </td>
+                    <td className="td text-ink-600">{customer.vehicle_number ?? '—'}</td>
+                    <td className="td-num text-ink-600">{formatPKR(customer.balance)}</td>
+                    <td className="td">
+                      <RestoreCustomerButton customerId={customer.customer_id} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : null}
     </>
   );
 }

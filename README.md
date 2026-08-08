@@ -169,6 +169,12 @@ amount of application code can get around them.
 - **A loose oil product must have a selling rate.** The rate is the only thing
   turning "Rs 20 of oil" into litres off the drum, so without one a sale could
   take money and no stock, and the drum would read full for ever.
+- **A customer carrying a balance cannot be removed** — in either direction,
+  whether they owe the pump or the pump owes them. A removed customer drops out
+  of the outstanding total, so this would write a debt off (or lose a credit)
+  with nothing on screen to say it had happened. Settle the account first. A
+  customer who never traded is deleted outright; one with history is retired,
+  and can be brought back from the **Removed** list.
 - **Tank and lubricant stock are recalculated from history**, never incremented,
   so the cached figures cannot drift away from the purchases, sales and dips
   that produced them.
@@ -286,6 +292,7 @@ Applied in order:
 | `028_loose_oil.sql` | Loose oil: a drum sold by the rupee, and litres to three decimals |
 | `029_lubricant_trend.sql` | A day-by-day series for the shelf and the drum, for the dashboard chart |
 | `030_loose_oil_in_the_export.sql` | The workbook's loose oil split and its Kind column |
+| `031_remove_a_customer.sql` | Removing a customer: delete if never traded, retire if not, never while owing |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

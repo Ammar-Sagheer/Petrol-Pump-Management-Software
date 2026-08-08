@@ -1081,6 +1081,76 @@ export async function createCustomer(_prevState, formData) {
 }
 
 /**
+ * Takes a customer off the list - a name typed wrong, a duplicate, or an
+ * account that has genuinely finished.
+ *
+ * Owner only, and the database decides which of the two possible meanings
+ * applies: an account that never traded is deleted outright, one with history
+ * is retired so the months it appears in keep adding up. It refuses either way
+ * while the balance is not zero, because a retired customer drops out of
+ * "total outstanding" and a debt must not vanish quietly. The message says
+ * which happened, and names the figure when it refuses - see delete_customer
+ * in migration 031.
+ */
+export async function deleteCustomer(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const customerId = text(formData, 'customer_id');
+  if (!customerId) return fail('Missing the customer.');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('delete_customer', {
+    p_customer_id: customerId,
+  });
+
+  if (error) return fail(describe(error, 'Could not remove the customer.'));
+
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
+
+  const name = data?.name ?? 'The customer';
+
+  if (data?.removed) {
+    return ok(`${name} removed. They had never taken anything on credit.`);
+  }
+
+  return ok(
+    `${name} removed from the list. Their past credit and payments stay on the ` +
+      'books, and they can be brought back at any time.',
+  );
+}
+
+/** Puts a removed customer back on the list. */
+export async function setCustomerActive(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const customerId = text(formData, 'customer_id');
+  const isActive = text(formData, 'is_active') === 'true';
+
+  if (!customerId) return fail('Missing the customer.');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('customers')
+    .update({ is_active: isActive })
+    .eq('id', customerId);
+
+  if (error) return fail(describe(error, 'Could not update the customer.'));
+
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
+  return ok(isActive ? 'Back on the customer list.' : 'Removed from the list.');
+}
+
+/**
  * Records a payment from a customer, reducing what they owe.
  *
  * This is an ordinary append to the ledger. Fuel taken on credit gets there by

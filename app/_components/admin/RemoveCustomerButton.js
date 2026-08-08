@@ -1,0 +1,103 @@
+'use client';
+
+import { useActionState, useState } from 'react';
+
+import { deleteCustomer, setCustomerActive } from '@/app/_lib/actions';
+
+/**
+ * Taking a customer off the list, and putting one back.
+ *
+ * Owner only, and it confirms first — the same treatment as removing a
+ * lubricant, for the same reason: what happens next depends on history the
+ * person clicking cannot see from the row.
+ *
+ * THE WORD IS "REMOVE", NOT "DELETE". Only an account that never traded is
+ * actually deleted; one with credit or payments behind it is retired, because
+ * deleting it would tear a hole in months already reported and exported. The
+ * database decides which, so the button cannot promise either — "Remove" is
+ * true of both, and the confirmation says what will really happen.
+ *
+ * The refusal case is the one worth designing for: an account with a balance
+ * still on it cannot be removed at all, and the message naming the figure
+ * comes straight from the database. So the error is given room to wrap rather
+ * than being squeezed onto the end of the row.
+ */
+export default function RemoveCustomerButton({ customerId, name, balance }) {
+  const [confirming, setConfirming] = useState(false);
+  const [state, formAction] = useActionState(deleteCustomer, null);
+
+  // The same test the database applies, so the row can explain itself before
+  // the click rather than after it. The database is still the rule - this is
+  // the courtesy.
+  const owes = Number(balance ?? 0);
+  const notSquare = Math.abs(owes) >= 0.01;
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="text-xs font-semibold text-red-700 hover:underline"
+      >
+        Remove
+      </button>
+    );
+  }
+
+  return (
+    /*
+     * A minimum width, so the confirmation gets a readable measure instead of
+     * being crushed into whatever the last column has left. On a phone that
+     * pushes the table past the screen and it scrolls, which is the trade this
+     * app always makes - the layout gives way, the words do not.
+     */
+    <form action={formAction} className="flex min-w-[14rem] flex-col gap-1.5">
+      <input type="hidden" name="customer_id" value={customerId} />
+
+      {notSquare ? (
+        <p className="text-xs text-amber-900">
+          <span className="font-semibold">This account is not settled.</span> Square it on{' '}
+          {name}’s page first — removing it would take the balance off the books.
+        </p>
+      ) : (
+        <p className="text-xs text-ink-600">
+          Remove <span className="font-semibold">{name}</span>? Anything already on their ledger
+          stays on the books.
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <button type="submit" className="btn-danger whitespace-nowrap px-2 py-1 text-xs">
+          Yes, remove
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="text-xs font-medium text-ink-500 hover:text-ink-800"
+        >
+          Cancel
+        </button>
+      </div>
+
+      {state?.ok === false ? (
+        <span className="block text-xs leading-snug text-red-700">{state.message}</span>
+      ) : null}
+    </form>
+  );
+}
+
+/** Puts a removed customer back on the list. */
+export function RestoreCustomerButton({ customerId }) {
+  const [state, formAction] = useActionState(setCustomerActive, null);
+
+  return (
+    <form action={formAction} className="flex flex-col items-end gap-1">
+      <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="is_active" value="true" />
+      <button type="submit" className="text-xs font-semibold text-brand-700 hover:underline">
+        Bring back
+      </button>
+      {state?.ok === false ? <span className="text-xs text-red-700">{state.message}</span> : null}
+    </form>
+  );
+}

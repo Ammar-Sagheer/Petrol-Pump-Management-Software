@@ -318,6 +318,20 @@ export async function getCustomerBalances() {
   return unwrap(await supabase.rpc('get_customer_balances'), 'the customer balances');
 }
 
+/**
+ * The customers taken off the list.
+ *
+ * get_customer_balances returns only active ones - that is the working list,
+ * and the figure the Customers page totals. This is the other half, so
+ * "removed" never means "lost": a retired account can always be found and
+ * brought back, and its balance comes along so a non-zero one cannot hide
+ * behind is_active.
+ */
+export async function getRetiredCustomers() {
+  const supabase = await createClient();
+  return unwrap(await supabase.rpc('get_retired_customers'), 'the removed customers');
+}
+
 export async function getCustomerStatement(customerId) {
   const supabase = await createClient();
   return unwrap(
