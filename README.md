@@ -251,8 +251,8 @@ app/
     login/                 sign in (no signup)
     page.js                dashboard - owner only
     readings/              the daily entry screen
-    lubricants/            counter sales, and the shelf
-      loose/               the drum, sold by the rupee
+    lubricants/            every oil sale of the day, packed and loose, plus the shelf
+      loose/               redirect only - the drum's old route, kept for old links
     purchases/             fuel deliveries and lubricant restocks
     stock-checks/          dip readings, gain/loss, and lubricant stock
     customers/             list and [id] detail with ledger; adding is a dialog

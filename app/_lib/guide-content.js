@@ -132,8 +132,8 @@ export const GUIDE = {
         },
         {
           title: 'Loose oil, sold by the rupee',
-          where: { icon: 'lubricants', path: 'Lubricants → Loose oil' },
-          body: 'Here you type what the customer PAID — tap Rs 20, Rs 30, Rs 50, or write any amount — and the app works out how much oil that is and takes it off the drum. You never measure the pour. The Lubricants page shows the day’s loose total with a link across, so it is easy to see whether both halves are in.',
+          where: { icon: 'lubricants', path: 'Lubricants → Record a loose oil sale' },
+          body: 'Here you type what the customer PAID — tap Rs 20, Rs 30, Rs 50, or write any amount — and the app works out how much oil that is and takes it off the drum. You never measure the pour. These sit in the same list as the packed sales, marked “loose”, and the buttons above it filter to one kind or the other on a busy day.',
           tip: 'If the drum on the ground empties faster or slower than the app says, the selling rate is the thing to check — the litres are worked out from it.',
         },
       ],
@@ -368,8 +368,8 @@ export const GUIDE = {
         },
         {
           title: 'کھلا آئل، روپوں کے حساب سے',
-          where: { icon: 'lubricants', path: 'لبریکنٹ ← کھلا آئل' },
-          body: 'یہاں آپ وہ رقم لکھتے ہیں جو گاہک نے دی — بیس، تیس یا پچاس روپے پر ٹیپ کریں، یا کوئی بھی رقم لکھ دیں — اور ایپ خود حساب لگا کر اُتنا آئل ڈرم میں سے کم کر دیتی ہے۔ ناپنے کی ضرورت نہیں۔ لبریکنٹ والے صفحے پر دن کا کھلا آئل کا کل بھی نظر آتا ہے اور وہاں سے یہاں آنے کا لنک بھی، تاکہ پتہ چل جائے کہ دونوں حصے درج ہوئے یا نہیں۔',
+          where: { icon: 'lubricants', path: 'لبریکنٹ ← کھلے آئل کی فروخت' },
+          body: 'یہاں آپ وہ رقم لکھتے ہیں جو گاہک نے دی — بیس، تیس یا پچاس روپے پر ٹیپ کریں، یا کوئی بھی رقم لکھ دیں — اور ایپ خود حساب لگا کر اُتنا آئل ڈرم میں سے کم کر دیتی ہے۔ ناپنے کی ضرورت نہیں۔ یہ فروخت ڈبوں والی فروخت کے ساتھ اُسی فہرست میں «کھلا» کے نشان کے ساتھ آتی ہے، اور اوپر والے بٹنوں سے مصروف دن میں صرف ایک قسم دیکھی جا سکتی ہے۔',
           tip: 'اگر ڈرم ایپ کے حساب سے جلدی یا دیر سے خالی ہو رہا ہو تو فروخت کا ریٹ دیکھیں — لٹر اُسی سے نکالے جاتے ہیں۔',
         },
       ],

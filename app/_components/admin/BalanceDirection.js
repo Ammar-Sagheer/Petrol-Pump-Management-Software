@@ -21,6 +21,18 @@
  * The labels do half the work. The other half is the caller showing the
  * RESULTING BALANCE underneath, so the choice can be checked by its effect
  * rather than by reading carefully. See both callers.
+ *
+ * THE URDU WORD IN BRACKETS IS THE PRIMARY LABEL FOR THE PERSON USING THIS,
+ * not a translation of the English one. بنام and جمع are the words a Pakistani
+ * shopkeeper's register has used for a debit and a credit for a century; the
+ * owner has been writing them by hand for years. The English beside them is
+ * the gloss, and it stays because the staff logins may not share the habit.
+ *
+ * It is wrapped in <bdi> deliberately. Urdu is right-to-left, and an unmarked
+ * run of it inside an English sentence lets the bidi algorithm drag the
+ * brackets around it - "(بنام" with the closing paren stranded on the far side
+ * of the line. <bdi> isolates the run so the brackets stay put whatever is
+ * inside them.
  */
 export default function BalanceDirection({ name, value, onChange, options }) {
   return (
@@ -40,7 +52,21 @@ export default function BalanceDirection({ name, value, onChange, options }) {
                 : 'border-ink-300 bg-white text-ink-700 hover:bg-ink-50',
             ].join(' ')}
           >
-            <span className="block text-sm font-semibold">{option.title}</span>
+            <span className="block text-sm font-semibold">
+              {option.title}
+              {option.urdu ? (
+                <>
+                  {' '}
+                  <span className="whitespace-nowrap font-bold">
+                    (
+                    <bdi lang="ur" dir="rtl" className="text-base">
+                      {option.urdu}
+                    </bdi>
+                    )
+                  </span>
+                </>
+              ) : null}
+            </span>
             <span className={`block text-xs ${active ? 'text-brand-800' : 'text-ink-600'}`}>
               {option.detail}
             </span>

@@ -29,6 +29,15 @@ several look simplifiable and were already tried that way once.
   frequent of the two — so demoting either would point the reader at the
   wrong one. Two primaries are only right when neither action is subordinate;
   if one is, it is `.btn-secondary`.
+- **`.btn-primary` carries an invisible 1px border in the fill colour, and it
+  is load-bearing.** `.btn-secondary` and `.btn-danger` have a real border;
+  without a matching one the filled button was 48px against their 50px, so
+  every pair in the app — "Manage lubricants" beside "Record a lubricant sale",
+  every dialog's Save beside Cancel — was two pixels apart and, being centred
+  in a flex row, a pixel off each other's baseline. Too small to look like a
+  bug, big enough to make the row look wrong: the owner reported it as the
+  green ones being "a bit larger". If the fill colour changes, the border
+  changes with it.
 - `.btn-secondary` — everything else that isn't primary or destructive
   (white, ink border).
 - `.btn-danger` — destructive or sign-out-style actions (white, red border
@@ -491,6 +500,63 @@ keep it scannable; copy these before adding prose to it.
 Both languages carry every marker or neither: after any edit, check the shape
 (stages, steps, rules, role rows, and the icon on each) matches between `en`
 and `ur`. Adding a chip to one language only is the easy mistake.
+
+## Splitting a list by route, and when to take it back
+
+The drum's sales had their own page for good reason and it was still wrong.
+Both halves of that are worth keeping in mind, because the reasoning that
+justified the split is the reasoning that now argues against it.
+
+**Why it was split.** A run of rupee-priced pours — twenty rows saying "Loose
+Oil · 0.034 L" — buried the four carton sales that need reading. True, and
+still true.
+
+**Why it came back.** A route split makes the reader decide *where a thing
+lives* before they can look for it, and it means a figure that is one number in
+the owner's head — "what did we take on oil today" — is never on one screen.
+Two pages of totals also have to be reconciled by eye every time.
+
+**What to do instead.** One list, a marker on the rows that differ, and a
+filter above it: `All oil / Packed only / Loose only` as a chip row, defaulting
+to all. The busy-Saturday case that justified the split is one tap away, and
+the ordinary case is right. The old route stays as a `redirect()` to the
+filtered view, because bookmarks and links out in the world do not know it
+moved.
+
+The general rule: **filter a list, do not split it across routes, unless the
+two halves are genuinely different work.** Readings and Lubricants are separate
+pages because a day of fuel is worked out once from six meters and oil is sold
+one tin at a time. Packed and loose oil are the same work with a different
+container.
+
+## The Urdu word in brackets is the label, not the translation
+
+`<BalanceDirection>` labels its options **"They owe the pump (بنام)"** and
+**"They have paid ahead (جمع)"**, and the bracketed word is the one the reader
+is actually looking for. بنام and جمع are what a Pakistani shopkeeper's
+register has called a debit and a credit for a century; the owner has been
+writing them by hand for years, and no English phrasing of "increases what
+they owe" ever competed with that. The English stays as the gloss, because the
+staff logins may not share the habit.
+
+- **Same word for the same idea, everywhere.** The New customer form and the
+  manual adjustment both use بنام / جمع, so the owner is choosing between two
+  terms he already knows rather than two sentences he has to parse. The blank
+  third option on the New customer form is **نیا کھاتہ** — "new account".
+- **Wrap it in `<bdi>`.** Urdu is right-to-left, and an unmarked run of it
+  inside an English sentence lets the bidi algorithm drag the surrounding
+  brackets around — the closing paren ends up on the far side of the phrase.
+  `<bdi lang="ur" dir="rtl">` isolates the run so the brackets stay put.
+- **A step larger than the English beside it.** Urdu script carries more
+  detail per character and is unreadable at the 14px a Latin label survives, so
+  the `<bdi>` is `text-base` inside a `text-sm` line.
+- **Keep the pair on one line** (`whitespace-nowrap` on the bracketed group).
+  An opening paren stranded at the end of one line with the word on the next is
+  worse than no bracket at all.
+
+This is not the same thing as the Guide's bilingual page, which renders one
+language or the other. Here both are on screen at once because they are doing
+different jobs: the Urdu names the concept, the English explains it.
 
 ## Paging: `<Pager>`, and where the slice happens
 
