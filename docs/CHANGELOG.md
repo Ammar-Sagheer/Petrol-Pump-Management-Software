@@ -35,6 +35,7 @@ logins, one pump. Migrations run to **035**.
 | Guide | Location chips, bold rule titles and a folded setup section — a fifth shorter than before, and scannable. |
 | Settings | The rate panel previews five changes (rounded up to a whole date) instead of seven days, so it no longer scrolls inside itself. |
 | Dashboard | The charts take a 7 / 14 / 30 / 90-day window (`<TrendRange>`), carried through the day arrows by `<DateNav extraParams>`. |
+| Dashboard | The fuel-sales chart toggles Rupees / Litres, split by fuel, so it no longer duplicates the cash-vs-credit chart beside it. |
 | All fuel rates | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card. |
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
@@ -1786,3 +1787,32 @@ database's explanation is the whole point of the interaction and closing would
 throw it away; and `PurgeCustomerButton` keeps its own dialog, because its
 trigger must be the words *Delete for good* beside *Bring back*, and its body
 owns the type-the-name field that gates the submit.
+
+### The two dashboard charts were drawing the same picture
+
+*"Both of these graphs shows almost the same thing, configure the left graph
+to show sales of petrol and diesel in litres too with a toggle."*
+
+Correct: on a pump paid almost entirely in cash, "total sales" and "the cash
+bar" on the chart beside it are the same height every day, so the second chart
+told the reader nothing the first one had not already shown.
+
+`<SalesTrendChart>` now toggles between **Rupees** (the original single bar)
+and **Litres** — petrol and diesel stacked, in the app's own fuel colours, with
+a legend since two series need one. Litres is the view rupees structurally
+cannot give: a fuel-rate change does not move the bars, so a quiet day is
+visible as a quiet day rather than mistaken for a cheaper one.
+
+No database change — `get_sales_trend` (migration 005) already returns
+`petrol_litres` and `diesel_litres` alongside the money; the chart simply
+wasn't using them. The toggle is component state, not a query-string filter
+like `<TrendRange>` beside it: that control changes the date window and needs a
+new query, this one redraws rows already on the page, so a round trip would
+buy nothing.
+
+Verified at 1152 and 400px, in both modes, including a round-trip
+Rupees→Litres→Rupees to check for leaked state: no clipping, no sideways
+scroll, 30 bar paths present after the animation settles either way. One
+retest needed — the same recharts-animation trap noted elsewhere in this file:
+a screenshot taken immediately after `networkidle` catches the bars mid-grow
+and looks like a regression that is not one.
