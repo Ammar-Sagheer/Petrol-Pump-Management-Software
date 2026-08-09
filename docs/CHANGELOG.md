@@ -39,6 +39,14 @@ logins, one pump. Migrations run to **035**.
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 
+**If you are porting this to Electron or another shell**, read
+`README.md` → "If you are porting this off Supabase" first. The short version:
+almost none of the important logic is in the JavaScript. Thirty-five
+migrations of triggers and constraints hold the money rules, and the hardest
+single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
+sixteen tables that diffs `jsonb` and writes an English sentence. Decide early
+whether a single-user offline build needs it at all.
+
 **Three things that are load-bearing and easy to break:**
 
 1. **The database enforces the money rules, not the app.** Balanced days,

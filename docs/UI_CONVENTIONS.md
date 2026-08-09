@@ -5,6 +5,35 @@ work rather than decided up front. Follow these instead of reinventing them.
 See `docs/CHANGELOG.md` for the reasoning behind specific choices below —
 several look simplifiable and were already tried that way once.
 
+## The shared building blocks, at a glance
+
+Everything in `app/_components/ui/` is generic and has no idea what a pump is.
+Reach for one of these before writing markup; each has its own section below or
+a comment at the top of the file saying why it exists.
+
+| Component | What it is for |
+|---|---|
+| `<Dialog>` | Native `<dialog>` + `showModal()`. Full-screen sheet on a phone, centred panel above `sm`. No click-outside-to-close, deliberately. |
+| `<ConfirmAction>` | Every "are you sure?": trash icon → dialog. Replaced seven inline confirms that shifted the page. |
+| `<Pager>` | The row under a paged table — "Showing 1 to 8 of 26" plus Previous/Next. `pageFrom(searchParams)` reads and clamps `?page=`. |
+| `<SubmitButton>` | A submit that disables itself and shows a pending label. Mandatory on anything destructive. |
+| `<PendingLink>` | A link that shows a spinner while the navigation is in flight. Every server-rendered page needs one round trip. |
+| `<IconButton>` | Square 44px icon-only row action. The one place an icon may stand without a word. |
+| `<NumberInput>` | Blocks scroll-wheel and arrow-key changes that silently corrupt a typed figure. Use instead of bare `type="number"`. |
+| `<FormMessage>` | Renders the `{ ok, message }` shape every Server Action returns. |
+| `<EmptyState>` / `<PageHeader>` / `<FuelBadge>` / `<Icon>` / `<Spinner>` / `<BrandMark>` / `<Toast>` | Small, self-explanatory; see the files. |
+
+Pump-specific ones worth knowing about in `app/_components/admin/`:
+
+| Component | What it is for |
+|---|---|
+| `<DateNav>` | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change. |
+| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. |
+| `<TrendRange>` | The Dashboard's 7 / 14 / 30 / 90-day chart window. |
+| `<BalanceDirection>` | Which way a customer's balance moves, in register words: بنام / جمع. |
+| `<ActivityTable>` | The audit trail. The one list that is a grid rather than a table — see why below. |
+| `<GuideFlow>` | The bilingual guide's stages, steps, section map and roles table. |
+
 ## Design tokens (`app/_styles/globals.css`)
 
 - **Colors**: `brand-*` (green, `#059669` family) for the primary/positive
