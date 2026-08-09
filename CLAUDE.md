@@ -77,3 +77,25 @@ new layout convention, a new class in `globals.css`), add it to
 non-obvious fix future work should know about, add an entry to
 `docs/CHANGELOG.md`. A future session reads these instead of re-deriving
 context from scratch — keep them worth reading.
+
+## The skill in this repo
+
+`.claude/skills/small-business-ledger-app/` is a project-scoped skill and
+loads automatically for work on this app. It holds the parts that are about
+*how to work on a money app* rather than about this app specifically:
+investigating live data before changing it, testing a trigger without writing
+a row, the design language, and the type and colour floors for the person
+reading a figure off a tablet.
+
+Two things it does that this file does not:
+
+- **It asks who the app is for before designing anything** (`SKILL.md` §0).
+  The disciplines are constant; the type scale and density are not, and the
+  answer for a 60-year-old is not the answer for a 25-year-old.
+- **`references/ui-patterns.md` is the design language with its reasoning** —
+  the shorter, rule-shaped companion to `docs/UI_CONVENTIONS.md`, which
+  records what happened in *this* codebase.
+
+Keep them in step. A new convention goes in `docs/UI_CONVENTIONS.md` with the
+story; if it is general enough to apply to the next ledger app, it goes in the
+skill as a rule too.
