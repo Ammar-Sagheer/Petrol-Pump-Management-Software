@@ -100,11 +100,15 @@ export default function LedgerAdjustmentForm({ customerId, balance = 0 }) {
             {
               value: 'owes',
               title: 'They owe more',
+              // Same two register words as the New customer form, so the owner
+              // is choosing between the terms he already writes by hand.
+              urdu: 'بنام',
               detail: 'Fuel from the old register, or something that was missed',
             },
             {
               value: 'in_credit',
               title: 'They owe less',
+              urdu: 'جمع',
               detail: 'Money already paid that is not on this list, or an amount written off',
             },
           ]}

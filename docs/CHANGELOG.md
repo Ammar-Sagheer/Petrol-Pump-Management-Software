@@ -37,6 +37,7 @@ logins, one pump. Migrations run to **035**.
 | Dashboard | The charts take a 7 / 14 / 30 / 90-day window (`<TrendRange>`), carried through the day arrows by `<DateNav extraParams>`. |
 | All fuel rates | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card. |
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
+| Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 
 **Three things that are load-bearing and easy to break:**
 
@@ -1654,3 +1655,88 @@ the name — a name may wrap, a number may not.
 Screenshotted at 1440 / 1152 / 1024 / 768 / 400 / 360, with the sidebar's 240px
 mocked into the devcheck so the container widths matched the real app rather
 than the viewport.
+
+## The Lubricants page, made legible
+
+### "It should show sales but it is still unclear which sales"
+
+The owner's report, and it was exactly right. The page counted **packed sales
+only** and nothing on it said so: four unqualified tiles (Sales / Litres sold /
+Cash / On credit), a heading reading "Sold on 09 Aug", and a description —
+"Counter sales. Stock is kept in litres, packs and loose oil alike" — that
+described the *stock* and implied the drum was included in the *sales*.
+
+Two feet below, the shelf table listed the drum with "sold 1 L" against it. So
+the screen said "nothing sold today" and "the drum sold a litre" at the same
+time. Neither was wrong; they were counting different things and nothing on the
+page said which.
+
+**The day leads, then its halves.** The tiles are now `Oil sold today` (both
+kinds), `Packed, off the shelf`, `Loose, out of the drum`, `On credit` (the
+whole day, because "how much of today's oil is not in the drawer" does not care
+which container it came out of). The split that was invisible is now the first
+thing on the page.
+
+**The shelf says which span it covers.** *Bought* and *Sold* there are running
+totals since the pump opened, and that was in 12px grey text at the very bottom.
+It is now a line under the heading — "Everything bought and sold up to 09 Aug
+2026, not just today" — which is the sentence that resolves the contradiction
+above. Packed products sort before the drum, and the drum's selling rate moved
+onto this table from its old page, because for a drum the rate is load-bearing:
+it is the only thing turning "Rs 20 of oil" into litres off the stock.
+
+**Low stock got a word.** The In stock column was signalling "out of stock" by
+printing the number in red and nothing else — colour as the only cue, on a
+cheap tablet in a dim office, which is the exact failure this repo's icon and
+colour rules exist to prevent. "0 L" and "16 L" are the same shape to a
+red-green colourblind reader. There are now `out of stock` and `low` badges.
+
+### The drum came back onto the same page
+
+*"Lube oil sale should also show here instead of a separate page"* and *"I
+don't want this button here, just the loose sales here."*
+
+This reverses the split recorded further up this file, and the original reason
+for it was sound: a run of rupee-priced pours buries the four carton sales that
+need reading. What changed is the answer, not the problem. A route split makes
+the reader work out *where a sale lives* before they can look for it, and a
+day's oil takings were never on one screen.
+
+So: one table, `loose` badge on the pours, and an `All oil / Packed only /
+Loose only` chip row above it. The busy-Saturday view that justified the split
+is one tap away; the ordinary case is right by default. Litres are formatted
+per row — three decimals for a pour, two for a carton — because "0.03 L" at two
+decimals rounds most of a rupee's worth away.
+
+`/admin/lubricants/loose` is now a `redirect()` to `?kind=loose`, carrying the
+date. Deleting it would 404 the Dashboard's oil card, the owner's bookmark and
+any link sent over WhatsApp. The navigation card that used to sit mid-page
+pointing at it is gone, which is what was asked for.
+
+### Two smaller things
+
+**A 2px button bug, everywhere in the app.** Reported as "the buttons are a bit
+larger than manage lubricant button" — and measurement said the opposite: the
+filled `.btn-primary` was **48px** and the outlined `.btn-secondary` **50px**,
+because the outlined one carries a 1px border and the filled one did not. Every
+pair in the app was two pixels apart and, centred in a flex row, a pixel off
+each other's baseline. `.btn-primary` now carries an invisible border in its
+own fill colour. All three buttons measure 50px at every width.
+
+**The Urdu word is the label.** The balance-direction cards now read **"They owe
+the pump (بنام)"** and **"They have paid ahead (جمع)"**, on both the New
+customer form and the manual adjustment, with **(نیا کھاتہ)** on the
+nothing-owed option. These are the words a Pakistani shopkeeper's register has
+used for a debit and a credit for a century — the owner has been writing them
+by hand for years, and no English phrasing was ever going to compete with that.
+The English stays as the gloss for staff who may not share the habit.
+
+Wrapped in `<bdi lang="ur" dir="rtl">`: an unmarked right-to-left run inside an
+English sentence lets the bidi algorithm drag the brackets around it, stranding
+the closing paren on the far side of the phrase. A step larger than the English
+beside it, too — Urdu script carries more detail per character and does not
+survive 14px.
+
+Rendered at 1440 / 1152 / 1024 / 400 / 360 with a mixed day as fixtures: ten
+rows, no clipping, no sideways page scroll, and no money figure or timestamp on
+two lines at any width.

@@ -190,16 +190,22 @@ export default function CustomerForm() {
                   {
                     value: '',
                     title: 'Nothing owed — starting fresh',
+                    // "New account" - the blank page a register starts on.
+                    urdu: 'نیا کھاتہ',
                     detail: 'The account begins at zero',
                   },
                   {
                     value: 'owes',
                     title: 'They owe the pump',
+                    // banam - what the register has always called a debit.
+                    urdu: 'بنام',
                     detail: 'A balance carried over from the old register',
                   },
                   {
                     value: 'in_credit',
                     title: 'They have paid ahead',
+                    // jama - money of theirs the pump is holding.
+                    urdu: 'جمع',
                     detail: 'The pump is holding money of theirs',
                   },
                 ]}
