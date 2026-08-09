@@ -10,6 +10,7 @@ import {
 } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import IconButton from '@/app/_components/ui/IconButton';
+import ConfirmAction from '@/app/_components/ui/ConfirmAction';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import Dialog from '@/app/_components/ui/Dialog';
 import NumberInput from '@/app/_components/ui/NumberInput';
@@ -132,7 +133,9 @@ function ProductRow({ lubricant, retired = false, onEdit }) {
           {Number(lubricant.sale_rate_per_litre) > 0
             ? ` · Rs ${litreFormat.format(lubricant.sale_rate_per_litre)} a litre`
             : ''}
-          {retired ? '' : ` · ${litreFormat.format(lubricant.current_stock_litres ?? 0)} L in stock`}
+          {retired
+            ? ''
+            : ` · ${litreFormat.format(lubricant.current_stock_litres ?? 0)} L in stock`}
         </p>
       </div>
 
@@ -347,38 +350,26 @@ function KindChoice({ active, onPick, title, detail }) {
 }
 
 function RemoveButton({ lubricantId, name }) {
-  const [confirming, setConfirming] = useState(false);
   const [state, formAction] = useActionState(deleteLubricant, null);
 
-  if (!confirming) {
-    return (
-      <IconButton
-        name="trash"
-        label={`Take ${name} off the shelf`}
-        tone="danger"
-        onClick={() => setConfirming(true)}
-      />
-    );
-  }
-
   return (
-    <form action={formAction} className="flex flex-col items-end gap-1">
-      <input type="hidden" name="lubricant_id" value={lubricantId} />
-      <p className="text-xs text-ink-600">Take {name} off the shelf?</p>
-      <div className="flex gap-2">
-        <SubmitButton className="btn-danger px-2 py-1 text-xs" pendingLabel="Removing…">
-          Yes, remove
-        </SubmitButton>
-        <button
-          type="button"
-          onClick={() => setConfirming(false)}
-          className="text-xs font-medium text-ink-500 hover:text-ink-800"
-        >
-          Cancel
-        </button>
-      </div>
-      {state?.ok === false ? <span className="text-xs text-red-700">{state.message}</span> : null}
-    </form>
+    <ConfirmAction
+      triggerLabel={`Take ${name} off the shelf`}
+      title="Take this off the shelf?"
+      confirmLabel="Yes, remove"
+      pendingLabel="Removing…"
+      action={formAction}
+      state={state}
+      hidden={{ lubricant_id: lubricantId }}
+    >
+      <p>
+        Take <span className="font-semibold text-ink-900">{name}</span> off the shelf?
+      </p>
+      <p className="text-ink-600">
+        Sales already recorded against it stay on the books. It can be brought back from the removed
+        list.
+      </p>
+    </ConfirmAction>
   );
 }
 

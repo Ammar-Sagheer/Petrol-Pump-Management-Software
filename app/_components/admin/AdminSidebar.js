@@ -144,9 +144,9 @@ export default function AdminSidebar({ profile }) {
    */
   const identityStacked = (
     <div className="min-w-0 text-center">
-      <BrandMark className="mx-auto h-12" />
-      <p className="mt-2 text-base font-semibold leading-tight text-ink-900">{BUSINESS_NAME}</p>
-      <p className="mt-1 text-sm text-ink-600">
+      <BrandMark className="mx-auto h-10" />
+      <p className="mt-1.5 text-sm font-bold leading-tight text-ink-900">{BUSINESS_NAME}</p>
+      <p className="mt-0.5 text-xs text-ink-600">
         {profile.full_name}
         <span className="mx-1.5" aria-hidden="true">
           ·
@@ -182,7 +182,7 @@ export default function AdminSidebar({ profile }) {
           prefetch={link.prefetch ?? undefined}
           aria-current={active ? 'page' : undefined}
           className={[
-            'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition',
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition',
             active
               ? 'bg-brand-50 font-semibold text-brand-800'
               : 'text-ink-700 hover:bg-ink-100 hover:text-ink-900',
@@ -196,12 +196,12 @@ export default function AdminSidebar({ profile }) {
   }
 
   const accountBlock = (
-    <div className="space-y-1 border-t border-ink-200 pt-3">
+    <div className="space-y-0.5 border-t border-ink-200 pt-2">
       <PendingLink
         href="/admin/account"
         aria-current={isActive('/admin/account') ? 'page' : undefined}
         className={[
-          'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition',
+          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition',
           isActive('/admin/account')
             ? 'bg-brand-50 font-semibold text-brand-800'
             : 'text-ink-700 hover:bg-ink-100 hover:text-ink-900',
@@ -213,7 +213,7 @@ export default function AdminSidebar({ profile }) {
 
       <form action={signOut}>
         <SubmitButton
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base font-medium
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium
                      text-red-700 transition hover:bg-red-50"
           pendingLabel="Signing out…"
         >
@@ -232,15 +232,15 @@ export default function AdminSidebar({ profile }) {
         className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-ink-200
                    bg-white lg:flex"
       >
-        <div className="border-b border-ink-200 px-4 py-4">{identityStacked}</div>
+        <div className="border-b border-ink-200 px-4 py-3">{identityStacked}</div>
 
         {/* Scrolls on its own if the window is short, so Settings is always
             reachable without the page moving. */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
-          <ul className="space-y-1">{visibleLinks.map(sectionLink)}</ul>
+        <nav className="nav-scroll flex-1 overflow-y-auto px-3 py-2">
+          <ul className="space-y-0.5">{visibleLinks.map(sectionLink)}</ul>
         </nav>
 
-        <div className="px-3 pb-4">{accountBlock}</div>
+        <div className="px-3 pb-3">{accountBlock}</div>
       </aside>
 
       {/* ---------- phone and tablet: a bar with a burger ---------- */}
@@ -291,8 +291,8 @@ export default function AdminSidebar({ profile }) {
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-3 py-3">
-            <ul className="space-y-1">{visibleLinks.map(sectionLink)}</ul>
+          <nav className="nav-scroll flex-1 overflow-y-auto px-3 py-2">
+            <ul className="space-y-0.5">{visibleLinks.map(sectionLink)}</ul>
           </nav>
 
           <div className="px-3 pb-4">{accountBlock}</div>

@@ -1740,3 +1740,41 @@ survive 14px.
 Rendered at 1440 / 1152 / 1024 / 400 / 360 with a mixed day as fixtures: ten
 rows, no clipping, no sideways page scroll, and no money figure or timestamp on
 two lines at any width.
+
+### A scrollbar in the nav, and seven delete guards that moved the page
+
+**The sidebar grew a scrollbar the moment Activity was added.** Measured rather
+than guessed: the column needed **953px** — identity 180, twelve links 644,
+Account/Sign out 129 — against the 945px the owner's screen gives it. Eight
+pixels short, and Windows answers that with a permanent 15px grey slab down the
+side of the nav.
+
+Trimmed to **808px** and it fits with room over: links from 48px to 44px (still
+the app's own minimum target — `IconButton` is `h-11`), gaps from 4px to 2px,
+and the identity block from 180px to 131px, since the business name was
+wrapping to two lines at `text-base` in a 240px column.
+
+The `overflow-y-auto` **stays**, and so does a scrollbar on genuinely short
+windows — Sign out is the last thing in that column, and a list that silently
+ends above it leaves the owner unable to sign out with nothing on screen to say
+why. What changed is that it is a 6px hairline now (`.nav-scroll`) instead of
+the browser default, and it only appears below about 810px of viewport.
+
+**The delete guards became dialogs.** Reported as *"they shift the UI"*, and
+that is exactly it: each of the seven replaced its own trash icon with a
+question, two buttons and sometimes a paragraph, inside a table cell — so the
+row grew, the column widened, and every row below jumped. On the Customers
+table the row you were aiming at moved while you were reading the question.
+
+`<ConfirmAction>` is the shared shape now. Verified by watching the row *below*
+the one being confirmed: it moves **0px** at 1152 and at 400, where before it
+dropped by the height of the expanded block. The dialogs also have room for the
+sentence that matters — the fuel-rate one can say in full that readings already
+entered keep the rate they were sold at, instead of six words squeezed into a
+cell.
+
+Two things kept deliberately: a refusal leaves the dialog **open**, because the
+database's explanation is the whole point of the interaction and closing would
+throw it away; and `PurgeCustomerButton` keeps its own dialog, because its
+trigger must be the words *Delete for good* beside *Bring back*, and its body
+owns the type-the-name field that gates the submit.
