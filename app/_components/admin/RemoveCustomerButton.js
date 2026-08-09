@@ -3,7 +3,8 @@
 import { useActionState, useState } from 'react';
 
 import { deleteCustomer, purgeCustomer, setCustomerActive } from '@/app/_lib/actions';
-import IconButton from '@/app/_components/ui/IconButton';
+import ConfirmAction from '@/app/_components/ui/ConfirmAction';
+import Dialog from '@/app/_components/ui/Dialog';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 
 /**
@@ -25,13 +26,12 @@ import SubmitButton from '@/app/_components/ui/SubmitButton';
  * than being squeezed onto the end of the row.
  */
 export default function RemoveCustomerButton({ customerId, name, balance }) {
-  const [confirming, setConfirming] = useState(false);
   const [state, formAction] = useActionState(deleteCustomer, null);
 
   /*
-   * The same test the database applies, so the row can explain itself before
-   * the click rather than after it. The database is still the rule - this is
-   * the courtesy.
+   * The same test the database applies, so the dialog can explain itself
+   * before the click rather than after it. The database is still the rule -
+   * this is the courtesy.
    *
    * ROUNDED TO THE RUPEE, and it has to stay that way. This check was left at
    * a 0.01 threshold when delete_customer moved to whole rupees, and the two
@@ -48,59 +48,29 @@ export default function RemoveCustomerButton({ customerId, name, balance }) {
   // call a balance of -0.5 settled while the column beside it reads "Rs -1".
   const notSquare = (owes < 0 ? -1 : 1) * Math.round(Math.abs(owes)) !== 0;
 
-  if (!confirming) {
-    return (
-      <IconButton
-        name="trash"
-        label={`Remove ${name}`}
-        tone="danger"
-        onClick={() => setConfirming(true)}
-      />
-    );
-  }
-
   return (
-    /*
-     * A minimum width, so the confirmation gets a readable measure instead of
-     * being crushed into whatever the last column has left. On a phone that
-     * pushes the table past the screen and it scrolls, which is the trade this
-     * app always makes - the layout gives way, the words do not.
-     */
-    <form action={formAction} className="flex min-w-[14rem] flex-col gap-1.5">
-      <input type="hidden" name="customer_id" value={customerId} />
-
+    <ConfirmAction
+      triggerLabel={`Remove ${name}`}
+      title="Remove this customer?"
+      confirmLabel="Yes, remove"
+      pendingLabel="Removing…"
+      action={formAction}
+      state={state}
+      hidden={{ customer_id: customerId }}
+    >
       {notSquare ? (
-        <p className="text-xs text-amber-900">
-          <span className="font-semibold">This account is not settled.</span> Square it on{' '}
-          {name}’s page first — removing it would take the balance off the books.
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
+          <span className="font-semibold">This account is not settled.</span> Square it on {name}
+          &rsquo;s page first — removing it would take the balance off the books, and the database
+          will refuse.
         </p>
-      ) : (
-        <p className="text-xs text-ink-600">
-          Remove <span className="font-semibold">{name}</span>? Anything already on their ledger
-          stays on the books.
-        </p>
-      )}
-
-      <div className="flex gap-2">
-        <SubmitButton
-          className="btn-danger whitespace-nowrap px-2 py-1 text-xs"
-          pendingLabel="Removing…"
-        >
-          Yes, remove
-        </SubmitButton>
-        <button
-          type="button"
-          onClick={() => setConfirming(false)}
-          className="text-xs font-medium text-ink-500 hover:text-ink-800"
-        >
-          Cancel
-        </button>
-      </div>
-
-      {state?.ok === false ? (
-        <span className="block text-xs leading-snug text-red-700">{state.message}</span>
       ) : null}
-    </form>
+
+      <p>
+        Remove <span className="font-semibold text-ink-900">{name}</span>? Anything already on their
+        ledger stays on the books.
+      </p>
+    </ConfirmAction>
   );
 }
 
@@ -148,59 +118,72 @@ export function PurgeCustomerButton({ customerId, name }) {
 
   const matches = typed.trim().toLowerCase() === name.trim().toLowerCase();
 
-  if (!confirming) {
-    return (
+  function close() {
+    setConfirming(false);
+    setTyped('');
+  }
+
+  /*
+   * NOT ConfirmAction, and this is the one place worth the duplication. That
+   * component's trigger is a trash icon; this one has to be the words "Delete
+   * for good", because it sits beside "Bring back" on the removed list and two
+   * icons there would be a guess. The dialog body also owns a text field whose
+   * value gates the submit, which is more than a confirmation.
+   */
+  return (
+    <>
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-700 hover:underline"
+        className="text-sm font-semibold text-red-700 hover:underline"
       >
         Delete for good
       </button>
-    );
-  }
 
-  return (
-    <form action={formAction} className="flex min-w-[15rem] flex-col gap-1.5">
-      <input type="hidden" name="customer_id" value={customerId} />
+      <Dialog open={confirming} onClose={close} title="Delete this customer for good?">
+        <form action={formAction} className="flex flex-col gap-4 p-4">
+          <input type="hidden" name="customer_id" value={customerId} />
 
-      <p className="text-xs text-ink-700">
-        This cannot be undone. Type <span className="font-semibold">{name}</span> to confirm.
-      </p>
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-base text-red-800">
+            <span className="font-semibold">This cannot be undone.</span> Everything typed against{' '}
+            {name} — payments, adjustments, the opening balance — goes with them.
+          </p>
 
-      <input
-        type="text"
-        name="confirm_name"
-        value={typed}
-        onChange={(event) => setTyped(event.target.value)}
-        className="input py-1.5 text-sm"
-        aria-label={`Type ${name} to confirm`}
-        autoComplete="off"
-      />
+          <div>
+            <label className="label" htmlFor={`confirm-${customerId}`}>
+              Type <span className="font-semibold text-ink-900">{name}</span> to confirm
+            </label>
+            <input
+              id={`confirm-${customerId}`}
+              type="text"
+              name="confirm_name"
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+              className="input"
+              autoComplete="off"
+            />
+          </div>
 
-      <div className="flex gap-2">
-        <SubmitButton
-          disabled={!matches}
-          className="btn-danger whitespace-nowrap px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-          pendingLabel="Deleting…"
-        >
-          Delete for good
-        </SubmitButton>
-        <button
-          type="button"
-          onClick={() => {
-            setConfirming(false);
-            setTyped('');
-          }}
-          className="text-xs font-medium text-ink-500 hover:text-ink-800"
-        >
-          Cancel
-        </button>
-      </div>
+          {state?.ok === false ? (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-base leading-snug text-red-800">
+              {state.message}
+            </p>
+          ) : null}
 
-      {state?.ok === false ? (
-        <span className="block text-xs leading-snug text-red-700">{state.message}</span>
-      ) : null}
-    </form>
+          <div className="flex flex-wrap gap-2">
+            <SubmitButton
+              disabled={!matches}
+              className="btn-danger flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+              pendingLabel="Deleting…"
+            >
+              Delete for good
+            </SubmitButton>
+            <button type="button" onClick={close} className="btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Dialog>
+    </>
   );
 }

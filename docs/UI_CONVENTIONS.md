@@ -80,6 +80,40 @@ several look simplifiable and were already tried that way once.
   for good* sit side by side on the removed-customers row, and two icons
   there would be a guess.
 
+## Confirming a destructive action: a dialog, never inline
+
+`<ConfirmAction>` (`app/_components/ui/ConfirmAction.js`) is every "are you
+sure?" in the app: a trash `IconButton` that opens a `<Dialog>` with the
+question, the consequence, and a red confirm. Seven components used to expand
+inline instead and all seven had the same fault. (`DeleteBankAccountButton`
+was already a dialog and is the precedent the rest now follow.)
+
+**Why inline was wrong.** Each one replaced its own 44px icon with a question,
+two buttons and sometimes a paragraph - *inside a table cell*. The row grew,
+its column widened, and every row beneath it jumped down the page. On the
+Customers list the row you were aiming at moved while you were reading the
+question, which is the worst possible instant for a page to shift.
+
+- **The caller keeps its own `useActionState`**, so each action has its own
+  pending state and its own error message. `<ConfirmAction>` owns only the
+  open/closed state and the chrome, and takes `action`, `state` and a `hidden`
+  object of form fields.
+- **A refusal keeps the dialog open.** Most of these can be turned down by the
+  database - a customer who still owes money, a delivery a later reading
+  depends on - and that message is the entire point of the interaction.
+  Closing on failure throws it away. `state.ok` closes it; `state.ok === false`
+  renders the message in place.
+- **Room for the sentence that matters.** The fuel-rate confirm can now say
+  *"readings already entered keep the rate they were sold at"* as a full
+  warning rather than six words crushed into a cell. If a delete has a
+  consequence people assume wrongly, the dialog is where it goes.
+- **The trigger stays an icon**, per the `IconButton` rule - the row already
+  names what the action applies to, and the dialog repeats it in words.
+- **The exception is `PurgeCustomerButton`**, which keeps its own `<Dialog>`:
+  its trigger has to be the words *Delete for good* because it sits beside
+  *Bring back*, and its body owns a text field whose value gates the submit.
+  When a confirmation needs more than a yes, write the dialog out.
+
 ## Forms and Server Actions
 
 - Every Server Action returns `{ ok: boolean, message: string }` via the
