@@ -298,7 +298,7 @@ Written for a session asked to build an offline or desktop version, because
 the single most misleading thing about this codebase is how little of the
 important logic is in the JavaScript.
 
-**The database is not a passive store.** Thirty-four migrations of triggers,
+**The database is not a passive store.** Thirty-five migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -306,6 +306,17 @@ going below zero. Swap Postgres for SQLite and **all of it is gone unless it
 is rebuilt**, and nothing in the UI will complain, because the UI check was
 only ever the courtesy. The list to work through is "What the database will
 not let you do" above; the files are in `supabase/migrations/`.
+
+**The activity log is the hardest single thing to port** (`035`). One trigger
+function on sixteen tables, written in PL/pgSQL, that reads the changed row as
+`jsonb`, diffs old against new, builds an English sentence, and inserts it into
+an append-only table. Nothing in that paragraph exists in SQLite: no `to_jsonb`
+on a row type, no `jsonb_object_keys`, no `auth.uid()` to name the actor. It
+is portable in principle — the same idea works with `json_object` and a
+per-table trigger, or by moving the logging into the write path — but it is a
+day of work rather than a translation, and it is worth deciding early whether
+an offline single-user build needs it at all. On a desktop app used by one
+person, "who did this" has one answer.
 
 **What is genuinely Supabase-shaped**, and would need replacing rather than
 porting:
@@ -334,6 +345,19 @@ Server Actions and `revalidatePath` assume a server. An Electron build can
 keep them by running Next locally, or replace them with IPC — but if the
 caching model changes, re-read the prefetch/staleness measurements in the
 changelog before assuming a cache is safe.
+
+**Two facts that make a port easier than it looks.** Authentication is
+password-only — `signInWithPassword` and `updateUser`, no magic links, no
+reset emails, no `emailRedirectTo`. And there is **not one absolute URL** in
+the codebase; every link is a path. So nothing has to be reconfigured when the
+app moves to a different origin, which is also why attaching a custom domain
+needed no code change at all.
+
+**Do not ship the service-role key.** `app/_lib/supabase-auth.js` holds it and
+uses it for exactly one thing: creating and deleting staff logins. It bypasses
+RLS completely, so it must stay server-side. In a desktop build that is packed
+into a binary anyone can unzip — move that call behind an Edge Function, or
+drop staff accounts from the offline build entirely.
 
 ## Database migrations
 
