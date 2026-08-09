@@ -696,7 +696,36 @@ third should copy it rather than invent another:
   disabled-looking link is still focusable and still navigates. This now lives
   inside `<Pager>`; do not hand-roll it again.
 
-## Filtering a chart: fixed windows, not a date range
+## A chart that toggles view has state, not a route
+
+`<SalesTrendChart>` on the Dashboard and Reports switches between rupees and
+litres with a small pair of buttons above the chart, not a filter chip in the
+URL.
+
+**Why this one is different from `<TrendRange>` beside it.** That control
+changes the *window*, which means a different set of rows and a new query.
+This one changes only how the rows already on the page are drawn — both series
+come back from `get_sales_trend` in the same call. Round-tripping to the
+server for a view the client can already produce would be a spinner in
+exchange for nothing, so it is `useState`, not a query string.
+
+**Why it exists at all.** In rupees, the sales chart and the cash-vs-credit
+chart beside it were drawing the same picture — on a pump paid almost entirely
+in cash, "total sales" and "the cash bar" are the same height every day. Litres
+is the view money cannot give: a rate change does not move the bars, so a quiet
+day reads as a quiet day rather than as a cheaper one.
+
+**Split by fuel, stacked rather than side by side**, so the bar height still
+answers "how big was the day" the way the rupee view does, and the petrol/diesel
+mix is legible inside it. Only the top segment gets a rounded corner, or the
+lower one's corner notches into the segment above it.
+
+**The emptiness check is asked of the series being shown.** A period can hold
+only-zero litres in the same rows as only-zero rupees, so in practice these
+agree — but checking the wrong series would put "no sales" over a chart that
+has bars in the mode actually on screen.
+
+## Filtering a chart: fixed windows, not a date range## Filtering a chart: fixed windows, not a date range
 
 `<TrendRange>` (`app/_components/admin/TrendRange.js`) is how the Dashboard
 charts are filtered, and the shape to copy for the next set.
