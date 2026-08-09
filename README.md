@@ -298,6 +298,25 @@ Written for a session asked to build an offline or desktop version, because
 the single most misleading thing about this codebase is how little of the
 important logic is in the JavaScript.
 
+**There is already an Electron build, and it runs Postgres locally.** That
+changes the shape of this enormously and most of the warnings below are about
+the harder case. On local Postgres the migrations in `supabase/migrations/`
+apply **verbatim** — same triggers, same constraints, same RPCs, same
+guarantees. Three things are the only real edits:
+
+- **`auth.uid()`** is Supabase's, not Postgres's. It reads a JWT claim out of a
+  session GUC. Anything using it — `auth_role()`, `is_super_admin()`,
+  `activity_actor()`, the `created_by` defaults — needs the offline equivalent,
+  whatever that build already does for the earlier migrations.
+- **RLS** may be pointless in a single-user desktop build. Dropping it is a
+  legitimate choice; forgetting it is not. Decide on purpose, and remember that
+  `requireRole()` was only ever the second fence.
+- **`profiles.id` references `auth.users`**, a Supabase-managed table.
+
+Everything else — the balanced-day check, the append-only ledger, the overlap
+rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
+translation at all.
+
 **The database is not a passive store.** Thirty-five migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
