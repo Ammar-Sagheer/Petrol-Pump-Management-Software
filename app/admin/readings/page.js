@@ -22,7 +22,7 @@ import ReadingDayStrip from '@/app/_components/admin/ReadingDayStrip';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 
 /** The strip shows this many days, ending today, regardless of which day is on screen. */
-const STRIP_DAYS = 10;
+const STRIP_DAYS = 7;
 
 export const metadata = { title: 'Daily readings' };
 
@@ -149,7 +149,7 @@ export default async function ReadingsPage({ searchParams }) {
         ) : null}
       </div>
 
-      {/* Which of the last ten days are done, half-done, or untouched, so a
+      {/* Which of the last seven days are done, half-done, or untouched, so a
           skipped day is something you see rather than something you have to
           be told about after the fact. */}
       <div className="mb-6">

@@ -1893,7 +1893,7 @@ whether a human meant to.
 
 Two things, both new:
 
-- **`<ReadingDayStrip>`** — the last ten days as small tiles, coloured and
+- **`<ReadingDayStrip>`** — the last seven days as small tiles, coloured and
   fractioned by how many of the day's six nozzles were entered ("0/6" red,
   partial amber, "6/6" green with a check mark). Sits above the nozzle list on
   `/admin/readings`, fed by a new RPC, `get_reading_completion` (migration
@@ -1901,7 +1901,16 @@ Two things, both new:
   untouched day is a real zero rather than a missing row. See
   docs/UI_CONVENTIONS.md → "A strip of recent days" for why this is not folded
   into `<DateNav>`, which five other pages reuse with different ideas of what
-  "done" means.
+  "done" means. First cut used ten days, a `ring-offset` around the viewed
+  tile, and no `spinnerOnly` on the link — a `ring` with an offset floated a
+  visible halo beside a tile that already had its own tinted fill, and the
+  default pending state stacked a spinner above the tile's three lines
+  instead of replacing them, stretching the whole strip taller for the
+  instant a tap took. Cut to seven days (the width that centres cleanly at a
+  laptop width without the row asking to scroll), the ring replaced with a
+  same-width `border-2` that only changes colour on the active tile, and the
+  link given `spinnerOnly` plus a fixed tile height so a tap swaps content
+  without resizing anything.
 - **A checkbox that gates Save**, inside `ReadingForm`'s entry dialog. When a
   nozzle's last reading isn't literally the day before the one being entered,
   a red box names the missing day(s) and what saving now will do to them, and

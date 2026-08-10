@@ -490,7 +490,7 @@ the arrows and the date box.
 
 ## A strip of recent days, coloured by how complete they are
 
-`<ReadingDayStrip>` (Readings only) shows the last ten days as small tiles —
+`<ReadingDayStrip>` (Readings only) shows the last seven days as small tiles —
 weekday, day number, and a fraction like "3/6" — so a day nobody touched is
 something you see scanning the top of the page, not something a paragraph has
 to tell you about after the fact.
@@ -503,11 +503,20 @@ to tell you about after the fact.
   a warning triangle — the two ends of the scale get a third signal beyond
   colour and text, because those are the two states worth catching at a
   glance.
-- **The viewed day gets a ring, not a fill colour of its own.** Its fill
-  already means something — how complete that day is — and a second meaning
-  stacked onto the same colour is the thing to misread in a hurry. A dark ring
-  around the tile says "you are here" without touching what the tile's colour
-  already says.
+- **The viewed day gets a dark 2px border, not a ring.** A `ring` with an
+  offset draws a halo a couple of pixels clear of the tile, which against a
+  tile that already has its own tinted fill reads as a stray box floating
+  next to the thing it is supposed to be marking, not a state of that thing.
+  Every tile carries the same `border-2` regardless of state, so becoming the
+  active tile only ever changes its colour — nothing changes size, and
+  nothing else on the row has to reflow.
+- **A fixed tile height, and `spinnerOnly` on the link.** Without either,
+  tapping a tile stacked `<Spinner>` above the weekday/number/fraction while
+  the page loaded — an extra row in a `flex-col`, which grew the tile and
+  pushed the whole strip taller for the moment the navigation took.
+  `spinnerOnly` swaps the content for the spinner instead of stacking it on
+  top, and a fixed height keeps that swap from changing the tile's size at
+  all.
 - **This is not folded into `<DateNav>`.** Five other pages reuse that
   component (Lubricants, Purchases, Stock checks…) and each has its own idea
   of what "done" means for a day, if it has one at all — baking
@@ -515,10 +524,13 @@ to tell you about after the fact.
   share would be the wrong place for it. A second, page-specific strip sitting
   beside DateNav costs nothing the shared component would have to carry
   everywhere else.
-- **Its own horizontal scroll, not the page's.** Ten tiles do not fit a phone
-  width; the strip scrolls sideways inside its own `overflow-x-auto` wrapper
-  while the page itself does not, the same rule tables in this app already
-  follow.
+- **Centred only when it fits without scrolling.** Seven tiles need about
+  30rem; `@[32rem]:justify-center` centres the row once the container has
+  that much room, and leaves it hugging the left edge with its own
+  `overflow-x-auto` below that threshold. Centring a row that still has to
+  scroll sideways would leave both ends hanging off screen with nothing on
+  screen to say so — the same container-query discipline as "Responsive:
+  measure the container" below, applied to a row instead of a table.
 
 ## Meter readings carry two decimals
 

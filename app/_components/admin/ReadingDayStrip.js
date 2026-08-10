@@ -10,7 +10,7 @@ function dayParts(iso) {
 }
 
 /**
- * The last ten days, coloured by how much of that day was actually entered -
+ * The last seven days, coloured by how much of that day was actually entered -
  * so a day nobody opened is a red tile on screen before anyone has to read a
  * warning about it.
  *
@@ -29,55 +29,75 @@ function dayParts(iso) {
  * check mark and an empty past day a warning triangle, so the two ends of the
  * scale are readable even in black and white.
  *
- * THE VIEWED DAY gets a ring rather than a fill colour of its own, because its
- * fill already means something (how complete it is) and a second meaning
- * layered onto the same colour would be the thing to misread in a hurry.
+ * THE VIEWED DAY gets a solid dark border rather than a fill colour of its
+ * own, because its fill already means something (how complete it is) and a
+ * second meaning layered onto the same colour would be the thing to misread
+ * in a hurry. Every tile carries the same 2px border width regardless of
+ * state, so becoming the active tile changes its colour, not its size.
+ *
+ * A FIXED TILE HEIGHT, and `spinnerOnly` on the link. Without either, tapping
+ * a tile stacked a spinner above the weekday/number/fraction while the page
+ * loaded, which grew the tile - and the whole strip under it - for the
+ * fraction of a second the navigation took. `spinnerOnly` swaps the content
+ * for the spinner instead of stacking it, and the fixed height keeps that
+ * swap from changing the tile's size at all.
+ *
+ * CENTRED ONLY WHEN IT FITS WITHOUT SCROLLING. Seven tiles need about 30rem;
+ * centred inside a wider container that reads as tidy, but centring a row
+ * that has to scroll sideways leaves both ends hanging off screen with
+ * nothing to say so - see "Responsive: measure the container" in
+ * docs/UI_CONVENTIONS.md.
  */
 export default function ReadingDayStrip({ days, activeDate, basePath }) {
   return (
-    <div
-      role="group"
-      aria-label="Recent days, coloured by how much was entered"
-      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-    >
-      {days.map((day) => {
-        const { weekday, dayNumber } = dayParts(day.date);
-        const total = day.total ?? 0;
-        const entered = day.entered ?? 0;
-        const isFull = total > 0 && entered === total;
-        const isEmpty = entered === 0;
-        const isActive = day.date === activeDate;
+    <div className="@container">
+      <div
+        role="group"
+        aria-label="Recent days, coloured by how much was entered"
+        className="-mx-1 flex justify-start gap-2 overflow-x-auto px-1 pb-1 @[32rem]:justify-center"
+      >
+        {days.map((day) => {
+          const { weekday, dayNumber } = dayParts(day.date);
+          const total = day.total ?? 0;
+          const entered = day.entered ?? 0;
+          const isFull = total > 0 && entered === total;
+          const isEmpty = entered === 0;
+          const isActive = day.date === activeDate;
 
-        const tone = isFull
-          ? 'border-brand-300 bg-brand-50 text-brand-900'
-          : isEmpty
-            ? 'border-red-300 bg-red-50 text-red-900'
-            : 'border-amber-300 bg-amber-50 text-amber-900';
+          const tone = isActive
+            ? 'border-ink-900 bg-ink-50 text-ink-900'
+            : isFull
+              ? 'border-brand-300 bg-brand-50 text-brand-900'
+              : isEmpty
+                ? 'border-red-300 bg-red-50 text-red-900'
+                : 'border-amber-300 bg-amber-50 text-amber-900';
 
-        return (
-          <PendingLink
-            key={day.date}
-            href={`${basePath}?date=${day.date}`}
-            aria-current={isActive ? 'date' : undefined}
-            className={[
-              'flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition',
-              tone,
-              isActive ? 'ring-2 ring-offset-1 ring-ink-900' : 'hover:brightness-95',
-            ].join(' ')}
-          >
-            <span className="text-xs font-semibold uppercase tracking-wide">{weekday}</span>
-            <span className="text-lg font-bold leading-none">{dayNumber}</span>
-            <span className="flex items-center gap-1 text-xs font-semibold">
-              {isFull ? (
-                <Icon name="check" className="h-3.5 w-3.5" />
-              ) : isEmpty ? (
-                <Icon name="warning" className="h-3.5 w-3.5" />
-              ) : null}
-              {entered}/{total}
-            </span>
-          </PendingLink>
-        );
-      })}
+          return (
+            <PendingLink
+              key={day.date}
+              href={`${basePath}?date=${day.date}`}
+              aria-current={isActive ? 'date' : undefined}
+              spinnerOnly
+              className={[
+                'flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 text-center transition',
+                tone,
+                isActive ? '' : 'hover:brightness-95',
+              ].join(' ')}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wide">{weekday}</span>
+              <span className="text-lg font-bold leading-none">{dayNumber}</span>
+              <span className="flex items-center gap-1 text-xs font-semibold">
+                {isFull ? (
+                  <Icon name="check" className="h-3.5 w-3.5" />
+                ) : isEmpty ? (
+                  <Icon name="warning" className="h-3.5 w-3.5" />
+                ) : null}
+                {entered}/{total}
+              </span>
+            </PendingLink>
+          );
+        })}
+      </div>
     </div>
   );
 }
