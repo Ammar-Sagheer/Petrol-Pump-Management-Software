@@ -488,6 +488,39 @@ the arrows and the date box.
   statements of one fact left none of them dominant, and the owner lost track
   of which day he was entering.
 
+## A day-completion strip on Readings was tried and removed
+
+Recorded so it is not rebuilt from scratch a third time. The idea was a strip
+of recent days above the nozzle list, coloured by how many of that day's
+nozzles had been entered, so a skipped day was visible at a glance. It was
+built three ways and all three were removed:
+
+1. **A band of tiles under the controls** — weekday, day number and a "3/6"
+   fraction each. It measured fine and read as a second, competing set of date
+   navigation, on a screen whose actual job is six nozzles. It also pushed the
+   whole page down by its own height plus a margin.
+2. **The same tiles inline** in the controls row — fixed the height, not the
+   weight.
+3. **Seven small circles** centred between the date banner and the Clear
+   button, one number each, with a pulse on a day nobody had entered. Lighter
+   again, and still the wrong thing on the page: *"I just needed a visual
+   indication… things did not work out."*
+
+**The lesson is about weight, not about tiles.** Every version was a
+*secondary* signal — nice to have, not the reason anyone opens the screen —
+and each one competed with the primary controls for the same glance. Making it
+smaller each round narrowed the gap without closing it. If something like this
+is wanted again, it has to cost visibly less than the date navigation beside
+it, and it should probably not be interactive at all.
+
+**What actually prevents the mistake is still there, and is not this.** The
+red banner naming the missing day, and the confirm checkbox inside the entry
+dialog — see "A gap the database allows on purpose still wants a checkbox"
+below. Both work off `previous_date`, which `get_reading_sheet` (migration
+009) has always returned; neither needed the strip or the RPC that fed it
+(`get_reading_completion`, added in 037 and dropped in 038).
+
+
 ## Meter readings carry two decimals
 
 A pump meter is a physical dial with a tenths digit, so 1,987,128.80 and
@@ -871,6 +904,46 @@ legal. A label can be misread; a figure going from 4,999 to 9,998 when you
 meant to clear an account cannot. **Any control where both choices are valid
 and only the operator knows which is right should show its consequence before
 it is committed.**
+
+## A gap the database allows on purpose still wants a checkbox
+
+Some actions are legal every time and wrong just often enough to need a second
+look — entering a day's readings when the day before it was never opened is
+the example this pattern was built for. Migration 027 deliberately allows it,
+because backfilling a genuine gap later looks identical on the wire to
+skipping a day by mistake, and the database cannot tell those two apart. The
+UI is the only place that can, because it's the only place that knows whether
+a human actually meant to.
+
+`ReadingForm`'s `EntryForm` is the shape of it: `hasDateGap` compares the
+nozzle's last reading (`previous_date`, which `get_reading_sheet` already
+returns) against the calendar day right before the one being entered. When
+they differ, the form does two things, not one:
+
+- **Says what is true**, in a red box: which day (or range of days) has no
+  reading, and what saving now will do to it — "will jump straight over it,"
+  not a vaguer "may cause a discrepancy."
+- **Gates the Save button on a checkbox inside that same box** — "Yes, 09 Aug
+  2026 was missed on purpose — save this day anyway" — rather than only
+  colouring the button or adding more red text next to it. `canSubmit` stays
+  `false` until it is ticked, same mechanism as the other disqualifying
+  conditions on that form (a negative litre count, credit exceeding the sale).
+
+**Why a checkbox and not a second dialog.** `ConfirmAction` is for a
+destructive action reached by its own trigger — the dialog IS the confirmation
+and nothing else is happening on the page underneath it. Here the confirmation
+has to appear *inside* a dialog that is already open and already mid-form, so
+a second stacked dialog would be confirming a click already several steps into
+a task, over content that would have to move out of the way for it. A checkbox
+that must be ticked before the button will do anything asks the same question
+with no extra layer: it cannot be dismissed with a stray Enter or a reflexive
+tap the way a paragraph of warning text can be scrolled past.
+
+**Why this and not a hard block.** A hard block would refuse the very case
+027 exists to allow — the honest repair of entering a late day once the gap is
+found. The checkbox is the fork between the two: it costs one tap when the
+skip is deliberate, and it stops the tap that was never a decision at all,
+which is what happened here.
 
 ## "Remove" means delete-or-retire, and the database decides
 

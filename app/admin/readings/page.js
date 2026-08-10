@@ -3,15 +3,12 @@ import {
   ROLES,
   todayISO,
   formatDate,
+  formatDateLong,
   formatLitres,
   formatPKR,
   shiftISODate,
 } from '@/app/_lib/helpers';
-import {
-  getReadingSheet,
-  getCustomers,
-  getCreditSalesForReadings,
-} from '@/app/_lib/data-service';
+import { getReadingSheet, getCustomers, getCreditSalesForReadings } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
@@ -31,9 +28,12 @@ export default async function ReadingsPage({ searchParams }) {
   const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
 
   const params = await searchParams;
-  const date = typeof params?.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
-    ? params.date
-    : todayISO();
+  const date =
+    typeof params?.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
+      ? params.date
+      : todayISO();
+
+  const today = todayISO();
 
   const [sheet, customers] = await Promise.all([getReadingSheet(date), getCustomers()]);
 
@@ -52,6 +52,39 @@ export default async function ReadingsPage({ searchParams }) {
   );
 
   const missingRate = sheet.some((row) => !row.rate);
+
+  /*
+   * A GAP BEFORE THIS DAY. get_reading_sheet already gives every row the
+   * nearest EARLIER reading for that nozzle (`previous_date`) - not
+   * necessarily yesterday. When it isn't yesterday, one or more whole days in
+   * between were never opened at all, which is exactly the mistake this page
+   * is for: coming back after a break and typing the day's numbers in against
+   * today without noticing the day before was left empty.
+   *
+   * This is deliberately a warning, not a block - migration 027 already
+   * allows entering a day that leaves a genuine gap behind it, because the
+   * honest repair (filling that gap later) looks the same on the wire as the
+   * mistake. The strip and this banner are what make the difference visible
+   * before it is saved instead of after.
+   */
+  const expectedPreviousDate = shiftISODate(date, -1);
+  const gapRows = sheet.filter(
+    (row) => row.previous_date && row.previous_date !== expectedPreviousDate,
+  );
+  const dayGap =
+    gapRows.length === 0
+      ? null
+      : (() => {
+          const earliestPrevious = gapRows.reduce(
+            (min, row) => (row.previous_date < min ? row.previous_date : min),
+            gapRows[0].previous_date,
+          );
+          return {
+            from: shiftISODate(earliestPrevious, 1),
+            to: expectedPreviousDate,
+            partial: gapRows.length < sheet.length,
+          };
+        })();
 
   /*
    * Grouped by unit, because a unit is a physical thing standing on the
@@ -101,6 +134,19 @@ export default async function ReadingsPage({ searchParams }) {
           <ClearDayButton date={date} dateLabel={formatDate(date)} entryCount={done.length} />
         ) : null}
       </div>
+
+      {dayGap ? (
+        <p className="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <span className="font-semibold">
+            {dayGap.from === dayGap.to
+              ? formatDateLong(dayGap.from)
+              : `${formatDateLong(dayGap.from)} to ${formatDateLong(dayGap.to)}`}
+          </span>{' '}
+          {dayGap.from === dayGap.to ? 'has' : 'have'} no reading saved
+          {dayGap.partial ? ' for one or more nozzles' : ' at all'} — check it wasn&apos;t missed by
+          mistake before entering {date === today ? 'today' : formatDate(date)}.
+        </p>
+      ) : null}
 
       {missingRate ? (
         <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -170,4 +216,3 @@ export default async function ReadingsPage({ searchParams }) {
     </>
   );
 }
-

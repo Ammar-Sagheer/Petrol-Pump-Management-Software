@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **036**.
+logins, one pump. Migrations run to **038**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -40,10 +40,11 @@ logins, one pump. Migrations run to **036**.
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 | Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
+| Readings | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Thirty-six
+almost none of the important logic is in the JavaScript. Thirty-eight
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 seventeen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -1874,3 +1875,44 @@ clipping, no sideways scroll. The category picker reflows 3 columns to 5 at
 `@[26rem]`, and the delete confirmation (`<ConfirmAction>`) was measured
 before and after opening to confirm the surrounding card grid does not move,
 the same check the guards-that-moved-the-page fix above established.
+
+### A whole day went in at zero, and nothing on screen said so
+
+*"Father came back after 2 days to enter the reading and mistakenly added the
+reading in today's section, instead of Sunday, without knowing that he missed
+a day."* Real evening, real numbers: 09 Aug 2026 sat at 0 of 6 nozzles while
+10 Aug was entered in full — the meter still balanced (opening carried
+straight from 08 Aug's close), so nothing was double-counted, but a whole
+day's cash and litres were never recorded as their own day, and nothing told
+him that had happened.
+
+**The database already allows this on purpose** (`027_no_backfill_without_room.sql`):
+a genuine gap and a day skipped by mistake are the same shape on the wire, so
+it cannot be the thing that refuses one and not the other. Only the UI knows
+whether a human meant to.
+
+Two things were built. One survived.
+
+- **A day-completion strip was tried three times and removed.** Tiles under
+  the controls, then the same tiles inline, then seven small circles centred
+  beside the date banner with a pulse on a day nobody had entered. Each was
+  lighter than the last and none of them earned the room they took on a screen
+  whose job is six nozzles — *"I just needed a visual indication… things did
+  not work out."* Its RPC (`get_reading_completion`, migration 037) went with
+  it in **038**. The full account is in docs/UI_CONVENTIONS.md → "A day-completion
+  strip on Readings was tried and removed", written down so a fourth attempt
+  starts from what already failed rather than from the idea.
+
+- **A checkbox that gates Save**, inside `ReadingForm`'s entry dialog. When a
+  nozzle's last reading isn't literally the day before the one being entered,
+  a red box names the missing day(s) and what saving now will do to them, and
+  the Save button stays disabled until "Yes, \[day\] was missed on purpose —
+  save this day anyway" is ticked. Not a second dialog stacked on the one
+  already open — see docs/UI_CONVENTIONS.md → "A gap the database allows on
+  purpose still wants a checkbox" for why a checkbox was the right shape here
+  and `<ConfirmAction>` was not.
+
+Verified with a fixture reproducing the exact scenario — a gap from Saturday
+to Monday, and a control nozzle with no gap for contrast — at 1152 and 400px:
+the Save button measured disabled before the checkbox was ticked and enabled
+after it, at both widths.
