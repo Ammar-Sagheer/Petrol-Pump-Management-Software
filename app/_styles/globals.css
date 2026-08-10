@@ -91,33 +91,6 @@ input[type='number']::-webkit-inner-spin-button {
     @apply rounded-xl border border-ink-200 bg-white shadow-sm;
   }
 
-  /*
-   * A day with no readings at all, on the Readings day strip.
-   *
-   * The one state on that strip worth interrupting someone for: every other
-   * day on it is either done or partly done, and both of those are ordinary.
-   * A day nobody opened is how a whole day's cash went unrecorded once, so it
-   * gets movement, which the eye catches even when it is not looking at that
-   * corner of the screen.
-   *
-   * A HALO THAT GROWS AND FADES, not a blink. box-shadow costs no layout - it
-   * paints outside the circle without moving anything beside it - and a slow
-   * pulse reads as "look here" where a hard on/off flash reads as a fault in
-   * the screen. Colour and opacity only; the circle itself never changes size,
-   * so the controls row it sits in cannot twitch.
-   */
-  .flash-attention {
-    animation: flash-attention 1.8s ease-in-out infinite;
-  }
-
-  /* Anyone who has asked their device to stop animating things means it. The
-     dashed ring and the red already say the same thing standing still. */
-  @media (prefers-reduced-motion: reduce) {
-    .flash-attention {
-      animation: none;
-    }
-  }
-
   .label {
     @apply mb-1 block text-base font-medium text-ink-700;
   }
@@ -297,18 +270,5 @@ input[type='number']::-webkit-inner-spin-button {
     background-color: var(--color-ink-50);
     /* A real border does not travel with a sticky cell; an inset shadow does. */
     box-shadow: inset 0 -1px 0 var(--color-ink-200);
-  }
-}
-
-/* The pulse behind `.flash-attention` above. A box-shadow ring that grows and
-   fades: it paints outside the element's box, so it costs no layout and the
-   controls row it sits in cannot twitch as it runs. */
-@keyframes flash-attention {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgb(220 38 38 / 0.55);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgb(220 38 38 / 0);
   }
 }

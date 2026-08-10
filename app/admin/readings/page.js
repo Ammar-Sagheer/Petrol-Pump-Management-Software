@@ -8,21 +8,12 @@ import {
   formatPKR,
   shiftISODate,
 } from '@/app/_lib/helpers';
-import {
-  getReadingSheet,
-  getCustomers,
-  getCreditSalesForReadings,
-  getReadingCompletion,
-} from '@/app/_lib/data-service';
+import { getReadingSheet, getCustomers, getCreditSalesForReadings } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
 import ClearDayButton from '@/app/_components/admin/ClearDayButton';
-import ReadingDayStrip from '@/app/_components/admin/ReadingDayStrip';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
-
-/** The strip shows this many days, ending today, regardless of which day is on screen. */
-const STRIP_DAYS = 7;
 
 export const metadata = { title: 'Daily readings' };
 
@@ -43,13 +34,8 @@ export default async function ReadingsPage({ searchParams }) {
       : todayISO();
 
   const today = todayISO();
-  const stripFrom = shiftISODate(today, -(STRIP_DAYS - 1));
 
-  const [sheet, customers, completion] = await Promise.all([
-    getReadingSheet(date),
-    getCustomers(),
-    getReadingCompletion({ from: stripFrom, to: today }),
-  ]);
+  const [sheet, customers] = await Promise.all([getReadingSheet(date), getCustomers()]);
 
   const savedReadingIds = sheet.filter((row) => row.reading_id).map((row) => row.reading_id);
   const creditSalesByReading = await getCreditSalesForReadings(savedReadingIds);
@@ -139,23 +125,6 @@ export default async function ReadingsPage({ searchParams }) {
           basePath="/admin/readings"
           previousDate={shiftISODate(date, -1)}
           nextDate={shiftISODate(date, 1)}
-        />
-
-        {/* Which of the last seven days are done, half-done or untouched -
-            centred in the space that was already empty between the date
-            banner and the Clear button, rather than taking a band of its own
-            and pushing the six nozzles further down the page. `flex-1` is
-            what centres it: it claims whatever is left between its two
-            neighbours and puts the circles in the middle of that. */}
-        <ReadingDayStrip
-          days={completion.map((row) => ({
-            date: row.reading_date,
-            entered: Number(row.nozzles_entered),
-            total: Number(row.nozzles_total),
-          }))}
-          activeDate={date}
-          today={today}
-          basePath="/admin/readings"
         />
 
         {/* Owner only. Entering a day against the wrong date is the mistake

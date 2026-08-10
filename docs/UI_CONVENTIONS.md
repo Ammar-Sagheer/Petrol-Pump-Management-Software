@@ -488,66 +488,38 @@ the arrows and the date box.
   statements of one fact left none of them dominant, and the owner lost track
   of which day he was entering.
 
-## A status glance costs a glance's worth of room
+## A day-completion strip on Readings was tried and removed
 
-`<ReadingDayStrip>` (Readings only) is the last seven days as seven 36px
-circles — one number each, coloured by how many of that day's nozzles were
-entered — riding the empty space between the date banner and the Clear button.
+Recorded so it is not rebuilt from scratch a third time. The idea was a strip
+of recent days above the nozzle list, coloured by how many of that day's
+nozzles had been entered, so a skipped day was visible at a glance. It was
+built three ways and all three were removed:
 
-It got there by being wrong twice first, and both mistakes are the general
-lesson: **a secondary signal that takes primary space stops being read.**
+1. **A band of tiles under the controls** — weekday, day number and a "3/6"
+   fraction each. It measured fine and read as a second, competing set of date
+   navigation, on a screen whose actual job is six nozzles. It also pushed the
+   whole page down by its own height plus a margin.
+2. **The same tiles inline** in the controls row — fixed the height, not the
+   weight.
+3. **Seven small circles** centred between the date banner and the Clear
+   button, one number each, with a pulse on a day nobody had entered. Lighter
+   again, and still the wrong thing on the page: *"I just needed a visual
+   indication… things did not work out."*
 
-- **Version one was a row of tiles** carrying a weekday, a day number and a
-  "3/6" fraction each, on a line of its own under the controls. It measured
-  fine and looked like a second, competing set of date navigation — the
-  heaviest thing on a screen whose actual job is six nozzles — and it pushed
-  the whole page down by its own height plus a margin.
-- **Version two kept the tiles and moved them inline**, which fixed the height
-  but not the weight.
-- **What works is one number in a circle.** The exact figures are not dropped,
-  only moved: `aria-label` and `title` both carry "Sunday, 09 Aug 2026 — 0 of
-  6 nozzles entered", so a screen reader gets the whole sentence and a laptop
-  hover gets it too. What stays on screen is what a glance can use.
+**The lesson is about weight, not about tiles.** Every version was a
+*secondary* signal — nice to have, not the reason anyone opens the screen —
+and each one competed with the primary controls for the same glance. Making it
+smaller each round narrowed the gap without closing it. If something like this
+is wanted again, it has to cost visibly less than the date navigation beside
+it, and it should probably not be interactive at all.
 
-The rest of the rules it settled on:
+**What actually prevents the mistake is still there, and is not this.** The
+red banner naming the missing day, and the confirm checkbox inside the entry
+dialog — see "A gap the database allows on purpose still wants a checkbox"
+below. Both work off `previous_date`, which `get_reading_sheet` (migration
+009) has always returned; neither needed the strip or the RPC that fed it
+(`get_reading_completion`, added in 037 and dropped in 038).
 
-- **Fill, not just hue, carries the state** — solid = every nozzle entered,
-  plain outline = some, **dashed outline = nothing at all**. A dashed ring
-  reads as "empty" with the colour taken away, which matters because the
-  dashed one is the state the whole feature exists for. Same discipline as the
-  litre badges elsewhere in this file: never colour alone.
-- **A past empty day pulses** (`.flash-attention` in `globals.css`); today does
-  not. Movement is the only signal that works when nobody is looking at that
-  corner of the screen, so exactly one state gets it — and today is
-  legitimately empty until the evening, so a strip that flashed every morning
-  would be one nobody sees by noon. The pulse is a `box-shadow` halo, which
-  paints outside the circle without costing layout: measured at a constant
-  407px strip width across the whole animation cycle. It stops under
-  `prefers-reduced-motion` — verified `animation-name: none` on every circle.
-- **The viewed day takes a dark border and keeps its status fill.** An outline
-  ring offset from the circle floats *beside* the thing it marks instead of
-  marking it. Swapping the border colour says "you are here" with no halo, and
-  since every circle carries the same `border-2` in every state, nothing ever
-  changes size.
-- **`spinnerOnly` plus a fixed `h-9 w-9`.** The default pending state stacks a
-  `<Spinner>` above the content — an extra row that grew the tile and the strip
-  with it for the instant a tap took. `spinnerOnly` swaps rather than stacks;
-  measured 36×36 before and during navigation.
-- **`flex-1` is what centres it.** The strip claims whatever the banner and the
-  Clear button leave between them and centres its circles in that, so it sits
-  in the middle of the gap rather than pinned to either neighbour. `min-h-11`
-  puts it on the banner's centre line, not its top edge.
-- **Seven, then fewer when the row runs out.** The query always asks for seven;
-  the oldest two are `hidden xl:flex`, so below 1280px it shows five and the
-  Clear button stays on the first line. Measured at 1440/1280/1152/1024: Clear
-  never wraps. The oldest go first because the gap banner underneath already
-  names any missed day in words — the strip is the glance, not the guarantee.
-- **This is not folded into `<DateNav>`.** Five other pages reuse that
-  component (Lubricants, Purchases, Stock checks…) and each has its own idea
-  of what "done" means for a day, if it has one at all — baking
-  readings-shaped completion logic into a component that many other pages
-  share would be the wrong place for it. It is a sibling in the same row
-  instead, which is also what lets `flex-1` centre it between the other two.
 
 ## Meter readings carry two decimals
 

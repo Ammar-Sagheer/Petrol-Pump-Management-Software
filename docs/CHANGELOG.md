@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **037**.
+logins, one pump. Migrations run to **038**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -40,11 +40,11 @@ logins, one pump. Migrations run to **037**.
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 | Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
-| Readings | Seven day-circles beside the date banner, coloured by completion and pulsing on a day nobody entered, plus a checkbox that must be ticked to save a reading when the day before it was never entered. Migration 037. |
+| Readings | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Thirty-seven
+almost none of the important logic is in the JavaScript. Thirty-eight
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 seventeen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -1891,43 +1891,18 @@ a genuine gap and a day skipped by mistake are the same shape on the wire, so
 it cannot be the thing that refuses one and not the other. Only the UI knows
 whether a human meant to.
 
-Two things, both new:
+Two things were built. One survived.
 
-- **`<ReadingDayStrip>`** — the last seven days as seven small circles,
-  coloured by how many of the day's six nozzles were entered, sitting in the
-  empty space between the date banner and the Clear button on
-  `/admin/readings`. Fed by a new RPC, `get_reading_completion` (migration
-  037), built on the same date-spine trick as `get_lubricant_trend` so an
-  untouched day is a real zero rather than a missing row.
+- **A day-completion strip was tried three times and removed.** Tiles under
+  the controls, then the same tiles inline, then seven small circles centred
+  beside the date banner with a pulse on a day nobody had entered. Each was
+  lighter than the last and none of them earned the room they took on a screen
+  whose job is six nozzles — *"I just needed a visual indication… things did
+  not work out."* Its RPC (`get_reading_completion`, migration 037) went with
+  it in **038**. The full account is in docs/UI_CONVENTIONS.md → "A day-completion
+  strip on Readings was tried and removed", written down so a fourth attempt
+  starts from what already failed rather than from the idea.
 
-  **It took three tries, and the two failures are the lesson.** The first cut
-  was a row of tiles carrying weekday + day number + a "3/6" fraction each, on
-  its own line under the controls; the second kept those tiles and moved them
-  inline. Both were correct and both were wrong for the same reason — a
-  secondary signal given primary weight reads as a second set of date
-  navigation, on a screen whose actual job is six nozzles, and the first also
-  pushed the whole page down by its own height. What works is one number in a
-  circle: the exact figures moved into `aria-label`/`title` rather than being
-  dropped, and what stays on screen is what a glance can use.
-
-  Also fixed along the way: a `ring-offset` around the viewed tile floated a
-  halo *beside* the thing it was marking (now a same-width `border-2` that only
-  changes colour, so nothing resizes), and the default pending state stacked a
-  spinner above the tile's content instead of replacing it, stretching the
-  strip for the instant a tap took (`spinnerOnly` + a fixed `h-9 w-9`, measured
-  36×36 before and during).
-
-  **A past empty day pulses**; today does not, because today is legitimately
-  empty until the evening and a strip that flashed every morning is one nobody
-  sees by noon. The pulse is a `box-shadow` halo so it costs no layout —
-  measured at a constant 407px strip width across the animation cycle — and it
-  stops entirely under `prefers-reduced-motion`. Fill carries the state
-  alongside colour: solid = complete, outline = partial, dashed = nothing at
-  all, so the state that matters most still reads with the colour taken away.
-
-  See docs/UI_CONVENTIONS.md → "A status glance costs a glance's worth of
-  room" for the full set, including why this is not folded into `<DateNav>`,
-  which five other pages reuse with different ideas of what "done" means.
 - **A checkbox that gates Save**, inside `ReadingForm`'s entry dialog. When a
   nozzle's last reading isn't literally the day before the one being entered,
   a red box names the missing day(s) and what saving now will do to them, and
@@ -1937,11 +1912,7 @@ Two things, both new:
   purpose still wants a checkbox" for why a checkbox was the right shape here
   and `<ConfirmAction>` was not.
 
-Verified against the real gap: `get_reading_completion('2026-08-06',
-'2026-08-10')` was proven inside a rolled-back transaction to return exactly
-`{09 Aug: 0/6}` against the live 09/10 Aug data before the migration was
-applied for real. Rendered with a fixture reproducing the exact scenario
-(gap Sat→Mon, and a control row with no gap for contrast) at 1152 and 400px:
-the Save button measured disabled before the checkbox and enabled after it at
-both widths, and the strip scrolls inside its own container without the page
-gaining a sideways scrollbar.
+Verified with a fixture reproducing the exact scenario — a gap from Saturday
+to Monday, and a control nozzle with no gap for contrast — at 1152 and 400px:
+the Save button measured disabled before the checkbox was ticked and enabled
+after it, at both widths.
