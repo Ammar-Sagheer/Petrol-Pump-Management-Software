@@ -40,13 +40,47 @@ import { BUSINESS_NAME } from '@/app/_lib/brand';
  */
 const LINKS = [
   { href: '/admin', label: 'Dashboard', icon: 'dashboard', roles: ['super_admin'] },
-  { href: '/admin/readings', label: 'Readings', icon: 'readings', roles: ['super_admin', 'data_entry'] },
-  { href: '/admin/lubricants', label: 'Lubricants', icon: 'lubricants', roles: ['super_admin', 'data_entry'] },
-  { href: '/admin/purchases', label: 'Purchases', icon: 'purchases', roles: ['super_admin', 'data_entry'] },
-  { href: '/admin/stock-checks', label: 'Stock', icon: 'stock', roles: ['super_admin', 'data_entry'] },
-  { href: '/admin/customers', label: 'Customers', icon: 'customers', roles: ['super_admin', 'data_entry'] },
+  {
+    href: '/admin/readings',
+    label: 'Readings',
+    icon: 'readings',
+    roles: ['super_admin', 'data_entry'],
+  },
+  {
+    href: '/admin/lubricants',
+    label: 'Lubricants',
+    icon: 'lubricants',
+    roles: ['super_admin', 'data_entry'],
+  },
+  {
+    href: '/admin/purchases',
+    label: 'Purchases',
+    icon: 'purchases',
+    roles: ['super_admin', 'data_entry'],
+  },
+  {
+    href: '/admin/stock-checks',
+    label: 'Stock',
+    icon: 'stock',
+    roles: ['super_admin', 'data_entry'],
+  },
+  {
+    href: '/admin/customers',
+    label: 'Customers',
+    icon: 'customers',
+    roles: ['super_admin', 'data_entry'],
+  },
   { href: '/admin/banking', label: 'Banking', icon: 'banking', roles: ['super_admin'] },
   { href: '/admin/expenses', label: 'Expenses', icon: 'expenses', roles: ['super_admin'] },
+  // Property the pump has bought and kept, not spending or takings - its own
+  // entry beside Expenses and Banking rather than a tab on either, because it
+  // answers a different question ("what do we own") from both.
+  {
+    href: '/admin/company-assets',
+    label: 'Company Assets',
+    icon: 'assets',
+    roles: ['super_admin'],
+  },
   { href: '/admin/reports', label: 'Reports', icon: 'reports', roles: ['super_admin'] },
   { href: '/admin/settings', label: 'Settings', icon: 'settings', roles: ['super_admin'] },
   // Last, and open to both roles - the person most likely to need it is a new

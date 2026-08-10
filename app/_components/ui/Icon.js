@@ -100,6 +100,52 @@ const PATHS = {
       <circle cx="14.2" cy="17" r="1.8" />
     </>
   ),
+  // Company assets: a briefcase - property the business holds, not stock it
+  // sells through.
+  assets: (
+    <>
+      <path d="M4.5 9.5A1.7 1.7 0 0 1 6.2 7.8h11.6a1.7 1.7 0 0 1 1.7 1.7v8a1.7 1.7 0 0 1-1.7 1.7H6.2a1.7 1.7 0 0 1-1.7-1.7Z" />
+      <path d="M9 7.8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5v1.3" />
+      <path d="M4.5 13h15" />
+    </>
+  ),
+  // Vehicle: a small car, for the delivery bike or the owner's own runabout.
+  vehicle: (
+    <>
+      <path d="M4.5 16V12l2-4.2A1.7 1.7 0 0 1 8.05 6.8h7.9a1.7 1.7 0 0 1 1.55 1L19.5 12v4" />
+      <path d="M4.5 16h15v2.2a.8.8 0 0 1-.8.8h-1.4a.8.8 0 0 1-.8-.8V17H7.5v1.2a.8.8 0 0 1-.8.8H5.3a.8.8 0 0 1-.8-.8Z" />
+      <path d="M4.5 12h15" />
+      <circle cx="8" cy="14" r="1" />
+      <circle cx="16" cy="14" r="1" />
+    </>
+  ),
+  // Machinery: a wrench, not a cog - the same reasoning settings gives.
+  machinery: (
+    <path d="M8.5 15.5 4 20M14.6 8.4a3.4 3.4 0 1 1-4.8 4.8L4 19l1 1 5.8-5.8a3.4 3.4 0 0 1 4.8-4.8l-2.4 2.4 1.4 1.4Z" />
+  ),
+  // Property: a small building, distinct from the roof-only dashboard mark.
+  property: (
+    <>
+      <path d="M6 20V6.5L12 4l6 2.5V20" />
+      <path d="M4.5 20h15" />
+      <path d="M9.5 20v-4h5v4" />
+      <path d="M9.5 10h1M13.5 10h1M9.5 14h1M13.5 14h1" />
+    </>
+  ),
+  // Electronics: a monitor on a stand.
+  electronics: (
+    <>
+      <path d="M4.5 6.5h15v9h-15z" />
+      <path d="M10 18.5h4M12 15.5v3" />
+    </>
+  ),
+  // Other: a small tag, for anything the five categories don't quite name.
+  other: (
+    <>
+      <path d="M12.5 4.5h4a1 1 0 0 1 1 1v4l-8.3 8.3a1.4 1.4 0 0 1-2 0l-3-3a1.4 1.4 0 0 1 0-2Z" />
+      <circle cx="15.2" cy="7.8" r="1" />
+    </>
+  ),
   // Done. Paired with a word, never on its own.
   check: <path d="m5 12.5 4.5 4.5L19 7" />,
   // Still to do.

@@ -799,6 +799,47 @@ The replacement is one piece of markup that is a grid of columns above
   would be a dash alone on a line, which is a thing to decipher rather than
   read.
 
+## Picking one of a handful of categories: icon tiles, not a dropdown
+
+`BalanceDirection` (below) is the pattern for choosing between two named
+*directions*, read as sentences. `CategoryPicker`
+(`app/_components/admin/CompanyAssetForm.js`, used by Company Assets) is the
+pattern for choosing one of a small fixed set of *kinds of thing* — vehicle,
+machinery, property, electronics, other — and it is deliberately a different
+shape: a `role="radiogroup"` of icon tiles, not a `<select>`.
+
+The reason is what there is to read. A direction is a sentence someone has to
+understand; a category is a single word most people recognise on sight, and a
+picture answers "which one" faster than five words in a closed dropdown ever
+will — nothing to open, nothing hidden until you click. A `<select>` is right
+when the list is long, alphabetical, or has no natural icon (a bank name, a
+customer); tiles are right when the list is short and every option already
+has an obvious symbol.
+
+Shape of it:
+
+- **`role="radiogroup"` / `role="radio"` / `aria-checked`**, with a hidden
+  `<input type="hidden" name="…">` carrying the actual form value — the tiles
+  are buttons, not a native input, so the value has to be smuggled in
+  separately for the `<form action>` to see it.
+- **`@container` on the wrapper, not a viewport breakpoint** — `grid-cols-3
+  @[26rem]:grid-cols-5`. This picker lives inside a `Dialog`, whose width has
+  nothing to do with the window; three columns on a phone's full-screen sheet,
+  five once the dialog itself has room. Same reasoning as "Responsive: measure
+  the container" above.
+- **Active tile: `border-brand-600 bg-brand-50`, icon and label in
+  brand-700/900. Inactive: `border-ink-300 bg-white hover:bg-ink-50`** — the
+  same selected/unselected contrast used everywhere else a choice needs to
+  read as chosen at a glance.
+- **The icon set lives in `Icon.js` beside the app's other icons, not as a
+  one-off inline SVG** — `vehicle`, `machinery`, `property`, `electronics`,
+  `other` were added there so any future picker or badge can reuse them.
+- **The category list itself (`{value, label, icon}`) is a plain data module**
+  (`app/_lib/asset-categories.js`), not an export of the `'use client'` form
+  file — see that file's own comment. Any list a client-side picker and a
+  server-rendered page both need to read has to live outside the client
+  boundary, the same reason `guide-content.js` is separate from `GuideFlow.js`.
+
 ## Moving money by hand: say which way, then show the result
 
 Anywhere the owner moves a balance by hand — the manual adjustment, a new

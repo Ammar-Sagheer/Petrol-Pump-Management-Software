@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **035**.
+logins, one pump. Migrations run to **036**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -39,14 +39,15 @@ logins, one pump. Migrations run to **035**.
 | All fuel rates | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card. |
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
+| Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Thirty-five
+almost none of the important logic is in the JavaScript. Thirty-six
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
-sixteen tables that diffs `jsonb` and writes an English sentence. Decide early
-whether a single-user offline build needs it at all.
+seventeen tables that diffs `jsonb` and writes an English sentence. Decide
+early whether a single-user offline build needs it at all.
 
 **Three things that are load-bearing and easy to break:**
 
@@ -1816,3 +1817,60 @@ scroll, 30 bar paths present after the animation settles either way. One
 retest needed — the same recharts-animation trap noted elsewhere in this file:
 a screenshot taken immediately after `networkidle` catches the bars mid-grow
 and looks like a regression that is not one.
+
+### Company Assets — a private record of what the pump owns
+
+*"I need a page named Company Assets, where I can add all the company assets
+with their value at the time of purchase, and edit or delete them. This page
+is just for the owner to see what he bought using pump money."*
+
+A new page, `/admin/company-assets`, owner-only in the same way Banking is —
+RLS refuses `data_entry` outright, the nav link is hidden for anyone else, and
+neither is treated as the real gate. Nothing here touches a sale, an expense,
+or the month's profit; it is a separate ledger of things bought and *kept*
+(a vehicle, a generator, machinery, property), not things bought and used up.
+
+**Cards, not a table.** Every other list in the app is a table because its
+rows are short numbers read in columns. An asset is a name, a category, a
+value and an optional note — closer to a small record than a row — so it gets
+the same treatment the activity log got when a table stopped fitting it (see
+"When a list should stop being a table"). Nine cards a page, three columns
+wide on a laptop.
+
+**A new picker shape.** Choosing the category is five icon tiles in a
+`role="radiogroup"`, not a `<select>` — see the new UI_CONVENTIONS.md section
+"Picking one of a handful of categories" for why this is a different pattern
+from `BalanceDirection`, and for the client/server-boundary reason the
+category list itself lives in `app/_lib/asset-categories.js` rather than
+inside the client form file.
+
+**The four header figures come from a database RPC**
+(`get_company_assets_summary`, migration 036), not a sum over the page's nine
+rows — the same rule, and the same historical bug it exists to avoid, as
+`getPurchases()` earlier in this file: a capped list's total silently
+shrinking the moment a second page exists. Total value, asset count, biggest
+category by value, and the newest addition all come from the whole table
+every time.
+
+Migration 036 also extends the activity-log trigger (035) to `company_assets`,
+so adding, editing or removing an asset writes the same kind of audit-trail
+line everything else does — reproduced from `pg_get_functiondef` against the
+live function rather than retyped, to avoid the trigger silently drifting
+from the sixteen tables it already covers.
+
+Verified end-to-end against live data with nothing written: the whole
+migration, plus inserts, RLS checks for owner/staff/anon, the summary RPC and
+the trigger's output, ran inside a transaction that ends in a forced
+`raise exception` so it always rolls back, then a read-only follow-up query
+confirmed the table and the activity log were untouched. Only then was the
+migration applied for real. The Server Actions were not exercised through the
+live authenticated app — that would need the owner's own login — so they rest
+on that database-level proof plus a passing build, the same as any other
+action shaped like `createExpense`/`updateTank`/`deleteExpense`.
+
+Rendered with fixture data covering the awkward cases — a long wrapping name,
+a seven-figure value, a card with no note — at 1440/1152/1024/400/360px: no
+clipping, no sideways scroll. The category picker reflows 3 columns to 5 at
+`@[26rem]`, and the delete confirmation (`<ConfirmAction>`) was measured
+before and after opening to confirm the surrounding card grid does not move,
+the same check the guards-that-moved-the-page fix above established.

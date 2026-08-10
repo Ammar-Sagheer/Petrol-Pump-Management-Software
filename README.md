@@ -80,6 +80,7 @@ Fuel prices** and set petrol and diesel.
 | See sales totals, profit, reports | yes | **no** |
 | Record and see expenses | yes | **no** |
 | See the bank accounts and their balances | yes | **no** |
+| See and manage company assets | yes | **no** |
 | Change prices, tanks, nozzles | yes | **no** |
 | Add or remove a lubricant from the shelf | yes | **no** |
 | Correct or delete past entries | yes | **no** |
@@ -211,7 +212,7 @@ amount of application code can get around them.
   generated from it. The amount on the note is the fact - see "Things worth
   knowing".
 - **Every change is logged, by the database, and the log cannot be edited.**
-  A trigger on sixteen tables writes one readable line into `activity_log` for
+  A trigger on seventeen tables writes one readable line into `activity_log` for
   each insert, update and delete: who did it, when, what it was, and — on an
   edit — which fields moved and what they moved from. Only the owner can read
   it (`/admin/activity`), and *nobody* can write to it by hand or change a line
@@ -258,6 +259,7 @@ app/
     customers/             list and [id] detail with ledger; adding is a dialog
     banking/               the owner's bank accounts - owner only
     expenses/              what the pump spends, by month - owner only
+    company-assets/        what the pump has bought and kept - owner only
     reports/               monthly profit, charts, Excel export
       daily/               every trading day, newest first, paged
     settings/              prices, tanks, nozzle wiring
@@ -279,6 +281,7 @@ app/
     format-helpers.js      formatRate() - same reason as date-helpers
     brand.js               business name; the logo is public/logo.png
     guide-content.js       the guide's text, both languages, as data
+    asset-categories.js    the five company-asset categories, as data
     excel-report.js        builds the monthly workbook from the template
   _styles/globals.css
 proxy.js                   session refresh + signed-in gate
@@ -317,7 +320,7 @@ Everything else — the balanced-day check, the append-only ledger, the overlap
 rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
 translation at all.
 
-**The database is not a passive store.** Thirty-five migrations of triggers,
+**The database is not a passive store.** Thirty-six migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -326,8 +329,9 @@ is rebuilt**, and nothing in the UI will complain, because the UI check was
 only ever the courtesy. The list to work through is "What the database will
 not let you do" above; the files are in `supabase/migrations/`.
 
-**The activity log is the hardest single thing to port** (`035`). One trigger
-function on sixteen tables, written in PL/pgSQL, that reads the changed row as
+**The activity log is the hardest single thing to port** (`035`, extended by
+`036`). One trigger function on seventeen tables, written in PL/pgSQL, that
+reads the changed row as
 `jsonb`, diffs old against new, builds an English sentence, and inserts it into
 an append-only table. Nothing in that paragraph exists in SQLite: no `to_jsonb`
 on a row type, no `jsonb_object_keys`, no `auth.uid()` to name the actor. It
@@ -419,6 +423,7 @@ Applied in order:
 | `033_purge_a_mistyped_customer.sql` | Deleting a customer for good, but only one that never traded |
 | `034_customer_opening_balance.sql` | Creating a customer and the balance they arrive with, in one transaction |
 | `035_activity_log.sql` | The audit trail: a trigger on sixteen tables writing who changed what, and an append-only log to hold it |
+| `036_company_assets.sql` | Company Assets: what the pump has bought and kept, owner-only, extends the activity-log trigger to a seventeenth table |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
