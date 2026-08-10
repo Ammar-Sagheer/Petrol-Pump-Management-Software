@@ -31,6 +31,7 @@ import {
   formatPKR,
   formatRate,
 } from './helpers';
+import { ASSET_CATEGORIES } from './asset-categories';
 
 // ---------------------------------------------------------------------------
 // Small input helpers
@@ -297,9 +298,7 @@ export async function saveReading(_prevState, formData) {
 
   const litresSold = roundMoney(closing - opening);
   const saleAmount = roundMoney(litresSold * rate);
-  const creditTotal = roundMoney(
-    cleanedLines.reduce((total, line) => total + line.amount, 0),
-  );
+  const creditTotal = roundMoney(cleanedLines.reduce((total, line) => total + line.amount, 0));
   const cashAmount = roundMoney(saleAmount - creditTotal);
 
   if (cashAmount < 0) {
@@ -466,9 +465,17 @@ export async function resetEverything(_prevState, formData) {
 
   if (error) return fail(describe(error, 'Could not reset the data.'));
 
-  ['/admin', '/admin/readings', '/admin/purchases', '/admin/stock-checks',
-   '/admin/customers', '/admin/lubricants', '/admin/expenses', '/admin/reports',
-   '/admin/settings'].forEach(revalidatePath);
+  [
+    '/admin',
+    '/admin/readings',
+    '/admin/purchases',
+    '/admin/stock-checks',
+    '/admin/customers',
+    '/admin/lubricants',
+    '/admin/expenses',
+    '/admin/reports',
+    '/admin/settings',
+  ].forEach(revalidatePath);
 
   const n = (key) => Number(data?.[key] ?? 0);
   return ok(
@@ -540,8 +547,7 @@ const PURCHASE_TABLES = {
   lubricant: { table: 'lubricant_purchases', noun: 'lubricant purchase' },
 };
 
-const purchaseTable = (formData) =>
-  PURCHASE_TABLES[text(formData, 'kind')] ?? PURCHASE_TABLES.fuel;
+const purchaseTable = (formData) => PURCHASE_TABLES[text(formData, 'kind')] ?? PURCHASE_TABLES.fuel;
 
 /**
  * Removes a purchase. Owner only, and the way to correct a mistyped quantity -
@@ -1032,10 +1038,10 @@ export async function createStockCheck(_prevState, formData) {
 
   // Expected stock is worked out by the database, never sent from the browser -
   // otherwise the gain/loss figure could be made to say anything.
-  const { data: expected, error: expectedError } = await supabase.rpc(
-    'calculate_expected_stock',
-    { p_tank_id: tankId, p_date: checkDate },
-  );
+  const { data: expected, error: expectedError } = await supabase.rpc('calculate_expected_stock', {
+    p_tank_id: tankId,
+    p_date: checkDate,
+  });
 
   if (expectedError) {
     return fail(describe(expectedError, 'Could not work out the expected stock.'));
@@ -1381,10 +1387,12 @@ export async function recordLedgerAdjustment(_prevState, formData) {
   const note = text(formData, 'note');
 
   if (!customerId) return fail('Missing the customer.');
-  if (!['debit', 'credit'].includes(entryType)) return fail('Choose whether this adds or reduces what they owe.');
+  if (!['debit', 'credit'].includes(entryType))
+    return fail('Choose whether this adds or reduces what they owe.');
   if (amount === null || amount <= 0) return fail('Enter an amount above zero.');
   if (!entryDate) return fail('Enter a date.');
-  if (!note) return fail('Write a note explaining this adjustment - it stays on the record permanently.');
+  if (!note)
+    return fail('Write a note explaining this adjustment - it stays on the record permanently.');
 
   // Whole rupees, like every other entry on the ledger. An adjustment is the
   // tool for squaring an account, and one that could itself leave paisa behind
@@ -1441,7 +1449,9 @@ export async function setFuelPrice(_prevState, formData) {
 
   revalidatePath('/admin/settings');
   revalidatePath('/admin/readings');
-  return ok(`${fuelType === 'petrol' ? 'Petrol' : 'Diesel'} rate set to ${formatRate(rate)} per litre.`);
+  return ok(
+    `${fuelType === 'petrol' ? 'Petrol' : 'Diesel'} rate set to ${formatRate(rate)} per litre.`,
+  );
 }
 
 /**
@@ -1987,4 +1997,109 @@ export async function deleteBankTransaction(_prevState, formData) {
 
   revalidatePath('/admin/banking');
   return ok('Transaction removed.');
+}
+
+// ---------------------------------------------------------------------------
+// Company assets - super_admin only
+//
+// What the pump has bought and kept, not spending or takings. See migration
+// 036 - the same treatment as banking, in both the database and here.
+// ---------------------------------------------------------------------------
+
+// Derived from the shared list rather than typed out again here, so a
+// category added to asset-categories.js is valid the moment it exists instead
+// of being silently refused by a second, forgotten copy of the same five
+// words.
+const ASSET_CATEGORY_VALUES = ASSET_CATEGORIES.map((category) => category.value);
+
+export async function createCompanyAsset(_prevState, formData) {
+  let profile;
+  try {
+    profile = await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const name = text(formData, 'name');
+  const category = text(formData, 'category') || 'other';
+  const purchaseValue = number(formData, 'purchase_value');
+  const purchaseDate = text(formData, 'purchase_date');
+  const note = text(formData, 'note');
+
+  if (!name) return fail('Enter what was bought.');
+  if (!ASSET_CATEGORY_VALUES.includes(category)) return fail('Choose a category.');
+  if (purchaseValue === null || purchaseValue <= 0) return fail('Enter what it cost, above zero.');
+  if (!purchaseDate) return fail('Enter the date it was bought.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('company_assets').insert({
+    name,
+    category,
+    purchase_value: purchaseValue,
+    purchase_date: purchaseDate,
+    note: note || null,
+    created_by: profile.id,
+  });
+
+  if (error) return fail(describe(error, 'Could not record the asset.'));
+
+  revalidatePath('/admin/company-assets');
+  return ok(`${name} added.`);
+}
+
+export async function updateCompanyAsset(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const assetId = text(formData, 'asset_id');
+  const name = text(formData, 'name');
+  const category = text(formData, 'category') || 'other';
+  const purchaseValue = number(formData, 'purchase_value');
+  const purchaseDate = text(formData, 'purchase_date');
+  const note = text(formData, 'note');
+
+  if (!assetId) return fail('Missing the asset.');
+  if (!name) return fail('Enter what was bought.');
+  if (!ASSET_CATEGORY_VALUES.includes(category)) return fail('Choose a category.');
+  if (purchaseValue === null || purchaseValue <= 0) return fail('Enter what it cost, above zero.');
+  if (!purchaseDate) return fail('Enter the date it was bought.');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('company_assets')
+    .update({
+      name,
+      category,
+      purchase_value: purchaseValue,
+      purchase_date: purchaseDate,
+      note: note || null,
+    })
+    .eq('id', assetId);
+
+  if (error) return fail(describe(error, 'Could not save the changes.'));
+
+  revalidatePath('/admin/company-assets');
+  return ok('Changes saved.');
+}
+
+export async function deleteCompanyAsset(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const assetId = text(formData, 'asset_id');
+  if (!assetId) return fail('Missing the asset.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('company_assets').delete().eq('id', assetId);
+
+  if (error) return fail(describe(error, 'Could not remove the asset.'));
+
+  revalidatePath('/admin/company-assets');
+  return ok('Asset removed.');
 }

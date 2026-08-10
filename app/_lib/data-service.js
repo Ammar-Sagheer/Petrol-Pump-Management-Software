@@ -25,10 +25,7 @@ function unwrap({ data, error }, what) {
 
 export async function getTanks() {
   const supabase = await createClient();
-  return unwrap(
-    await supabase.from('tanks').select('*').order('fuel_type'),
-    'the tanks',
-  );
+  return unwrap(await supabase.from('tanks').select('*').order('fuel_type'), 'the tanks');
 }
 
 export async function getNozzles() {
@@ -425,10 +422,7 @@ export async function getLedgerEntriesPage(customerId, { page = 1, perPage = 25 
 
 export async function getDailySummary(date) {
   const supabase = await createClient();
-  return unwrap(
-    await supabase.rpc('get_daily_summary', { p_date: date }),
-    "the day's summary",
-  );
+  return unwrap(await supabase.rpc('get_daily_summary', { p_date: date }), "the day's summary");
 }
 
 export async function getSalesTrend(from, to) {
@@ -546,5 +540,68 @@ export async function getBankTransactions() {
       .order('txn_date', { ascending: false })
       .order('created_at', { ascending: false }),
     'the bank transactions',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Company assets
+//
+// What the pump has bought and kept: vehicles, machinery, equipment,
+// property. Owner-only, and no effect on sales, expenses or profit - see
+// migration 036.
+// ---------------------------------------------------------------------------
+
+/**
+ * One page of assets, newest purchase first, plus how many there are.
+ *
+ * `count: 'exact'` rides along on the same request for the same reason as
+ * getFuelPricesPage - the pager needs the total, and asking separately would
+ * be a second round trip for a number the database has already worked out.
+ */
+export async function getCompanyAssetsPage({ page = 1, perPage = 9 } = {}) {
+  const supabase = await createClient();
+  const from = (page - 1) * perPage;
+
+  const { data, error, count } = await supabase
+    .from('company_assets')
+    .select('*', { count: 'exact' })
+    .order('purchase_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(from, from + perPage - 1);
+
+  if (error) {
+    throw new Error(`Could not load the company assets: ${error.message}`);
+  }
+
+  return { rows: data ?? [], total: count ?? 0 };
+}
+
+/**
+ * Total value, count, the priciest category and the newest addition - the
+ * figures the page leads with.
+ *
+ * An RPC rather than a client-side sum over the page above, on purpose: the
+ * page is capped at `perPage` rows and a total worked out from only one page
+ * of them would be wrong the moment a second page exists. See
+ * `get_company_assets_summary()` for the full reasoning - it is the same
+ * lesson `getPurchases()` already carries a comment about.
+ */
+export async function getCompanyAssetsSummary() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('get_company_assets_summary').single();
+
+  if (error) {
+    throw new Error(`Could not load the assets summary: ${error.message}`);
+  }
+
+  return (
+    data ?? {
+      asset_count: 0,
+      total_value: 0,
+      top_category: null,
+      top_category_value: 0,
+      newest_name: null,
+      newest_date: null,
+    }
   );
 }
