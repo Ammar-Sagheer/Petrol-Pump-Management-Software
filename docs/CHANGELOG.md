@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **036**.
+logins, one pump. Migrations run to **037**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -40,10 +40,11 @@ logins, one pump. Migrations run to **036**.
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 | Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
+| Readings | A day strip showing the last ten days coloured by completion, and a checkbox that must be ticked to save a reading when the day before it was never entered. Migration 037. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Thirty-six
+almost none of the important logic is in the JavaScript. Thirty-seven
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 seventeen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -1874,3 +1875,47 @@ clipping, no sideways scroll. The category picker reflows 3 columns to 5 at
 `@[26rem]`, and the delete confirmation (`<ConfirmAction>`) was measured
 before and after opening to confirm the surrounding card grid does not move,
 the same check the guards-that-moved-the-page fix above established.
+
+### A whole day went in at zero, and nothing on screen said so
+
+*"Father came back after 2 days to enter the reading and mistakenly added the
+reading in today's section, instead of Sunday, without knowing that he missed
+a day."* Real evening, real numbers: 09 Aug 2026 sat at 0 of 6 nozzles while
+10 Aug was entered in full — the meter still balanced (opening carried
+straight from 08 Aug's close), so nothing was double-counted, but a whole
+day's cash and litres were never recorded as their own day, and nothing told
+him that had happened.
+
+**The database already allows this on purpose** (`027_no_backfill_without_room.sql`):
+a genuine gap and a day skipped by mistake are the same shape on the wire, so
+it cannot be the thing that refuses one and not the other. Only the UI knows
+whether a human meant to.
+
+Two things, both new:
+
+- **`<ReadingDayStrip>`** — the last ten days as small tiles, coloured and
+  fractioned by how many of the day's six nozzles were entered ("0/6" red,
+  partial amber, "6/6" green with a check mark). Sits above the nozzle list on
+  `/admin/readings`, fed by a new RPC, `get_reading_completion` (migration
+  037), built on the same date-spine trick as `get_lubricant_trend` so an
+  untouched day is a real zero rather than a missing row. See
+  docs/UI_CONVENTIONS.md → "A strip of recent days" for why this is not folded
+  into `<DateNav>`, which five other pages reuse with different ideas of what
+  "done" means.
+- **A checkbox that gates Save**, inside `ReadingForm`'s entry dialog. When a
+  nozzle's last reading isn't literally the day before the one being entered,
+  a red box names the missing day(s) and what saving now will do to them, and
+  the Save button stays disabled until "Yes, \[day\] was missed on purpose —
+  save this day anyway" is ticked. Not a second dialog stacked on the one
+  already open — see docs/UI_CONVENTIONS.md → "A gap the database allows on
+  purpose still wants a checkbox" for why a checkbox was the right shape here
+  and `<ConfirmAction>` was not.
+
+Verified against the real gap: `get_reading_completion('2026-08-06',
+'2026-08-10')` was proven inside a rolled-back transaction to return exactly
+`{09 Aug: 0/6}` against the live 09/10 Aug data before the migration was
+applied for real. Rendered with a fixture reproducing the exact scenario
+(gap Sat→Mon, and a control row with no gap for contrast) at 1152 and 400px:
+the Save button measured disabled before the checkbox and enabled after it at
+both widths, and the strip scrolls inside its own container without the page
+gaining a sideways scrollbar.

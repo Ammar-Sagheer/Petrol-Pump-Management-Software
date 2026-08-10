@@ -488,6 +488,38 @@ the arrows and the date box.
   statements of one fact left none of them dominant, and the owner lost track
   of which day he was entering.
 
+## A strip of recent days, coloured by how complete they are
+
+`<ReadingDayStrip>` (Readings only) shows the last ten days as small tiles —
+weekday, day number, and a fraction like "3/6" — so a day nobody touched is
+something you see scanning the top of the page, not something a paragraph has
+to tell you about after the fact.
+
+- **The fraction is not decoration, it is the primary signal.** Colour alone
+  repeats the mistake the litre badges were fixed for elsewhere in this file:
+  a full green tile and an empty red one are two different shapes of number
+  ("6/6" vs "0/6") as well as two different colours, so it still reads in
+  black and white. A full day also gets a check mark and an untouched past day
+  a warning triangle — the two ends of the scale get a third signal beyond
+  colour and text, because those are the two states worth catching at a
+  glance.
+- **The viewed day gets a ring, not a fill colour of its own.** Its fill
+  already means something — how complete that day is — and a second meaning
+  stacked onto the same colour is the thing to misread in a hurry. A dark ring
+  around the tile says "you are here" without touching what the tile's colour
+  already says.
+- **This is not folded into `<DateNav>`.** Five other pages reuse that
+  component (Lubricants, Purchases, Stock checks…) and each has its own idea
+  of what "done" means for a day, if it has one at all — baking
+  readings-shaped completion logic into a component that many other pages
+  share would be the wrong place for it. A second, page-specific strip sitting
+  beside DateNav costs nothing the shared component would have to carry
+  everywhere else.
+- **Its own horizontal scroll, not the page's.** Ten tiles do not fit a phone
+  width; the strip scrolls sideways inside its own `overflow-x-auto` wrapper
+  while the page itself does not, the same rule tables in this app already
+  follow.
+
 ## Meter readings carry two decimals
 
 A pump meter is a physical dial with a tenths digit, so 1,987,128.80 and
@@ -871,6 +903,46 @@ legal. A label can be misread; a figure going from 4,999 to 9,998 when you
 meant to clear an account cannot. **Any control where both choices are valid
 and only the operator knows which is right should show its consequence before
 it is committed.**
+
+## A gap the database allows on purpose still wants a checkbox
+
+Some actions are legal every time and wrong just often enough to need a second
+look — entering a day's readings when the day before it was never opened is
+the example this pattern was built for. Migration 027 deliberately allows it,
+because backfilling a genuine gap later looks identical on the wire to
+skipping a day by mistake, and the database cannot tell those two apart. The
+UI is the only place that can, because it's the only place that knows whether
+a human actually meant to.
+
+`ReadingForm`'s `EntryForm` is the shape of it: `hasDateGap` compares the
+nozzle's last reading (`previous_date`, which `get_reading_sheet` already
+returns) against the calendar day right before the one being entered. When
+they differ, the form does two things, not one:
+
+- **Says what is true**, in a red box: which day (or range of days) has no
+  reading, and what saving now will do to it — "will jump straight over it,"
+  not a vaguer "may cause a discrepancy."
+- **Gates the Save button on a checkbox inside that same box** — "Yes, 09 Aug
+  2026 was missed on purpose — save this day anyway" — rather than only
+  colouring the button or adding more red text next to it. `canSubmit` stays
+  `false` until it is ticked, same mechanism as the other disqualifying
+  conditions on that form (a negative litre count, credit exceeding the sale).
+
+**Why a checkbox and not a second dialog.** `ConfirmAction` is for a
+destructive action reached by its own trigger — the dialog IS the confirmation
+and nothing else is happening on the page underneath it. Here the confirmation
+has to appear *inside* a dialog that is already open and already mid-form, so
+a second stacked dialog would be confirming a click already several steps into
+a task, over content that would have to move out of the way for it. A checkbox
+that must be ticked before the button will do anything asks the same question
+with no extra layer: it cannot be dismissed with a stray Enter or a reflexive
+tap the way a paragraph of warning text can be scrolled past.
+
+**Why this and not a hard block.** A hard block would refuse the very case
+027 exists to allow — the honest repair of entering a late day once the gap is
+found. The checkbox is the fork between the two: it costs one tap when the
+skip is deliberate, and it stops the tap that was never a decision at all,
+which is what happened here.
 
 ## "Remove" means delete-or-retire, and the database decides
 

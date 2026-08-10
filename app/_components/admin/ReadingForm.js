@@ -9,6 +9,7 @@ import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
 import ReadingChainWarning from '@/app/_components/admin/ReadingChainWarning';
 import { formatRate } from '@/app/_lib/format-helpers';
+import { shiftISODate, formatDateLong } from '@/app/_lib/date-helpers';
 import Dialog from '@/app/_components/ui/Dialog';
 import Icon from '@/app/_components/ui/Icon';
 
@@ -169,11 +170,7 @@ export default function ReadingForm({
           </dl>
         ) : (
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink-200/70 pt-3 sm:grid-cols-4">
-            <RowFigure
-              label="Meter starts at"
-              value={meterFormat.format(openingUsed)}
-              strong
-            />
+            <RowFigure label="Meter starts at" value={meterFormat.format(openingUsed)} strong />
             {/* "/ litre" lives in the caption, not in the figure. At the
                 readable type size "Rs 336.34 / litre" no longer fits the
                 half-width column a phone gives this, and it was truncating to
@@ -218,10 +215,13 @@ export default function ReadingForm({
  */
 function RowFigure({ label, value, strong, tone }) {
   const valueTone =
-    tone === 'muted' ? 'text-ink-500'
-    : tone === 'warn' ? 'text-amber-700'
-    : tone === 'credit' ? 'text-ink-900'
-    : 'text-ink-900';
+    tone === 'muted'
+      ? 'text-ink-500'
+      : tone === 'warn'
+        ? 'text-amber-700'
+        : tone === 'credit'
+          ? 'text-ink-900'
+          : 'text-ink-900';
 
   return (
     <div className="min-w-0">
@@ -233,8 +233,20 @@ function RowFigure({ label, value, strong, tone }) {
   );
 }
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 function formatDayLabel(iso) {
   const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
@@ -324,15 +336,14 @@ function EntryForm({ row, date, customers }) {
 
   const [closing, setClosing] = useState('');
   const [lines, setLines] = useState([]);
+  const [skipConfirmed, setSkipConfirmed] = useState(false);
 
   const closingValue = closing === '' ? null : Number(closing);
   const hasClosing = closingValue !== null && Number.isFinite(closingValue);
 
   const litres = hasClosing ? round2(closingValue - opening) : 0;
   const saleAmount = round2(litres * rate);
-  const creditTotal = round2(
-    lines.reduce((total, line) => total + (Number(line.amount) || 0), 0),
-  );
+  const creditTotal = round2(lines.reduce((total, line) => total + (Number(line.amount) || 0), 0));
   const cashAmount = round2(saleAmount - creditTotal);
 
   const meterWentBackwards = hasClosing && closingValue < opening;
@@ -361,8 +372,34 @@ function EntryForm({ row, date, customers }) {
       : Number(row.later_opening);
   const overlapsNextDay = hasClosing && nextOpening !== null && nextOpening < closingValue;
 
+  /*
+   * A GAP BEHIND THIS DAY. `previous_date` is the nearest EARLIER reading for
+   * this nozzle - not necessarily yesterday. When it isn't, one or more whole
+   * days in between were never opened, which is exactly how a real evening
+   * went wrong here: the day before this one was skipped, and this one was
+   * saved without anyone noticing.
+   *
+   * Not a block - migration 027 allows entering a day that leaves a genuine
+   * gap behind it, because backfilling that gap later is a legitimate repair
+   * that looks identical on the wire. This is the deliberate-or-mistake fork:
+   * saving is refused until the checkbox below is ticked, so it takes a
+   * conscious action to skip a day rather than an unnoticed one.
+   */
+  const expectedPreviousDate = shiftISODate(date, -1);
+  const hasDateGap = Boolean(row.previous_date) && row.previous_date !== expectedPreviousDate;
+  const missingFrom = hasDateGap ? shiftISODate(row.previous_date, 1) : null;
+  const missingDayLabel =
+    missingFrom === expectedPreviousDate
+      ? formatDateLong(missingFrom)
+      : `${formatDateLong(missingFrom)} to ${formatDateLong(expectedPreviousDate)}`;
+
   const canSubmit =
-    rate > 0 && hasClosing && !meterWentBackwards && !creditExceedsSale && !overlapsNextDay;
+    rate > 0 &&
+    hasClosing &&
+    !meterWentBackwards &&
+    !creditExceedsSale &&
+    !overlapsNextDay &&
+    (!hasDateGap || skipConfirmed);
 
   function addLine() {
     setLines((current) => [
@@ -372,9 +409,7 @@ function EntryForm({ row, date, customers }) {
   }
 
   function updateLine(key, patch) {
-    setLines((current) =>
-      current.map((line) => (line.key === key ? { ...line, ...patch } : line)),
-    );
+    setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
   }
 
   function removeLine(key) {
@@ -448,17 +483,35 @@ function EntryForm({ row, date, customers }) {
           {meterFormat.format(nextOpening)}, before this day would close at{' '}
           {meterFormat.format(closingValue)} — so{' '}
           {litreFormat.format(round2(closingValue - nextOpening))} litres would be counted on both
-          days. Clear {formatDayLabel(row.later_date)} on Readings first, then enter this day
-          again.
+          days. Clear {formatDayLabel(row.later_date)} on Readings first, then enter this day again.
         </p>
       ) : null}
 
       {/* Says so before saving if this day does not join onto its neighbours. */}
       <ReadingChainWarning row={row} date={date} openingUsed={opening} />
 
+      {hasDateGap ? (
+        <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-900">
+          <p className="font-medium">
+            {missingDayLabel} has no reading saved for this nozzle. Saving this day will jump
+            straight over it.
+          </p>
+          <label className="mt-2 flex items-start gap-2 font-medium">
+            <input
+              type="checkbox"
+              checked={skipConfirmed}
+              onChange={(event) => setSkipConfirmed(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-red-400 text-red-700 focus:ring-red-600"
+            />
+            Yes, {missingDayLabel} was missed on purpose — save this day anyway.
+          </label>
+        </div>
+      ) : null}
+
       {rate > 0 ? (
         <p className="text-sm text-ink-600">
-          Rate: <span className="tabular font-semibold text-ink-700">{formatRate(rate)}</span> per litre
+          Rate: <span className="tabular font-semibold text-ink-700">{formatRate(rate)}</span> per
+          litre
         </p>
       ) : (
         <p className="text-sm font-medium text-amber-800">

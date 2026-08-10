@@ -203,6 +203,23 @@ export async function getCreditSalesForReadings(readingIds = []) {
   }, {});
 }
 
+/**
+ * How many of the day's nozzles were read, for each day in a range.
+ *
+ * Feeds the day strip on the Readings page: a father coming back after a gap
+ * and typing today's numbers into the wrong day has no way to notice the day
+ * he skipped was ever empty, because nothing on screen showed the days behind
+ * today at all. This is the read that lets a whole missed day show up red
+ * before he opens a single nozzle.
+ */
+export async function getReadingCompletion({ from, to }) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_reading_completion', { p_from: from, p_to: to }),
+    "the day's reading completion",
+  );
+}
+
 export async function getRecentReadings(limit = 60) {
   const supabase = await createClient();
   return unwrap(

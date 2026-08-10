@@ -320,7 +320,7 @@ Everything else — the balanced-day check, the append-only ledger, the overlap
 rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
 translation at all.
 
-**The database is not a passive store.** Thirty-six migrations of triggers,
+**The database is not a passive store.** Thirty-seven migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -424,6 +424,7 @@ Applied in order:
 | `034_customer_opening_balance.sql` | Creating a customer and the balance they arrive with, in one transaction |
 | `035_activity_log.sql` | The audit trail: a trigger on sixteen tables writing who changed what, and an append-only log to hold it |
 | `036_company_assets.sql` | Company Assets: what the pump has bought and kept, owner-only, extends the activity-log trigger to a seventeenth table |
+| `037_reading_completion_by_date.sql` | How many nozzles were read on each recent day, for the Readings page's day strip |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
