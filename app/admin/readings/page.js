@@ -141,18 +141,12 @@ export default async function ReadingsPage({ searchParams }) {
           nextDate={shiftISODate(date, 1)}
         />
 
-        {/* Owner only. Entering a day against the wrong date is the mistake
-            this exists for, and it poisons every day after it because each
-            opening comes from the day before. */}
-        {profile.role === ROLES.SUPER_ADMIN ? (
-          <ClearDayButton date={date} dateLabel={formatDate(date)} entryCount={done.length} />
-        ) : null}
-      </div>
-
-      {/* Which of the last seven days are done, half-done, or untouched, so a
-          skipped day is something you see rather than something you have to
-          be told about after the fact. */}
-      <div className="mb-6">
+        {/* Which of the last seven days are done, half-done or untouched -
+            centred in the space that was already empty between the date
+            banner and the Clear button, rather than taking a band of its own
+            and pushing the six nozzles further down the page. `flex-1` is
+            what centres it: it claims whatever is left between its two
+            neighbours and puts the circles in the middle of that. */}
         <ReadingDayStrip
           days={completion.map((row) => ({
             date: row.reading_date,
@@ -160,8 +154,16 @@ export default async function ReadingsPage({ searchParams }) {
             total: Number(row.nozzles_total),
           }))}
           activeDate={date}
+          today={today}
           basePath="/admin/readings"
         />
+
+        {/* Owner only. Entering a day against the wrong date is the mistake
+            this exists for, and it poisons every day after it because each
+            opening comes from the day before. */}
+        {profile.role === ROLES.SUPER_ADMIN ? (
+          <ClearDayButton date={date} dateLabel={formatDate(date)} entryCount={done.length} />
+        ) : null}
       </div>
 
       {dayGap ? (

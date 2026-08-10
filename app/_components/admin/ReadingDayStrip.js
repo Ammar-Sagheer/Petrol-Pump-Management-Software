@@ -1,103 +1,119 @@
 import PendingLink from '@/app/_components/ui/PendingLink';
-import Icon from '@/app/_components/ui/Icon';
-
-const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function dayParts(iso) {
-  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
-  const weekday = WEEKDAYS_SHORT[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
-  return { weekday, dayNumber: String(d).padStart(2, '0') };
-}
+import { formatDateLong } from '@/app/_lib/date-helpers';
 
 /**
- * The last seven days, coloured by how much of that day was actually entered -
- * so a day nobody opened is a red tile on screen before anyone has to read a
- * warning about it.
+ * The last seven days as small coloured circles, sitting at the end of the
+ * day-controls row rather than in a band of their own.
  *
- * This exists because of one real evening: the previous day was skipped
- * entirely, and the next entry went in against today with nothing on the page
- * to say the day behind it was empty. `<DateNav>` only ever shows the one day
- * you are on; this is the strip of days around it that DateNav cannot be,
- * because every other page that reuses DateNav (Lubricants, Purchases, Stock
- * checks) has its own idea of what "done" means for a day, and baking
- * readings-shaped logic into a component six other pages share would be the
- * wrong place for it.
+ * WHY IT LOOKS LIKE THIS. The first cut was a row of tiles carrying a weekday,
+ * a day number and a "3/6" fraction each, on its own line under the controls.
+ * It read as a second, competing set of date navigation - the heaviest thing
+ * on a screen whose actual job is six nozzles - and it pushed the whole page
+ * down by its own height plus a margin. The information it carries is worth
+ * about a glance, so it gets about a glance's worth of room: one number, one
+ * colour, in the empty space beside "Back to today" that was there anyway.
  *
- * COLOUR IS NEVER THE ONLY SIGNAL. The fraction ("0/6", "3/6", "6/6") says the
- * same thing in words, the same discipline as the litre and stock figures
- * elsewhere in the app - see docs/UI_CONVENTIONS.md. A full day also gets a
- * check mark and an empty past day a warning triangle, so the two ends of the
- * scale are readable even in black and white.
+ * COLOUR IS NOT THE ONLY SIGNAL, even at this size. The three states differ in
+ * FILL as well as hue, which survives a red-green reader and a bad tablet
+ * screen both:
  *
- * THE VIEWED DAY gets a solid dark border rather than a fill colour of its
- * own, because its fill already means something (how complete it is) and a
- * second meaning layered onto the same colour would be the thing to misread
- * in a hurry. Every tile carries the same 2px border width regardless of
- * state, so becoming the active tile changes its colour, not its size.
+ *     solid           every nozzle entered
+ *     plain outline   some entered, not all
+ *     dashed outline  nothing entered at all - the one worth catching
  *
- * A FIXED TILE HEIGHT, and `spinnerOnly` on the link. Without either, tapping
- * a tile stacked a spinner above the weekday/number/fraction while the page
- * loaded, which grew the tile - and the whole strip under it - for the
- * fraction of a second the navigation took. `spinnerOnly` swaps the content
- * for the spinner instead of stacking it, and the fixed height keeps that
- * swap from changing the tile's size at all.
+ * A dashed ring reads as "empty" on its own, which is the whole point: the day
+ * this feature exists for is the one nobody opened. The exact figures are not
+ * dropped, only moved - `aria-label` and `title` both carry "Sunday, 09 Aug
+ * 2026 - 0 of 6 nozzles entered", so a screen reader gets the full sentence and
+ * a hover gets it on a laptop.
  *
- * CENTRED ONLY WHEN IT FITS WITHOUT SCROLLING. Seven tiles need about 30rem;
- * centred inside a wider container that reads as tidy, but centring a row
- * that has to scroll sideways leaves both ends hanging off screen with
- * nothing to say so - see "Responsive: measure the container" in
- * docs/UI_CONVENTIONS.md.
+ * AND A PAST EMPTY DAY PULSES (`.flash-attention`). Movement is the one signal
+ * that works when nobody is looking at that corner of the screen, and this is
+ * the only state on the strip that earns it - see the class in globals.css for
+ * why it is a box-shadow halo rather than a blink, and why it stops for
+ * `prefers-reduced-motion`. Today is exempt: it is legitimately empty until the
+ * evening, and a strip that flashes every morning is one nobody sees by noon.
+ *
+ * THE VIEWED DAY takes a dark border and keeps its status fill. An outline ring
+ * offset from the circle floats beside the thing it is marking rather than
+ * marking it; swapping the border colour says "you are here" without a halo and
+ * without changing any tile's size.
+ *
+ * SEVEN, THEN FEWER WHEN THERE IS NO ROOM. The query always asks for seven -
+ * `STRIP_DAYS` on the Readings page - and the oldest two are `hidden sm:flex`,
+ * so a phone shows five rather than wrapping the row onto a second line. The
+ * oldest go first because the gap banner below already names any missed day in
+ * words; the strip is the glance, not the guarantee.
  */
-export default function ReadingDayStrip({ days, activeDate, basePath }) {
+export default function ReadingDayStrip({ days, activeDate, basePath, today }) {
   return (
-    <div className="@container">
-      <div
-        role="group"
-        aria-label="Recent days, coloured by how much was entered"
-        className="-mx-1 flex justify-start gap-2 overflow-x-auto px-1 pb-1 @[32rem]:justify-center"
-      >
-        {days.map((day) => {
-          const { weekday, dayNumber } = dayParts(day.date);
-          const total = day.total ?? 0;
-          const entered = day.entered ?? 0;
-          const isFull = total > 0 && entered === total;
-          const isEmpty = entered === 0;
-          const isActive = day.date === activeDate;
+    <div
+      role="group"
+      aria-label="Recent days, by how many nozzles were entered"
+      /*
+       * `flex-1` claims whatever the date banner and the Clear button leave
+       * between them and `justify-center` puts the circles in the middle of
+       * it, so the strip is centred in the gap rather than pinned to either
+       * neighbour. `min-h-11` matches the banner's own height so the circles
+       * sit on its centre line instead of its top edge.
+       */
+      className="flex min-h-11 flex-1 flex-wrap items-center justify-center gap-1.5"
+    >
+      {days.map((day, index) => {
+        const total = day.total ?? 0;
+        const entered = day.entered ?? 0;
+        const isFull = total > 0 && entered === total;
+        const isEmpty = entered === 0;
+        const isActive = day.date === activeDate;
+        const dayNumber = Number(String(day.date).slice(8, 10));
 
-          const tone = isActive
-            ? 'border-ink-900 bg-ink-50 text-ink-900'
-            : isFull
-              ? 'border-brand-300 bg-brand-50 text-brand-900'
-              : isEmpty
-                ? 'border-red-300 bg-red-50 text-red-900'
-                : 'border-amber-300 bg-amber-50 text-amber-900';
+        /*
+         * Only a PAST empty day pulses. Today is legitimately empty until the
+         * evening's numbers go in, and a strip that flashes at its owner every
+         * morning is one he stops seeing by the afternoon - which would cost
+         * exactly the day this is meant to catch.
+         */
+        const isMissed = isEmpty && day.date < today;
 
-          return (
-            <PendingLink
-              key={day.date}
-              href={`${basePath}?date=${day.date}`}
-              aria-current={isActive ? 'date' : undefined}
-              spinnerOnly
-              className={[
-                'flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 text-center transition',
-                tone,
-                isActive ? '' : 'hover:brightness-95',
-              ].join(' ')}
-            >
-              <span className="text-xs font-semibold uppercase tracking-wide">{weekday}</span>
-              <span className="text-lg font-bold leading-none">{dayNumber}</span>
-              <span className="flex items-center gap-1 text-xs font-semibold">
-                {isFull ? (
-                  <Icon name="check" className="h-3.5 w-3.5" />
-                ) : isEmpty ? (
-                  <Icon name="warning" className="h-3.5 w-3.5" />
-                ) : null}
-                {entered}/{total}
-              </span>
-            </PendingLink>
-          );
-        })}
-      </div>
+        const fill = isFull
+          ? 'bg-brand-600 text-white'
+          : isEmpty
+            ? 'border-dashed bg-red-50 text-red-800'
+            : 'bg-amber-50 text-amber-900';
+
+        const edge = isActive
+          ? 'border-ink-900'
+          : isFull
+            ? 'border-brand-600'
+            : isEmpty
+              ? 'border-red-400'
+              : 'border-amber-400';
+
+        const description = `${formatDateLong(day.date)} — ${entered} of ${total} nozzles entered`;
+
+        return (
+          <PendingLink
+            key={day.date}
+            href={`${basePath}?date=${day.date}`}
+            aria-label={description}
+            title={description}
+            aria-current={isActive ? 'date' : undefined}
+            spinnerOnly
+            className={[
+              'tabular flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition',
+              fill,
+              edge,
+              isMissed ? 'flash-attention' : '',
+              isActive ? '' : 'hover:brightness-95',
+              /* The oldest step aside as the row runs out of width, rather
+                 than wrapping the controls onto a second line. */
+              index < 2 ? 'hidden xl:flex' : 'flex',
+            ].join(' ')}
+          >
+            {dayNumber}
+          </PendingLink>
+        );
+      })}
     </div>
   );
 }

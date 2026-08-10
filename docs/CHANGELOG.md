@@ -40,7 +40,7 @@ logins, one pump. Migrations run to **037**.
 | Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 | Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
-| Readings | A day strip showing the last ten days coloured by completion, and a checkbox that must be ticked to save a reading when the day before it was never entered. Migration 037. |
+| Readings | Seven day-circles beside the date banner, coloured by completion and pulsing on a day nobody entered, plus a checkbox that must be ticked to save a reading when the day before it was never entered. Migration 037. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -1893,24 +1893,41 @@ whether a human meant to.
 
 Two things, both new:
 
-- **`<ReadingDayStrip>`** — the last seven days as small tiles, coloured and
-  fractioned by how many of the day's six nozzles were entered ("0/6" red,
-  partial amber, "6/6" green with a check mark). Sits above the nozzle list on
-  `/admin/readings`, fed by a new RPC, `get_reading_completion` (migration
+- **`<ReadingDayStrip>`** — the last seven days as seven small circles,
+  coloured by how many of the day's six nozzles were entered, sitting in the
+  empty space between the date banner and the Clear button on
+  `/admin/readings`. Fed by a new RPC, `get_reading_completion` (migration
   037), built on the same date-spine trick as `get_lubricant_trend` so an
-  untouched day is a real zero rather than a missing row. See
-  docs/UI_CONVENTIONS.md → "A strip of recent days" for why this is not folded
-  into `<DateNav>`, which five other pages reuse with different ideas of what
-  "done" means. First cut used ten days, a `ring-offset` around the viewed
-  tile, and no `spinnerOnly` on the link — a `ring` with an offset floated a
-  visible halo beside a tile that already had its own tinted fill, and the
-  default pending state stacked a spinner above the tile's three lines
-  instead of replacing them, stretching the whole strip taller for the
-  instant a tap took. Cut to seven days (the width that centres cleanly at a
-  laptop width without the row asking to scroll), the ring replaced with a
-  same-width `border-2` that only changes colour on the active tile, and the
-  link given `spinnerOnly` plus a fixed tile height so a tap swaps content
-  without resizing anything.
+  untouched day is a real zero rather than a missing row.
+
+  **It took three tries, and the two failures are the lesson.** The first cut
+  was a row of tiles carrying weekday + day number + a "3/6" fraction each, on
+  its own line under the controls; the second kept those tiles and moved them
+  inline. Both were correct and both were wrong for the same reason — a
+  secondary signal given primary weight reads as a second set of date
+  navigation, on a screen whose actual job is six nozzles, and the first also
+  pushed the whole page down by its own height. What works is one number in a
+  circle: the exact figures moved into `aria-label`/`title` rather than being
+  dropped, and what stays on screen is what a glance can use.
+
+  Also fixed along the way: a `ring-offset` around the viewed tile floated a
+  halo *beside* the thing it was marking (now a same-width `border-2` that only
+  changes colour, so nothing resizes), and the default pending state stacked a
+  spinner above the tile's content instead of replacing it, stretching the
+  strip for the instant a tap took (`spinnerOnly` + a fixed `h-9 w-9`, measured
+  36×36 before and during).
+
+  **A past empty day pulses**; today does not, because today is legitimately
+  empty until the evening and a strip that flashed every morning is one nobody
+  sees by noon. The pulse is a `box-shadow` halo so it costs no layout —
+  measured at a constant 407px strip width across the animation cycle — and it
+  stops entirely under `prefers-reduced-motion`. Fill carries the state
+  alongside colour: solid = complete, outline = partial, dashed = nothing at
+  all, so the state that matters most still reads with the colour taken away.
+
+  See docs/UI_CONVENTIONS.md → "A status glance costs a glance's worth of
+  room" for the full set, including why this is not folded into `<DateNav>`,
+  which five other pages reuse with different ideas of what "done" means.
 - **A checkbox that gates Save**, inside `ReadingForm`'s entry dialog. When a
   nozzle's last reading isn't literally the day before the one being entered,
   a red box names the missing day(s) and what saving now will do to them, and

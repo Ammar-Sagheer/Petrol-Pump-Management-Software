@@ -488,49 +488,66 @@ the arrows and the date box.
   statements of one fact left none of them dominant, and the owner lost track
   of which day he was entering.
 
-## A strip of recent days, coloured by how complete they are
+## A status glance costs a glance's worth of room
 
-`<ReadingDayStrip>` (Readings only) shows the last seven days as small tiles —
-weekday, day number, and a fraction like "3/6" — so a day nobody touched is
-something you see scanning the top of the page, not something a paragraph has
-to tell you about after the fact.
+`<ReadingDayStrip>` (Readings only) is the last seven days as seven 36px
+circles — one number each, coloured by how many of that day's nozzles were
+entered — riding the empty space between the date banner and the Clear button.
 
-- **The fraction is not decoration, it is the primary signal.** Colour alone
-  repeats the mistake the litre badges were fixed for elsewhere in this file:
-  a full green tile and an empty red one are two different shapes of number
-  ("6/6" vs "0/6") as well as two different colours, so it still reads in
-  black and white. A full day also gets a check mark and an untouched past day
-  a warning triangle — the two ends of the scale get a third signal beyond
-  colour and text, because those are the two states worth catching at a
-  glance.
-- **The viewed day gets a dark 2px border, not a ring.** A `ring` with an
-  offset draws a halo a couple of pixels clear of the tile, which against a
-  tile that already has its own tinted fill reads as a stray box floating
-  next to the thing it is supposed to be marking, not a state of that thing.
-  Every tile carries the same `border-2` regardless of state, so becoming the
-  active tile only ever changes its colour — nothing changes size, and
-  nothing else on the row has to reflow.
-- **A fixed tile height, and `spinnerOnly` on the link.** Without either,
-  tapping a tile stacked `<Spinner>` above the weekday/number/fraction while
-  the page loaded — an extra row in a `flex-col`, which grew the tile and
-  pushed the whole strip taller for the moment the navigation took.
-  `spinnerOnly` swaps the content for the spinner instead of stacking it on
-  top, and a fixed height keeps that swap from changing the tile's size at
-  all.
+It got there by being wrong twice first, and both mistakes are the general
+lesson: **a secondary signal that takes primary space stops being read.**
+
+- **Version one was a row of tiles** carrying a weekday, a day number and a
+  "3/6" fraction each, on a line of its own under the controls. It measured
+  fine and looked like a second, competing set of date navigation — the
+  heaviest thing on a screen whose actual job is six nozzles — and it pushed
+  the whole page down by its own height plus a margin.
+- **Version two kept the tiles and moved them inline**, which fixed the height
+  but not the weight.
+- **What works is one number in a circle.** The exact figures are not dropped,
+  only moved: `aria-label` and `title` both carry "Sunday, 09 Aug 2026 — 0 of
+  6 nozzles entered", so a screen reader gets the whole sentence and a laptop
+  hover gets it too. What stays on screen is what a glance can use.
+
+The rest of the rules it settled on:
+
+- **Fill, not just hue, carries the state** — solid = every nozzle entered,
+  plain outline = some, **dashed outline = nothing at all**. A dashed ring
+  reads as "empty" with the colour taken away, which matters because the
+  dashed one is the state the whole feature exists for. Same discipline as the
+  litre badges elsewhere in this file: never colour alone.
+- **A past empty day pulses** (`.flash-attention` in `globals.css`); today does
+  not. Movement is the only signal that works when nobody is looking at that
+  corner of the screen, so exactly one state gets it — and today is
+  legitimately empty until the evening, so a strip that flashed every morning
+  would be one nobody sees by noon. The pulse is a `box-shadow` halo, which
+  paints outside the circle without costing layout: measured at a constant
+  407px strip width across the whole animation cycle. It stops under
+  `prefers-reduced-motion` — verified `animation-name: none` on every circle.
+- **The viewed day takes a dark border and keeps its status fill.** An outline
+  ring offset from the circle floats *beside* the thing it marks instead of
+  marking it. Swapping the border colour says "you are here" with no halo, and
+  since every circle carries the same `border-2` in every state, nothing ever
+  changes size.
+- **`spinnerOnly` plus a fixed `h-9 w-9`.** The default pending state stacks a
+  `<Spinner>` above the content — an extra row that grew the tile and the strip
+  with it for the instant a tap took. `spinnerOnly` swaps rather than stacks;
+  measured 36×36 before and during navigation.
+- **`flex-1` is what centres it.** The strip claims whatever the banner and the
+  Clear button leave between them and centres its circles in that, so it sits
+  in the middle of the gap rather than pinned to either neighbour. `min-h-11`
+  puts it on the banner's centre line, not its top edge.
+- **Seven, then fewer when the row runs out.** The query always asks for seven;
+  the oldest two are `hidden xl:flex`, so below 1280px it shows five and the
+  Clear button stays on the first line. Measured at 1440/1280/1152/1024: Clear
+  never wraps. The oldest go first because the gap banner underneath already
+  names any missed day in words — the strip is the glance, not the guarantee.
 - **This is not folded into `<DateNav>`.** Five other pages reuse that
   component (Lubricants, Purchases, Stock checks…) and each has its own idea
   of what "done" means for a day, if it has one at all — baking
   readings-shaped completion logic into a component that many other pages
-  share would be the wrong place for it. A second, page-specific strip sitting
-  beside DateNav costs nothing the shared component would have to carry
-  everywhere else.
-- **Centred only when it fits without scrolling.** Seven tiles need about
-  30rem; `@[32rem]:justify-center` centres the row once the container has
-  that much room, and leaves it hugging the left edge with its own
-  `overflow-x-auto` below that threshold. Centring a row that still has to
-  scroll sideways would leave both ends hanging off screen with nothing on
-  screen to say so — the same container-query discipline as "Responsive:
-  measure the container" below, applied to a row instead of a table.
+  share would be the wrong place for it. It is a sibling in the same row
+  instead, which is also what lets `flex-1` centre it between the other two.
 
 ## Meter readings carry two decimals
 
