@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { createStockCheck, deleteStockCheck } from '@/app/_lib/actions';
 import { shiftISODate, formatDate } from '@/app/_lib/date-helpers';
@@ -9,11 +9,44 @@ import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
 import ConfirmAction from '@/app/_components/ui/ConfirmAction';
+import Toast from '@/app/_components/ui/Toast';
 import BalanceDirection from '@/app/_components/admin/BalanceDirection';
 
-const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+const litreFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+});
 const showLitres = (n) => `${litreFormat.format(n || 0)} L`;
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/*
+ * The whole card wears its fuel's colour, not just the badge.
+ *
+ * Two cards side by side, identical but for a small badge and a name, and the
+ * figures typed into them are four-digit numbers that look alike - so petrol's
+ * reading going into diesel's box is an easy slip and an expensive one, because
+ * a dip is the baseline every later day is measured from.
+ *
+ * Same sky/amber pair `FuelBadge` uses everywhere else, so this reinforces a
+ * association the app has already taught rather than inventing a new one.
+ * Colour is NOT the only cue and must not be: the tank name, the badge and the
+ * dip box's own label all name the fuel, for anyone who cannot tell the two
+ * tints apart. The tint is on the header and the border only - the body stays
+ * white so the figures keep full contrast on a tablet in poor light.
+ */
+const TANK_STYLES = {
+  petrol: {
+    card: 'border-sky-300',
+    header: 'border-sky-200 bg-sky-50',
+    name: 'text-sky-900',
+    capacity: 'text-sky-800',
+  },
+  diesel: {
+    card: 'border-amber-300',
+    header: 'border-amber-200 bg-amber-50',
+    name: 'text-amber-900',
+    capacity: 'text-amber-800',
+  },
+};
 
 /*
  * A dip is a MOMENT, not a day, and which day it judges depends on when the rod
@@ -57,6 +90,51 @@ export default function StockCheckForm({
   const [clearState, clearAction] = useActionState(deleteStockCheck, null);
   const [dip, setDip] = useState('');
   const [taken, setTaken] = useState('morning');
+  const [notice, setNotice] = useState(null);
+  const formRef = useRef(null);
+
+  /*
+   * Carry the confirmation out of the form and empty the box behind it.
+   *
+   * Both halves matter, and skipping them caused a real near-miss. This page is
+   * date-driven, so stepping to the next day is a client-side navigation that
+   * does NOT remount this component - the typed reading and the "Saved…" line
+   * both survived it. The next morning's card opened with YESTERDAY'S DIP
+   * already in the box, one tap from being saved again as today's measurement,
+   * under a green message describing a different day.
+   *
+   * `Toast` exists for precisely this and says so in its own comment; this form
+   * was one of the last that had not adopted it. Failures deliberately stay
+   * inline via <FormMessage> - an error has to survive long enough to act on.
+   */
+  const handled = useRef(state);
+  useEffect(() => {
+    if (state === handled.current) return;
+    handled.current = state;
+
+    if (state?.ok) {
+      setNotice({ message: state.message });
+      formRef.current?.reset();
+      setDip('');
+      setTaken('morning');
+    }
+  }, [state]);
+
+  // A different day is a different measurement. Belt to the effect's braces:
+  // if a save is ever missed, the box still empties when the date changes.
+  useEffect(() => {
+    setDip('');
+    setTaken('morning');
+  }, [date]);
+
+  // Clearing a dip confirms the same way. ConfirmAction closes its own dialog
+  // on success, so without this the only trace of it would be the row vanishing.
+  const handledClear = useRef(clearState);
+  useEffect(() => {
+    if (clearState === handledClear.current) return;
+    handledClear.current = clearState;
+    if (clearState?.ok) setNotice({ message: clearState.message });
+  }, [clearState]);
 
   // The day this dip closes, and so the books it is judged against.
   const closesDate = taken === 'morning' ? shiftISODate(date, -1) : date;
@@ -95,10 +173,10 @@ export default function StockCheckForm({
   const openingNote = isFirstDip ? (
     <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
       This is the first dip for this tank, so there is no earlier measurement behind it — it is
-      worked out from the <strong>opening stock</strong> of{' '}
-      {showLitres(openingStock ?? expected)} set under Settings → Tanks. That figure was typed,
-      not measured, so if it is wrong (or on the wrong tank) the difference below is not fuel.
-      Check it before reading this as a gain or a loss.
+      worked out from the <strong>opening stock</strong> of {showLitres(openingStock ?? expected)}{' '}
+      set under Settings → Tanks. That figure was typed, not measured, so if it is wrong (or on the
+      wrong tank) the difference below is not fuel. Check it before reading this as a gain or a
+      loss.
     </p>
   ) : null;
 
@@ -110,221 +188,239 @@ export default function StockCheckForm({
   const overCapacity = capacity > 0 && expected > capacity;
   const belowZero = expected < 0;
 
+  const style = TANK_STYLES[tank.fuel_type] ?? {
+    card: 'border-ink-200',
+    header: 'border-ink-200 bg-ink-50',
+    name: 'text-ink-900',
+    capacity: 'text-ink-600',
+  };
+
   return (
-    <section className="card p-4">
-      <header className="mb-3 flex items-center justify-between gap-2">
+    <section className={`card overflow-hidden ${style.card}`}>
+      {/* The name is text-base, not the old text-sm: it is the thing that says
+          which tank you are typing into, and it was the smallest text on the
+          card. */}
+      <header
+        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b px-4 py-3 ${style.header}`}
+      >
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-ink-900">{tank.name}</h2>
+          <h2 className={`text-base font-bold ${style.name}`}>{tank.name}</h2>
           <FuelBadge fuelType={tank.fuel_type} />
         </div>
-        <span className="text-sm text-ink-600">
+        <span className={`text-sm font-medium ${style.capacity}`}>
           Capacity {litreFormat.format(tank.capacity_litres)} L
         </span>
       </header>
 
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="figure-label">Expected in tank</span>
-          {/* nowrap: at a phone's width this figure was breaking between the
+      <div className="p-4">
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="figure-label">Expected in tank</span>
+            {/* nowrap: at a phone's width this figure was breaking between the
               number and its unit, leaving a bare "L" on the next line. */}
-          <span
-            className={`tabular whitespace-nowrap text-lg font-bold ${
-              overCapacity || belowZero ? 'text-red-700' : 'text-ink-900'
-            }`}
-          >
-            {showLitres(expected)}
-          </span>
-        </div>
-        {/* Which day's books that is. Its own line rather than part of the
-            label above, so the date can never squeeze the figure. */}
-        <p className="text-sm text-ink-600">at the close of {formatDate(shownClosesDate)}</p>
-        <div
-          className="mt-2 h-2 overflow-hidden rounded-full bg-ink-200"
-          role="img"
-          aria-label={`Tank is about ${Math.round(fillPercent)} percent full`}
-        >
-          <div
-            className={`h-full rounded-full ${
-              overCapacity
-                ? 'bg-red-500'
-                : tank.fuel_type === 'petrol'
-                  ? 'bg-sky-500'
-                  : 'bg-amber-500'
-            }`}
-            style={{ width: `${fillPercent}%` }}
-          />
-        </div>
-
-        {openingNote}
-
-        {overCapacity ? (
-          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
-            The books show {showLitres(expected)} in a tank that only holds{' '}
-            {litreFormat.format(capacity)} L — {showLitres(expected - capacity)} too much. A
-            delivery quantity was probably mistyped. Check Purchases before recording a dip, or the
-            loss below will be nonsense.
-          </p>
-        ) : null}
-
-        {belowZero ? (
-          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
-            The books show less than nothing in this tank. A delivery is probably missing, or the
-            opening stock was never set under Settings.
-          </p>
-        ) : null}
-      </div>
-
-      {existingCheck ? (
-        <div className="rounded-lg border border-ink-200 bg-ink-50 p-3 text-sm">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-ink-600">
-                A dip was already recorded for this date:{' '}
-                <span className="tabular font-semibold text-ink-900">
-                  {showLitres(existingCheck.actual_dip_reading)}
-                </span>
-              </p>
-              <p className="text-ink-600">
-                Taken {existingCheck.taken ?? 'morning'} of {formatDate(date)}.
-              </p>
-              <p
-                className={[
-                  'tabular mt-1 font-bold',
-                  Number(existingCheck.gain_loss) === 0
-                    ? 'text-ink-700'
-                    : isFirstDip
-                      ? 'text-amber-900'
-                      : Number(existingCheck.gain_loss) > 0
-                        ? 'text-brand-700'
-                        : 'text-red-700',
-                ].join(' ')}
-              >
-                {Number(existingCheck.gain_loss) === 0
-                  ? isFirstDip
-                    ? 'Matches the opening stock exactly'
-                    : 'Matches the books exactly'
-                  : isFirstDip
-                    ? `${showLitres(Math.abs(Number(existingCheck.gain_loss)))} away from the opening stock`
-                    : Number(existingCheck.gain_loss) > 0
-                      ? `Gain of ${showLitres(existingCheck.gain_loss)}`
-                      : `Loss of ${showLitres(Math.abs(Number(existingCheck.gain_loss)))}`}
-              </p>
-            </div>
-
-            {/* A mistyped rod reading has to be correctable, and a dip is the
-                baseline every later figure is built on - so a wrong one is
-                wrong for every day after it, not just its own. Cleared and
-                re-entered rather than edited, the same as a purchase. */}
-            {canManage ? (
-              <ConfirmAction
-                triggerLabel={`Clear the ${tank.name} dip`}
-                title="Clear this dip?"
-                confirmLabel="Clear dip"
-                pendingLabel="Clearing…"
-                action={clearAction}
-                state={clearState}
-                hidden={{ check_id: existingCheck.id }}
-              >
-                <p>
-                  The {showLitres(existingCheck.actual_dip_reading)} measured on{' '}
-                  {formatDate(date)} will be removed, and you can record the corrected reading
-                  straight away.
-                </p>
-                <p>
-                  Every later dip is measured from this one, so their gain and loss figures will
-                  be worked out again from whatever is left behind it.
-                </p>
-                <FormMessage state={clearState} />
-              </ConfirmAction>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <form action={formAction} className="space-y-3">
-          <input type="hidden" name="tank_id" value={tank.id} />
-          <input type="hidden" name="check_date" value={date} />
-
-          <div>
-            <span className="label block">When was the rod put in?</span>
-            <BalanceDirection
-              name="taken"
-              value={taken}
-              onChange={setTaken}
-              options={TIMINGS}
-            />
-            <p className="mt-1 text-sm text-ink-600">
-              A dip taken on the morning of {formatDate(date)} measures what was left at the end
-              of {formatDate(shiftISODate(date, -1))}, so that is the day it is checked against.
-            </p>
-          </div>
-
-          <div>
-            <label className="label" htmlFor={`dip-${tank.id}`}>
-              Measured dip reading{' '}
-              <span className="font-semibold text-ink-900">in litres</span>
-            </label>
-            <NumberInput
-              id={`dip-${tank.id}`}
-              name="actual_dip_reading"
-              step="0.01"
-              min="0"
-              required
-              value={dip}
-              onChange={(event) => setDip(event.target.value)}
-              className="input-number"
-              placeholder="0.00"
-              aria-describedby={`dip-help-${tank.id}`}
-            />
-            <p id={`dip-help-${tank.id}`} className="mt-1 text-sm text-ink-600">
-              The dip rod reads a depth — convert it to litres on the tank chart first, then enter
-              that figure here.
-            </p>
-          </div>
-
-          {difference !== null ? (
-            <p
-              className={[
-                'rounded-lg px-3 py-2 text-sm font-semibold',
-                difference === 0
-                  ? 'bg-ink-100 text-ink-700'
-                  : difference > 0
-                    ? 'bg-brand-50 text-brand-800'
-                    : 'bg-red-50 text-red-800',
-              ].join(' ')}
+            <span
+              className={`tabular whitespace-nowrap text-lg font-bold ${
+                overCapacity || belowZero ? 'text-red-700' : 'text-ink-900'
+              }`}
             >
-              {difference === 0
-                ? isFirstDip
-                  ? 'Matches the opening stock exactly.'
-                  : 'Matches the books exactly.'
-                : isFirstDip
-                  ? `${showLitres(Math.abs(difference))} away from the opening stock.`
-                  : difference > 0
-                    ? `Gain of ${showLitres(difference)} against the books.`
-                    : `Loss of ${showLitres(Math.abs(difference))} against the books.`}
-              <span className="mt-0.5 block text-xs font-normal">
-                For {formatDate(closesDate)}.
-              </span>
+              {showLitres(expected)}
+            </span>
+          </div>
+          {/* Which day's books that is. Its own line rather than part of the
+            label above, so the date can never squeeze the figure. */}
+          <p className="text-sm text-ink-600">at the close of {formatDate(shownClosesDate)}</p>
+          <div
+            className="mt-2 h-2 overflow-hidden rounded-full bg-ink-200"
+            role="img"
+            aria-label={`Tank is about ${Math.round(fillPercent)} percent full`}
+          >
+            <div
+              className={`h-full rounded-full ${
+                overCapacity
+                  ? 'bg-red-500'
+                  : tank.fuel_type === 'petrol'
+                    ? 'bg-sky-500'
+                    : 'bg-amber-500'
+              }`}
+              style={{ width: `${fillPercent}%` }}
+            />
+          </div>
+
+          {openingNote}
+
+          {overCapacity ? (
+            <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+              The books show {showLitres(expected)} in a tank that only holds{' '}
+              {litreFormat.format(capacity)} L — {showLitres(expected - capacity)} too much. A
+              delivery quantity was probably mistyped. Check Purchases before recording a dip, or
+              the loss below will be nonsense.
             </p>
           ) : null}
 
-          <div>
-            <label className="label" htmlFor={`note-${tank.id}`}>
-              Note <span className="font-normal text-ink-500">(optional)</span>
-            </label>
-            <input
-              id={`note-${tank.id}`}
-              name="note"
-              type="text"
-              className="input"
-              placeholder="e.g. measured after the evening delivery"
-            />
+          {belowZero ? (
+            <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+              The books show less than nothing in this tank. A delivery is probably missing, or the
+              opening stock was never set under Settings.
+            </p>
+          ) : null}
+        </div>
+
+        {existingCheck ? (
+          <div className="rounded-lg border border-ink-200 bg-ink-50 p-3 text-sm">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-ink-600">
+                  A dip was already recorded for this date:{' '}
+                  <span className="tabular font-semibold text-ink-900">
+                    {showLitres(existingCheck.actual_dip_reading)}
+                  </span>
+                </p>
+                <p className="text-ink-600">
+                  Taken {existingCheck.taken ?? 'morning'} of {formatDate(date)}.
+                </p>
+                <p
+                  className={[
+                    'tabular mt-1 font-bold',
+                    Number(existingCheck.gain_loss) === 0
+                      ? 'text-ink-700'
+                      : isFirstDip
+                        ? 'text-amber-900'
+                        : Number(existingCheck.gain_loss) > 0
+                          ? 'text-brand-700'
+                          : 'text-red-700',
+                  ].join(' ')}
+                >
+                  {Number(existingCheck.gain_loss) === 0
+                    ? isFirstDip
+                      ? 'Matches the opening stock exactly'
+                      : 'Matches the books exactly'
+                    : isFirstDip
+                      ? `${showLitres(Math.abs(Number(existingCheck.gain_loss)))} away from the opening stock`
+                      : Number(existingCheck.gain_loss) > 0
+                        ? `Gain of ${showLitres(existingCheck.gain_loss)}`
+                        : `Loss of ${showLitres(Math.abs(Number(existingCheck.gain_loss)))}`}
+                </p>
+              </div>
+
+              {/* A mistyped rod reading has to be correctable, and a dip is the
+                baseline every later figure is built on - so a wrong one is
+                wrong for every day after it, not just its own. Cleared and
+                re-entered rather than edited, the same as a purchase. */}
+              {canManage ? (
+                <ConfirmAction
+                  triggerLabel={`Clear the ${tank.name} dip`}
+                  title="Clear this dip?"
+                  confirmLabel="Clear dip"
+                  pendingLabel="Clearing…"
+                  action={clearAction}
+                  state={clearState}
+                  hidden={{ check_id: existingCheck.id }}
+                >
+                  <p>
+                    The {showLitres(existingCheck.actual_dip_reading)} measured on{' '}
+                    {formatDate(date)} will be removed, and you can record the corrected reading
+                    straight away.
+                  </p>
+                  <p>
+                    Every later dip is measured from this one, so their gain and loss figures will
+                    be worked out again from whatever is left behind it.
+                  </p>
+                  {clearState?.ok === false ? <FormMessage state={clearState} /> : null}
+                </ConfirmAction>
+              ) : null}
+            </div>
           </div>
+        ) : (
+          <form ref={formRef} action={formAction} className="space-y-3">
+            <input type="hidden" name="tank_id" value={tank.id} />
+            <input type="hidden" name="check_date" value={date} />
 
-          <FormMessage state={state} />
+            <div>
+              <span className="label block">When was the rod put in?</span>
+              <BalanceDirection name="taken" value={taken} onChange={setTaken} options={TIMINGS} />
+              <p className="mt-1 text-sm text-ink-600">
+                A dip taken on the morning of {formatDate(date)} measures what was left at the end
+                of {formatDate(shiftISODate(date, -1))}, so that is the day it is checked against.
+              </p>
+            </div>
 
-          <SubmitButton className="btn-primary w-full">Record dip</SubmitButton>
-        </form>
-      )}
+            <div>
+              {/* The fuel is named in the label, not left to the card's colour.
+                Two four-digit readings typed into the wrong boxes look
+                perfectly plausible, and nothing downstream can catch it - so
+                the box itself says which tank it belongs to, for anyone who
+                cannot separate sky from amber. */}
+              <label className="label" htmlFor={`dip-${tank.id}`}>
+                <span className={`font-bold ${style.name}`}>{tank.name}</span> dip reading{' '}
+                <span className="font-semibold text-ink-900">in litres</span>
+              </label>
+              <NumberInput
+                id={`dip-${tank.id}`}
+                name="actual_dip_reading"
+                step="0.01"
+                min="0"
+                required
+                value={dip}
+                onChange={(event) => setDip(event.target.value)}
+                className="input-number"
+                placeholder="0.00"
+                aria-describedby={`dip-help-${tank.id}`}
+              />
+              <p id={`dip-help-${tank.id}`} className="mt-1 text-sm text-ink-600">
+                The dip rod reads a depth — convert it to litres on the tank chart first, then enter
+                that figure here.
+              </p>
+            </div>
+
+            {difference !== null ? (
+              <p
+                className={[
+                  'rounded-lg px-3 py-2 text-sm font-semibold',
+                  difference === 0
+                    ? 'bg-ink-100 text-ink-700'
+                    : difference > 0
+                      ? 'bg-brand-50 text-brand-800'
+                      : 'bg-red-50 text-red-800',
+                ].join(' ')}
+              >
+                {difference === 0
+                  ? isFirstDip
+                    ? 'Matches the opening stock exactly.'
+                    : 'Matches the books exactly.'
+                  : isFirstDip
+                    ? `${showLitres(Math.abs(difference))} away from the opening stock.`
+                    : difference > 0
+                      ? `Gain of ${showLitres(difference)} against the books.`
+                      : `Loss of ${showLitres(Math.abs(difference))} against the books.`}
+                <span className="mt-0.5 block text-xs font-normal">
+                  For {formatDate(closesDate)}.
+                </span>
+              </p>
+            ) : null}
+
+            <div>
+              <label className="label" htmlFor={`note-${tank.id}`}>
+                Note <span className="font-normal text-ink-500">(optional)</span>
+              </label>
+              <input
+                id={`note-${tank.id}`}
+                name="note"
+                type="text"
+                className="input"
+                placeholder="e.g. measured after the evening delivery"
+              />
+            </div>
+
+            {/* Errors only. A success goes to the toast above, so it cannot sit
+              here describing a day that is no longer on screen. */}
+            {state?.ok === false ? <FormMessage state={state} /> : null}
+
+            <SubmitButton className="btn-primary w-full">Record dip</SubmitButton>
+          </form>
+        )}
+      </div>
+
+      <Toast notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }
