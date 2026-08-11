@@ -26,8 +26,16 @@ import Icon from '@/app/_components/ui/Icon';
  * Customers stat row. Left off (the default), the tile stays the plain
  * label-over-figure stack every other page uses; not every stat has an icon
  * that means anything, so this is opt-in rather than automatic.
+ *
+ * `iconNode` is the escape hatch for a one-off icon that isn't in the app's
+ * own hand-drawn set (`Icon.js`) - currently only the Customers "Total
+ * outstanding" tile, which uses a Material UI icon at the owner's request.
+ * Pass a rendered node (already sized) instead of a name; `icon` is ignored
+ * when this is set. Reach for `icon` first - this exists so one page can
+ * differ without teaching the whole set about a package the rest of the app
+ * does not use.
  */
-export function StatTile({ label, value, sub, tone = 'default', icon }) {
+export function StatTile({ label, value, sub, tone = 'default', icon, iconNode }) {
   const valueTone =
     tone === 'positive' ? 'text-brand-700' : tone === 'negative' ? 'text-red-700' : 'text-ink-900';
 
@@ -55,7 +63,7 @@ export function StatTile({ label, value, sub, tone = 'default', icon }) {
     </span>
   ) : null;
 
-  if (icon) {
+  if (icon || iconNode) {
     const ringClass =
       tone === 'positive'
         ? 'bg-brand-50 text-brand-600'
@@ -69,7 +77,7 @@ export function StatTile({ label, value, sub, tone = 'default', icon }) {
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${ringClass}`}
           aria-hidden="true"
         >
-          <Icon name={icon} className="h-5 w-5" />
+          {iconNode ?? <Icon name={icon} className="h-5 w-5" />}
         </span>
         <div className="min-w-0">
           <p className="figure-label">{label}</p>

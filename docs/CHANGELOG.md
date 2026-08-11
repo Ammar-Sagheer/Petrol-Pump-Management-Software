@@ -2110,3 +2110,23 @@ pill sub-text and the icon ring both had to be checked for wrapping at the
 phone width, and the "Rs 4,386,211 never wraps" rule from the type-scale
 section applies to the new pill exactly as it did to the plain text it
 replaced.
+
+## One Material UI icon, and what it actually cost
+
+Follow-up to the stat-tile restyle above: the owner asked specifically for a
+Material UI icon on the Customers "Total outstanding" tile. `StatTile` grew
+an `iconNode` prop — a rendered node, sized already — that takes precedence
+over the existing `icon` (name-from-`Icon.js`) prop, so this one tile could
+differ without teaching the shared icon set about a package the rest of the
+app deliberately does not use (see `Icon.js`'s own comment on why there is no
+icon library here).
+
+**"Just one icon" turned out to be four packages.** `@mui/icons-material`
+icons are components built on `@mui/material`'s `SvgIcon`, and `@mui/material`
+itself needs `@emotion/react`/`@emotion/styled` as peer dependencies to
+render at all — there is no way to import a single MUI icon without all
+three riding along. Confirmed this with the owner before installing rather
+than assuming "icons only" was actually one package. No MUI theme or
+`ThemeProvider` was set up; the icon is used exactly once, styled with
+`sx={{ fontSize: 20 }}` to match the 20px the rest of the icon set already
+uses and inheriting `currentColor` from its ring the same way.

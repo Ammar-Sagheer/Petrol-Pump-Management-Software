@@ -1023,6 +1023,20 @@ picking one deterministic scheme is that it only needs auditing once.
 - **Do not icon everything.** The fuel badges stay plain: Petrol, Diesel and
   Lubricant already differ in both word and colour, and a droplet on all
   three would add shape without adding distinction.
+- **`@mui/icons-material` is a one-off exception, not a second icon set.**
+  The Customers "Total outstanding" tile uses a Material UI icon
+  (`DescriptionOutlined`) at the owner's explicit request, passed via
+  `StatTile`'s `iconNode` prop rather than `icon`. This pulls in
+  `@mui/material`, `@mui/icons-material`, `@emotion/react` and
+  `@emotion/styled` as dependencies — `@mui/icons-material` cannot render
+  without `@mui/material`'s `SvgIcon`, which in turn needs Emotion, so
+  "just one icon" is four packages, not one. No MUI theme, `ThemeProvider`
+  or component is used anywhere else; the icon renders with `sx={{
+  fontSize: 20 }}` to match the app's existing 20px icon size and inherits
+  `currentColor` the same way the hand-drawn set does. **Reach for `Icon.js`
+  first** — adding a path there costs nothing and keeps the bundle small;
+  `iconNode` exists for the rare case a specific MUI icon was asked for by
+  name.
 
 ## Page structure
 
