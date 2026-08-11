@@ -1045,6 +1045,20 @@ picking one deterministic scheme is that it only needs auditing once.
   badge's existing markup, say). Reach for `icon` — a name into the shared
   set — first; `iconNode` exists so one tile can differ without every other
   call site needing to know about it.
+- **`app/layout.js` wraps the whole app in MUI's `AppRouterCacheProvider`
+  (`@mui/material-nextjs/v16-appRouter`), and this is not optional.**
+  Without it, every MUI icon threw a hydration mismatch: MUI's styling
+  engine (Emotion) injects a `<style data-emotion>` tag next to each icon,
+  and without server-side coordination that injection happens on the
+  client only, so the server-rendered tree (icon, no style tag yet) and the
+  client's first render (style tag present) disagree before React can
+  reconcile them. `AppRouterCacheProvider` collects Emotion's styles during
+  the server render and streams them down inline, so the client's first
+  paint already has them — the same problem `next/font` and Tailwind's own
+  build-time CSS never have, because neither injects `<style>` tags at
+  request time. If a future MUI component (not just an icon) starts
+  throwing the same hydration error, check this provider is still wrapping
+  it before looking anywhere else.
 
 ## Page structure
 

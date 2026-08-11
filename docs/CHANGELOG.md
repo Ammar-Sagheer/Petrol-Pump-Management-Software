@@ -2194,3 +2194,42 @@ that check matters.
 (deleted before commit) rendering the full sidebar icon set at 24px, the
 chevron rotations used by `Pager`/`DateNav`, and every page's stat row with
 its new icon, screenshotted at 1100px and 400px.
+
+## Every MUI icon was hydration-broken, and the fix was one provider
+
+The owner hit a hydration mismatch on `/admin/readings` right after the
+Material UI icon migration landed — React's error named `ChevronRightOutlinedIcon`
+specifically, but the cause was not specific to that icon at all.
+
+**The actual cause.** MUI's icons render through `SvgIcon`, styled by
+Emotion. Emotion normally injects a `<style data-emotion="...">` tag next to
+whatever it styles, and on the server that has to be collected and streamed
+down as part of the same response — otherwise the server-rendered HTML has
+no style tag (styles get generated but never flushed to the response) while
+the client's own first render generates and inserts one, and React sees the
+mismatch as soon as it tries to reconcile the two. `app/layout.js` had no
+such collection in place: the whole MUI migration had been visually
+verified by rendering pages and screenshotting them, which caught wrapping
+and sizing bugs but not this, because a plain server render followed by a
+Playwright screenshot never distinguishes "the server sent the right HTML"
+from "the client silently regenerated it after a hydration error" — both
+end up looking identical in a screenshot. The bug needed something actually
+checking the browser console, which the earlier verification passes had
+not done.
+
+**The fix.** `@mui/material-nextjs`'s `AppRouterCacheProvider`
+(`v16-appRouter`, matching this app's Next.js version) now wraps `children`
+in `app/layout.js`. It runs Emotion's cache through Next's
+`useServerInsertedHTML`, so styles generated during the server render are
+flushed into the same response instead of appearing only after client-side
+hydration. Confirmed both ways: the browser console is silent where it
+previously threw a hydration error, and the raw SSR HTML (`curl`) now
+contains a `data-emotion="mui ..."` style tag inline, which it did not
+before.
+
+**What this means for anything else that reaches for MUI later.** Any MUI
+component styled through Emotion needs this provider present, not just
+icons — `Icon.js` only surfaced it first because it is the one place MUI
+is used today. If a hydration error names a Material UI component,
+check `AppRouterCacheProvider` is still wrapping the tree before looking
+for a bug in that component itself.
