@@ -87,8 +87,17 @@ input[type='number']::-webkit-inner-spin-button {
    but it means a class always works on its own in the markup.
 --------------------------------------------------------------------------- */
 @layer components {
+  /*
+   * No border, shadow does the work. A raised white card on the page's pale
+   * slate background (--color-ink-100, #f1f5f9) reads as a physical object -
+   * the "3D" look asked for - and a border round it fights that: an outline
+   * says "this is a bounded region", a shadow says "this is sitting above the
+   * page". `shadow-md` is doing real work here, not `shadow-sm`, which was
+   * nearly invisible against the pale page background - the border used to be
+   * carrying the edge definition the shadow should have been supplying.
+   */
   .card {
-    @apply rounded-xl border border-ink-200 bg-white shadow-sm;
+    @apply rounded-xl border-0 bg-white shadow-md;
   }
 
   .label {
