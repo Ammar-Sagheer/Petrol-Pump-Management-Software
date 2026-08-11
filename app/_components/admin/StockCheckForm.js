@@ -10,6 +10,7 @@ import NumberInput from '@/app/_components/ui/NumberInput';
 import ConfirmAction from '@/app/_components/ui/ConfirmAction';
 import Toast from '@/app/_components/ui/Toast';
 import BalanceDirection from '@/app/_components/admin/BalanceDirection';
+import { fuelColor } from '@/app/_lib/fuel-colors';
 
 const litreFormat = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
@@ -18,60 +19,25 @@ const showLitres = (n) => `${litreFormat.format(n || 0)} L`;
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 /*
- * The whole card wears its fuel's colour, not just the badge.
+ * The whole card wears its fuel's colour, not just a badge.
  *
- * Two cards side by side, identical but for a small badge and a name, and the
- * figures typed into them are four-digit numbers that look alike - so petrol's
- * reading going into diesel's box is an easy slip and an expensive one, because
- * a dip is the baseline every later day is measured from.
+ * Two cards side by side, identical but for a name, and the figures typed into
+ * them are four-digit numbers that look alike - so petrol's reading going into
+ * diesel's box is an easy slip and an expensive one, because a dip is the
+ * baseline every later day is measured from.
  *
- * Same sky/amber families `FuelBadge` uses everywhere else, so this reinforces
- * an association the app has already taught rather than inventing a new one.
- * The colour is on the header band and border only - the body stays white so
- * the figures keep full contrast on a tablet in poor light.
+ * The colours themselves, and the reasoning behind the dark/light pairing, live
+ * in `app/_lib/fuel-colors.js` - one definition shared with the badges, the
+ * dashboard cards and the charts. Here the band and the border take them; the
+ * BODY STAYS WHITE so the figures keep full contrast on a tablet in poor light.
  *
- * ONE BAND IS DARK AND ONE IS LIGHT, AND THAT IS THE WHOLE TRICK.
- *
- * This was got wrong once, so it is written down. Both headers were first made
- * dark - sky-800 against amber-800 - on the reasoning that a matched pair
- * differing only in hue would look like two tanks of equal standing, where a
- * dark card beside a pale one silently ranks them. The owner's verdict was
- * immediate: "they both look the same, both are dark."
- *
- * He was right and the reasoning was backwards. LIGHTNESS is the cue the eye
- * reads first and the one that survives poor light, a cheap screen and any
- * colour-vision deficiency; hue is the weaker, more fragile signal. Matching
- * the luminance of two things whose entire job is to be told apart destroys the
- * strongest difference available in order to buy a symmetry nobody asked for.
- * sky-800 and amber-800 sit at 0.089 and 0.098 - a 1.1x gap, which is to say
- * none. Petrol dark navy against diesel bright yellow is a 6.5x gap.
- *
- * Each band still carries its own text at better than AAA: white on sky-800 is
- * 7.6:1, ink-900 on amber-400 is 10.7:1.
- *
- * Colour is NOT the only cue and must not be. The tank name is large and bold
+ * Colour is not the only cue and must not be. The tank name is large and bold
  * in the header, and the dip box's own label names the tank again - so the card
  * still reads correctly for anyone who cannot use the colours at all. The
- * FuelBadge that used to sit in the header is gone: on a band that is already
- * the fuel's colour, beside a name that already says "Petrol Tank", it repeated
- * a thing said twice and had no shade that contrasted with both bands.
+ * FuelBadge that used to sit in this header is gone: on a band that is already
+ * the fuel's colour, beside a name that already says "Petrol Tank", it said a
+ * third time what had been said twice.
  */
-const TANK_STYLES = {
-  petrol: {
-    card: 'border-sky-800',
-    header: 'bg-sky-800',
-    headerName: 'text-white',
-    headerMuted: 'text-sky-100',
-    onWhite: 'text-sky-900',
-  },
-  diesel: {
-    card: 'border-amber-500',
-    header: 'bg-amber-400',
-    headerName: 'text-ink-900',
-    headerMuted: 'text-ink-800',
-    onWhite: 'text-amber-900',
-  },
-};
 
 /*
  * A dip is a MOMENT, not a day, and which day it judges depends on when the rod
@@ -213,27 +179,21 @@ export default function StockCheckForm({
   const overCapacity = capacity > 0 && expected > capacity;
   const belowZero = expected < 0;
 
-  const style = TANK_STYLES[tank.fuel_type] ?? {
-    card: 'border-ink-300',
-    header: 'bg-ink-700',
-    headerName: 'text-white',
-    headerMuted: 'text-ink-100',
-    onWhite: 'text-ink-900',
-  };
+  const color = fuelColor(tank.fuel_type);
 
   // `border-2` and `shadow-lg` override the 1px border and `shadow-sm` that
   // `.card` applies - utilities beat the @apply'd component class - so these two
   // lift off the page as solid objects rather than sitting flat on it.
   return (
-    <section className={`card overflow-hidden border-2 shadow-lg ${style.card}`}>
+    <section className={`card overflow-hidden border-2 shadow-lg ${color.border}`}>
       {/* The name is text-base, not the old text-sm: it is the thing that says
           which tank you are typing into, and it was the smallest text on the
           card. */}
       <header
-        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 ${style.header}`}
+        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 ${color.solid}`}
       >
-        <h2 className={`text-base font-bold ${style.headerName}`}>{tank.name}</h2>
-        <span className={`text-sm font-medium ${style.headerMuted}`}>
+        <h2 className={`text-base font-bold`}>{tank.name}</h2>
+        <span className={`text-sm font-medium ${color.solidMuted}`}>
           Capacity {litreFormat.format(tank.capacity_litres)} L
         </span>
       </header>
@@ -377,7 +337,7 @@ export default function StockCheckForm({
                 the box itself says which tank it belongs to, for anyone who
                 cannot separate sky from amber. */}
               <label className="label" htmlFor={`dip-${tank.id}`}>
-                <span className={`font-bold ${style.onWhite}`}>{tank.name}</span> dip reading{' '}
+                <span className={`font-bold ${color.onWhite}`}>{tank.name}</span> dip reading{' '}
                 <span className="font-semibold text-ink-900">in litres</span>
               </label>
               <NumberInput

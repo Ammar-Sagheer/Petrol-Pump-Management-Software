@@ -10,6 +10,7 @@ import {
   formatPKR,
 } from '@/app/_lib/helpers';
 import { getDailySummary, getSalesTrend, getLubricantTrend } from '@/app/_lib/data-service';
+import { fuelColor } from '@/app/_lib/fuel-colors';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import DateNav from '@/app/_components/admin/DateNav';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
@@ -62,7 +63,10 @@ export default async function DashboardPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Dashboard" description="The day's takings, stock and trend. The day shown is below." />
+      <PageHeader
+        title="Dashboard"
+        description="The day's takings, stock and trend. The day shown is below."
+      />
 
       {/* Own row, as on Readings and Lubricants - see docs/UI_CONVENTIONS.md.
           With the sidebar taking 240px this header has less width to play with
@@ -111,64 +115,65 @@ export default async function DashboardPage({ searchParams }) {
       </StatGrid>
 
       {/* ---- by fuel type ---- */}
-      <h2 className="section-heading">
-        By fuel type
-      </h2>
+      <h2 className="section-heading">By fuel type</h2>
       {byFuel.length === 0 ? (
         <p className="card px-4 py-6 text-center text-base text-ink-600">
           Nothing entered for this day yet.{' '}
-          <Link href={`/admin/readings?date=${date}`} className="font-semibold text-brand-700 hover:underline">
+          <Link
+            href={`/admin/readings?date=${date}`}
+            className="font-semibold text-brand-700 hover:underline"
+          >
             Enter readings
           </Link>
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {byFuel.map((fuel) => (
-            <div
-              key={fuel.fuel_type}
-              className={`card p-4 ${fuel.fuel_type === 'petrol' ? 'bg-sky-50' : 'bg-amber-50'}`}
-            >
-              <div className="flex items-baseline justify-between">
-                <h3
-                  className={`text-base font-bold ${
-                    fuel.fuel_type === 'petrol' ? 'text-sky-900' : 'text-amber-900'
-                  }`}
+          {byFuel.map((fuel) => {
+            const color = fuelColor(fuel.fuel_type);
+            return (
+              <div
+                key={fuel.fuel_type}
+                className={`card overflow-hidden border-2 shadow-lg ${color.border}`}
+              >
+                {/* Solid band, matching the tank cards below and the dip cards on
+                  the Stock page. The two pale tints this replaced were the same
+                  card to anyone glancing at the pair. */}
+                <div
+                  className={`flex items-baseline justify-between gap-2 px-4 py-3 ${color.solid}`}
                 >
-                  {fuel.fuel_type === 'petrol' ? 'Petrol' : 'Diesel'}
-                </h3>
-                <span className="tabular text-lg font-bold text-ink-900">
-                  {formatLitres(fuel.litres_sold)}
-                </span>
+                  <h3 className="text-base font-bold">{color.label}</h3>
+                  <span className="tabular whitespace-nowrap text-lg font-bold">
+                    {formatLitres(fuel.litres_sold)}
+                  </span>
+                </div>
+                <dl className="grid grid-cols-3 gap-2 p-4">
+                  <div>
+                    <dt className="figure-label">Sales</dt>
+                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                      {formatPKR(fuel.sale_amount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="figure-label">Cash</dt>
+                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                      {formatPKR(fuel.cash_amount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="figure-label">Credit</dt>
+                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                      {formatPKR(fuel.credit_amount)}
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3">
-                <div>
-                  <dt className="figure-label">Sales</dt>
-                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
-                    {formatPKR(fuel.sale_amount)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="figure-label">Cash</dt>
-                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
-                    {formatPKR(fuel.cash_amount)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="figure-label">Credit</dt>
-                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
-                    {formatPKR(fuel.credit_amount)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* ---- tanks ---- */}
-      <h2 className="section-heading">
-        Tank stock
-      </h2>
+      <h2 className="section-heading">Tank stock</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {tanks.map((tank) => {
           /*
@@ -187,83 +192,88 @@ export default async function DashboardPage({ searchParams }) {
           const fill = capacity > 0 ? Math.min(100, Math.max(0, (stock / capacity) * 100)) : 0;
           const gainLoss = tank.gain_loss === null ? null : Number(tank.gain_loss);
 
+          const color = fuelColor(tank.fuel_type);
+
           return (
-            <div key={tank.id} className="card p-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base font-bold text-ink-900">{tank.name}</h3>
-                <span
-                  className={`tabular whitespace-nowrap text-lg font-bold ${
-                    stock < 0 ? 'text-red-700' : 'text-ink-900'
-                  }`}
-                >
+            <div
+              key={tank.id}
+              className={`card overflow-hidden border-2 shadow-lg ${color.border}`}
+            >
+              <div
+                className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 ${color.solid}`}
+              >
+                <h3 className="text-base font-bold">{tank.name}</h3>
+                <span className="tabular whitespace-nowrap text-lg font-bold">
                   {formatLitres(stock)}
                 </span>
               </div>
 
-              {/* Say WHICH MOMENT this figure is, in the same words the Stock
+              <div className="p-4">
+                {/* Say WHICH MOMENT this figure is, in the same words the Stock
                   page uses. It is an end-of-day number - the day's sales already
                   taken off and its deliveries already added on - and nothing on
                   this card said so, which is a fair thing to have to ask about a
                   tank level sitting under a list of that day's sales. */}
-              <p className="text-sm text-ink-600">at the close of {formatDate(date)}</p>
+                <p className="text-sm text-ink-600">at the close of {formatDate(date)}</p>
 
-              {/* Book stock below zero means more fuel has been sold than ever
+                {/* Book stock below zero means more fuel has been sold than ever
                   went into the tank - so a delivery is missing, or an opening
                   stock was never set. Worth shouting about rather than showing
                   as an ordinary number. */}
-              {stock < 0 ? (
-                <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-                  Stock has gone below zero. A delivery is probably missing, or this tank’s opening
-                  stock was never set under Settings.
-                </p>
-              ) : null}
-              <div
-                className="mt-2 h-2.5 overflow-hidden rounded-full bg-ink-200"
-                role="img"
-                aria-label={`${tank.name} is about ${Math.round(fill)} percent full`}
-              >
+                {stock < 0 ? (
+                  <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+                    Stock has gone below zero. A delivery is probably missing, or this tank’s
+                    opening stock was never set under Settings.
+                  </p>
+                ) : null}
                 <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${fill}%`,
-                    backgroundColor: tank.fuel_type === 'petrol' ? '#0284c7' : '#ca8a04',
-                  }}
-                />
-              </div>
-              <p className="mt-1.5 text-sm text-ink-600">
-                {Math.round(fill)}% of {formatLitres(capacity)} capacity
-              </p>
-
-              {gainLoss === null ? (
-                <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-600">
-                  No dip has closed this day yet.{' '}
-                  {/* The dip that closes this day is the one taken the NEXT
-                      morning, so that is the Stock page to open. */}
-                  <Link
-                    href={`/admin/stock-checks?date=${shiftISODate(date, 1)}`}
-                    className="font-semibold text-brand-700 hover:underline"
-                  >
-                    Record one
-                  </Link>
-                </p>
-              ) : (
-                <p
-                  className={[
-                    'tabular mt-3 border-t border-ink-200 pt-3 text-sm font-semibold',
-                    gainLoss === 0
-                      ? 'text-ink-600'
-                      : gainLoss > 0
-                        ? 'text-brand-700'
-                        : 'text-red-700',
-                  ].join(' ')}
+                  className="mt-2 h-2.5 overflow-hidden rounded-full bg-ink-200"
+                  role="img"
+                  aria-label={`${tank.name} is about ${Math.round(fill)} percent full`}
                 >
-                  {gainLoss === 0
-                    ? 'Dip matches the books exactly'
-                    : gainLoss > 0
-                      ? `Gain of ${formatLitres(gainLoss)} against the books`
-                      : `Loss of ${formatLitres(Math.abs(gainLoss))} against the books`}
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${fill}%`,
+                      backgroundColor: color.hex,
+                    }}
+                  />
+                </div>
+                <p className="mt-1.5 text-sm text-ink-600">
+                  {Math.round(fill)}% of {formatLitres(capacity)} capacity
                 </p>
-              )}
+
+                {gainLoss === null ? (
+                  <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-600">
+                    No dip has closed this day yet.{' '}
+                    {/* The dip that closes this day is the one taken the NEXT
+                      morning, so that is the Stock page to open. */}
+                    <Link
+                      href={`/admin/stock-checks?date=${shiftISODate(date, 1)}`}
+                      className="font-semibold text-brand-700 hover:underline"
+                    >
+                      Record one
+                    </Link>
+                  </p>
+                ) : (
+                  <p
+                    className={[
+                      'tabular mt-3 border-t border-ink-200 pt-3 text-sm font-semibold',
+                      gainLoss === 0
+                        ? 'text-ink-600'
+                        : gainLoss > 0
+                          ? 'text-brand-700'
+                          : 'text-red-700',
+                    ].join(' ')}
+                  >
+                    {gainLoss === 0
+                      ? 'Dip matches the books exactly'
+                      : gainLoss > 0
+                        ? `Gain of ${formatLitres(gainLoss)} against the books`
+                        : `Loss of ${formatLitres(Math.abs(gainLoss))} against the books`}
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
@@ -271,18 +281,14 @@ export default async function DashboardPage({ searchParams }) {
 
       {Number(purchases.quantity_litres ?? 0) > 0 ? (
         <p className="mt-4 rounded-lg border border-ink-200 bg-white px-4 py-3 text-sm text-ink-700">
-          <span className="tabular font-semibold">
-            {formatLitres(purchases.quantity_litres)}
-          </span>{' '}
+          <span className="tabular font-semibold">{formatLitres(purchases.quantity_litres)}</span>{' '}
           delivered on this date, costing{' '}
           <span className="tabular font-semibold">{formatPKR(purchases.total_cost)}</span>.
         </p>
       ) : null}
 
       {/* ---- lubricants ---- */}
-      <h2 className="section-heading">
-        Lubricants
-      </h2>
+      <h2 className="section-heading">Lubricants</h2>
 
       {lubricantStock.length === 0 ? (
         <p className="card px-4 py-6 text-center text-base text-ink-600">
@@ -387,10 +393,7 @@ export default async function DashboardPage({ searchParams }) {
           </p>
         </div>
 
-        <TrendRange
-          days={trendDays}
-          hrefFor={(window) => `/admin?date=${date}&days=${window}`}
-        />
+        <TrendRange days={trendDays} hrefFor={(window) => `/admin?date=${date}&days=${window}`} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
@@ -406,9 +409,7 @@ export default async function DashboardPage({ searchParams }) {
             third of the page the quiet days become slivers - which is exactly
             where the drum's takings live. */}
         <section className="card p-4 lg:col-span-2">
-          <h3 className="mb-3 text-base font-bold text-ink-900">
-            Oil sales — packed and loose
-          </h3>
+          <h3 className="mb-3 text-base font-bold text-ink-900">Oil sales — packed and loose</h3>
           <LubricantTrendChart data={lubricantTrend} />
         </section>
       </div>

@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 
 import ChartTooltip from '@/app/_components/admin/ChartTooltip';
+import { FUEL_COLORS } from '@/app/_lib/fuel-colors';
 
 /**
  * Daily fuel sales, in rupees or in litres.
@@ -35,13 +36,15 @@ import ChartTooltip from '@/app/_components/admin/ChartTooltip';
  * `petrol_litres` and `diesel_litres` alongside the money), so a round trip to
  * redraw the same data would be a spinner in exchange for nothing.
  *
- * The colours are the app's own petrol and diesel tokens, so a bar means the
- * same fuel here as the badge does on every table. They also carry the word in
- * the legend: this is a blue/amber pair, and colour is never the only cue.
+ * The colours come from `app/_lib/fuel-colors.js`, the app's single definition
+ * of what petrol and diesel look like, so a bar means the same fuel here as the
+ * badge does on every table. They were previously retyped as literals and had
+ * already drifted from the badges. They also carry the word in the legend: this
+ * is a navy/yellow pair, and colour is never the only cue.
  */
 const SALE_COLOR = '#0f766e';
-const PETROL_COLOR = '#0284c7';
-const DIESEL_COLOR = '#ca8a04';
+const PETROL_COLOR = FUEL_COLORS.petrol.hex;
+const DIESEL_COLOR = FUEL_COLORS.diesel.hex;
 const SURFACE = '#ffffff';
 
 const compact = new Intl.NumberFormat('en-US', {
