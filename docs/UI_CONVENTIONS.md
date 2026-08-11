@@ -1128,25 +1128,37 @@ propagates forward until somebody notices a tank behaving impossibly.
 Until this change the two cards were identical but for a small badge and a
 name in `text-sm`. Now:
 
-- **The card wears its fuel's colour** — a solid `bg-sky-800` header band and
-  `border-sky-800` for petrol, `bg-amber-800` / `border-amber-800` for diesel,
-  white text on both. The *same* sky and amber `FuelBadge` uses everywhere else,
-  so it reinforces an association the app has already taught rather than
-  inventing a private one.
-- **Pick the shade by its contrast, not by the hue you had in mind.** A solid
-  band carrying white text has to earn it: white on `amber-600` is 3.2:1 and
-  fails AA outright, `amber-700` reaches only 5.0:1. `sky-800` (7.6:1) and
-  `amber-800` (7.1:1) both clear AAA — the floor worth holding for a screen read
-  in a forecourt office in poor light. Diesel ends up browner than "yellow"
-  because that is what the contrast costs, and legibility wins.
-- **Match the pair's luminance, not just their hue.** sky-800 and amber-800 sit
-  at 0.089 and 0.098, so neither card reads as heavier or more important than
-  the other. Two cards of equal standing that differ only in hue is the whole
-  point; a dark one beside a pale one silently ranks them.
+- **The card wears its fuel's colour** — a solid `bg-sky-800` header band with
+  white text for petrol, `bg-amber-400` with `text-ink-900` for diesel. The
+  *same* sky and amber families `FuelBadge` uses everywhere else, so it
+  reinforces an association the app has already taught rather than inventing a
+  private one.
+- **ONE DARK, ONE LIGHT. Never two of the same weight.** This is the rule, and
+  it was learned by getting it wrong. Both bands were first made dark —
+  `sky-800` against `amber-800` — reasoning that a pair matched in luminance
+  would read as two tanks of equal standing, where a dark card beside a pale one
+  silently ranks them. The owner's verdict, immediately: *"they both look the
+  same, both are dark."*
+
+  He was right and the reasoning was backwards. **Lightness is the cue the eye
+  reads first**, and the one that survives poor light, a cheap screen and any
+  colour-vision deficiency. Hue is the weaker, more fragile signal. Matching the
+  luminance of two things whose entire job is to be told apart throws away the
+  strongest difference available to buy a symmetry nobody asked for. sky-800 vs
+  amber-800 is a **1.1× lightness gap** — which is to say none. Navy vs bright
+  yellow is **6.5×**.
+- **Then check each band carries its own text.** White on `sky-800` is 7.6:1;
+  `ink-900` on `amber-400` is 10.7:1. Both clear AAA, the floor worth holding
+  for a screen read in a forecourt office. (Watch the middle of the amber ramp:
+  white on `amber-600` is 3.2:1 and fails AA outright.)
 - **The colour is on the header and border only.** The body stays white. This is
   read on a cheap tablet in poor light and the figures need full contrast; a
   card washed in colour throughout costs exactly the legibility the colour was
   bought to protect.
+- **Drop a badge the band has made redundant.** `FuelBadge` used to sit in this
+  header and was removed: on a band that is already the fuel's colour, beside a
+  name that already reads "Petrol Tank", it said a third time what had been said
+  twice — and no single chip shade contrasts with both a navy and a yellow band.
 - **Colour is never the only cue** (the standing rule, and it applies hardest
   here): the tank name is `text-base font-bold` in the fuel's darkest shade, the
   badge is beside it, and **the input's own label names the tank** — "**Petrol
