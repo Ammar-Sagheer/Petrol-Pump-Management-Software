@@ -10,7 +10,7 @@ import {
   formatPKR,
 } from '@/app/_lib/helpers';
 import { getDailySummary, getSalesTrend, getLubricantTrend } from '@/app/_lib/data-service';
-import { fuelColor } from '@/app/_lib/fuel-colors';
+import { fuelColor, byFuelOrder } from '@/app/_lib/fuel-colors';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import DateNav from '@/app/_components/admin/DateNav';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
@@ -129,25 +129,21 @@ export default async function DashboardPage({ searchParams }) {
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {byFuel.map((fuel) => {
+          {[...byFuel].sort(byFuelOrder).map((fuel) => {
             const color = fuelColor(fuel.fuel_type);
             return (
-              <div
-                key={fuel.fuel_type}
-                className={`card overflow-hidden border-2 shadow-lg ${color.border}`}
-              >
-                {/* Solid band, matching the tank cards below and the dip cards on
-                  the Stock page. The two pale tints this replaced were the same
-                  card to anyone glancing at the pair. */}
-                <div
-                  className={`flex items-baseline justify-between gap-2 px-4 py-3 ${color.solid}`}
-                >
-                  <h3 className="text-base font-bold">{color.label}</h3>
-                  <span className="tabular whitespace-nowrap text-lg font-bold">
+              <div key={fuel.fuel_type} className={`card border-t-4 p-4 ${color.accent}`}>
+                {/* An accent rule, not a filled band: the fuels are only being
+                    READ here. See fuel-colors.js on why the loud treatment is
+                    rationed to the Stock page, where typing into the wrong card
+                    corrupts every later day's figures. */}
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className={`text-base font-bold ${color.onWhite}`}>{color.label}</h3>
+                  <span className="tabular whitespace-nowrap text-lg font-bold text-ink-900">
                     {formatLitres(fuel.litres_sold)}
                   </span>
                 </div>
-                <dl className="grid grid-cols-3 gap-2 p-4">
+                <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3">
                   <div>
                     <dt className="figure-label">Sales</dt>
                     <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
@@ -176,7 +172,7 @@ export default async function DashboardPage({ searchParams }) {
       {/* ---- tanks ---- */}
       <h2 className="section-heading">Tank stock</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        {tanks.map((tank) => {
+        {[...tanks].sort(byFuelOrder).map((tank) => {
           /*
            * The books AT THE CLOSE OF THE DAY ON SCREEN, not the tank's cached
            * "right now" figure.
@@ -196,20 +192,19 @@ export default async function DashboardPage({ searchParams }) {
           const color = fuelColor(tank.fuel_type);
 
           return (
-            <div
-              key={tank.id}
-              className={`card overflow-hidden border-2 shadow-lg ${color.border}`}
-            >
-              <div
-                className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 ${color.solid}`}
-              >
-                <h3 className="text-base font-bold">{tank.name}</h3>
-                <span className="tabular whitespace-nowrap text-lg font-bold">
+            <div key={tank.id} className={`card border-t-4 p-4 ${color.accent}`}>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h3 className={`text-base font-bold ${color.onWhite}`}>{tank.name}</h3>
+                <span
+                  className={`tabular whitespace-nowrap text-lg font-bold ${
+                    stock < 0 ? 'text-red-700' : 'text-ink-900'
+                  }`}
+                >
                   {formatLitres(stock)}
                 </span>
               </div>
 
-              <div className="p-4">
+              <div>
                 {/* Say WHICH MOMENT this figure is, in the same words the Stock
                   page uses. It is an end-of-day number - the day's sales already
                   taken off and its deliveries already added on - and nothing on
@@ -304,16 +299,14 @@ export default async function DashboardPage({ searchParams }) {
               navy and yellow: it is the colour this product already has on its
               badge, from app/_lib/fuel-colors.js. Semantic, not decoration -
               which is also why the strip of takings above stays uncoloured. */}
-          <div className={`card overflow-hidden border-2 shadow-lg ${lubColor.border}`}>
-            <div
-              className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 ${lubColor.solid}`}
-            >
-              <h3 className="text-base font-bold">Sold on this day</h3>
-              <span className="tabular whitespace-nowrap text-lg font-bold">
+          <div className={`card border-t-4 p-4 ${lubColor.accent}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h3 className={`text-base font-bold ${lubColor.onWhite}`}>Sold on this day</h3>
+              <span className="tabular whitespace-nowrap text-lg font-bold text-ink-900">
                 {formatPKR(lubricants.amount)}
               </span>
             </div>
-            <div className="p-4">
+            <div className="mt-3 border-t border-ink-200/60 pt-3">
               {Number(lubricants.sales_count ?? 0) === 0 ? (
                 <p className="text-sm text-ink-600">
                   Nothing sold over the counter on this date.{' '}
@@ -364,9 +357,9 @@ export default async function DashboardPage({ searchParams }) {
 
           {/* The shelf, so a product about to run out is noticed from the
               dashboard rather than when a customer asks for it. */}
-          <div className={`card overflow-hidden border-2 shadow-lg ${lubColor.border}`}>
-            <h3 className={`px-4 py-3 text-base font-bold ${lubColor.solid}`}>On the shelf</h3>
-            <ul className="space-y-2 p-4 text-sm">
+          <div className={`card border-t-4 p-4 ${lubColor.accent}`}>
+            <h3 className={`text-base font-bold ${lubColor.onWhite}`}>On the shelf</h3>
+            <ul className="mt-3 space-y-2 border-t border-ink-200/60 pt-3 text-sm">
               {lubricantStock.map((product) => {
                 const left = Number(product.stock_litres ?? 0);
                 return (

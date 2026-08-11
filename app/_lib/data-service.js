@@ -10,6 +10,7 @@
 import 'server-only';
 import { createClient } from './supabase-server';
 import { todayISO, shiftISODate } from './date-helpers';
+import { byFuelOrder } from './fuel-colors';
 
 /** Turns a Supabase { data, error } into data, or throws something readable. */
 function unwrap({ data, error }, what) {
@@ -23,9 +24,17 @@ function unwrap({ data, error }, what) {
 // Configuration: tanks, nozzles, prices
 // ---------------------------------------------------------------------------
 
+/*
+ * Diesel first, then petrol - the order the pump itself is laid out in, which
+ * is what the person reading the screen has in his head. `order('fuel_type')`
+ * cannot give it: fuel_type is an enum declared petrol-first in migration 001,
+ * and Postgres orders enums by declaration. Sorted here so a display choice
+ * stays out of the schema. See FUEL_ORDER in app/_lib/fuel-colors.js.
+ */
 export async function getTanks() {
   const supabase = await createClient();
-  return unwrap(await supabase.from('tanks').select('*').order('fuel_type'), 'the tanks');
+  const tanks = unwrap(await supabase.from('tanks').select('*'), 'the tanks');
+  return [...tanks].sort(byFuelOrder);
 }
 
 export async function getNozzles() {

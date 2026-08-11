@@ -1128,11 +1128,9 @@ propagates forward until somebody notices a tank behaving impossibly.
 Until this change the two cards were identical but for a small badge and a
 name in `text-sm`. Now:
 
-- **The card wears its fuel's colour** — a solid `bg-sky-800` header band with
-  white text for petrol, `bg-amber-400` with `text-ink-900` for diesel. The
-  *same* sky and amber families `FuelBadge` uses everywhere else, so it
-  reinforces an association the app has already taught rather than inventing a
-  private one.
+- **The card wears its fuel's colour**, from `app/_lib/fuel-colors.js` — the
+  same colours `FuelBadge` uses everywhere else, so it reinforces an association
+  the app has already taught rather than inventing a private one.
 - **ONE DARK, ONE LIGHT. Never two of the same weight.** This is the rule, and
   it was learned by getting it wrong. Both bands were first made dark —
   `sky-800` against `amber-800` — reasoning that a pair matched in luminance
@@ -1147,10 +1145,17 @@ name in `text-sm`. Now:
   strongest difference available to buy a symmetry nobody asked for. sky-800 vs
   amber-800 is a **1.1× lightness gap** — which is to say none. Navy vs bright
   yellow is **6.5×**.
-- **Then check each band carries its own text.** White on `sky-800` is 7.6:1;
-  `ink-900` on `amber-400` is 10.7:1. Both clear AAA, the floor worth holding
-  for a screen read in a forecourt office. (Watch the middle of the amber ramp:
-  white on `amber-600` is 3.2:1 and fails AA outright.)
+- **Then check each band carries its own text.** `ink-900` on the petrol gold is
+  13.0:1; white on the diesel bronze is 7.1:1. Both clear AAA, the floor worth
+  holding for a screen read in a forecourt office. (Watch the middle of the
+  amber ramp: white on `amber-600` is 3.2:1 and fails AA outright.)
+
+- **Take the hue the owner asks for, then make the lightness work.** He picked
+  `#FFD865` for petrol and `#FFBF00` for diesel — both his forecourt's yellows,
+  and 1.22× apart, which is no gap at all. Refusing his colours would have been
+  wrong; shipping two of the same weight would also have been wrong. Diesel kept
+  his hue (45°) and dropped to `#705400`. That is 7.3× and nobody had to give
+  anything up.
 - **The colour is on the header and border only.** The body stays white. This is
   read on a cheap tablet in poor light and the figures need full contrast; a
   card washed in colour throughout costs exactly the legibility the colour was
@@ -1229,14 +1234,27 @@ Each entry carries what the surfaces actually need:
 | `solid` / `solidMuted` | a filled band or chip, and quieter text on it |
 | `border` | the card outline that goes round a solid band |
 | `onWhite` | the fuel's colour as text on a white background |
+| `accent` | a 4px top rule — the quiet treatment |
 | `hex` | charts and progress bars, which need a raw value |
 
 `fuelColor(type)` falls back to a neutral rather than to one of the fuels, so an
 unrecognised value never silently paints itself petrol.
 
-**The dark/light rule travels with them.** Petrol is a dark navy carrying white
-text; diesel a bright yellow carrying near-black text. Any new surface keeps that
-relationship — if a change would leave both light or both dark, it is wrong, for
+**Two weights, and the loud one is rationed.** `solid` fills a header band;
+`accent` is a 4px rule on an otherwise plain card. The filled band is reserved
+for surfaces where **typing into the wrong one costs something** — the Stock
+page's dip boxes, where a petrol reading in the diesel card corrupts the
+baseline every later day is measured from. Where the fuels are only being
+*read*, the accent separates them just as reliably and leaves the page calm.
+The first version banded everything, and six saturated blocks down one dashboard
+is colour-blocking rather than design: loud everywhere is the same as loud
+nowhere.
+
+**The dark/light rule travels with them.** Petrol is a light gold carrying
+near-black text; diesel a dark bronze carrying white. Lubricant is navy — the
+only cool colour of the three, because the two fuels are now a warm pair, and
+blue against amber is the one axis that survives red-green colour blindness
+intact. Any new surface keeps that relationship — if a change would leave both light or both dark, it is wrong, for
 the reason recorded in the section above and at length in the module's own
 comment. Solid chips replaced the old pale tints for exactly this: two faint
 pastels are the same chip to anyone glancing down a column of nozzles.
