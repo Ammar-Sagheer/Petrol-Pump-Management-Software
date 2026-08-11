@@ -23,25 +23,25 @@ logins, one pump. Migrations run to **039**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
-| Area | What changed |
-|---|---|
-| Loose oil | A drum bought from a supplier and sold by the rupee, not the litre. Its own page under Lubricants, litres derived server-side from a rate, sale litres widened to 3 dp. Migrations 028–030. |
-| Tables that grow | `<Pager>` on Purchases, Banking, Stock checks, the customer ledger and both sales tables — and the removal of `.limit()` caps that were silently truncating a money total. |
-| Dashboard | An oil-sales chart beside the fuel ones (`get_lubricant_trend`, 029). |
-| Customers | Removing one (delete if never traded, retire if it did), deleting one for good, an opening balance created with the account, and editable details. Migrations 031, 033, 034. |
-| Money precision | The ledger moved to **whole rupees**, storage as well as display — there is no coin below one rupee. Migration 032. |
-| Speed | Functions moved to Singapore beside the database; the Guide is prefetched. |
-| Feedback | Every destructive submit shows a pending state; delete triggers are a trash icon. |
-| Guide | Location chips, bold rule titles and a folded setup section — a fifth shorter than before, and scannable. |
-| Settings | The rate panel previews five changes (rounded up to a whole date) instead of seven days, so it no longer scrolls inside itself. |
-| Dashboard | The charts take a 7 / 14 / 30 / 90-day window (`<TrendRange>`), carried through the day arrows by `<DateNav extraParams>`. |
-| Dashboard | The fuel-sales chart toggles Rupees / Litres, split by fuel, so it no longer duplicates the cash-vs-credit chart beside it. |
-| All fuel rates | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card. |
-| Activity | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035. |
-| Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
-| Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
-| Readings | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC. |
-| Stock | **A dip taken in the morning closes yesterday.** The maths assumed the opposite and reported a whole day's sales as a loss, every day. `taken` + generated `books_date`; `expected_stock` recalculated from history rather than frozen at insert; the dashboard's tank card stopped ignoring the date on screen; and the owner can clear a mistyped dip. Migration 039. |
+| Area             | What changed                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Loose oil        | A drum bought from a supplier and sold by the rupee, not the litre. Its own page under Lubricants, litres derived server-side from a rate, sale litres widened to 3 dp. Migrations 028–030.                                                                                                                                                                             |
+| Tables that grow | `<Pager>` on Purchases, Banking, Stock checks, the customer ledger and both sales tables — and the removal of `.limit()` caps that were silently truncating a money total.                                                                                                                                                                                              |
+| Dashboard        | An oil-sales chart beside the fuel ones (`get_lubricant_trend`, 029).                                                                                                                                                                                                                                                                                                   |
+| Customers        | Removing one (delete if never traded, retire if it did), deleting one for good, an opening balance created with the account, and editable details. Migrations 031, 033, 034.                                                                                                                                                                                            |
+| Money precision  | The ledger moved to **whole rupees**, storage as well as display — there is no coin below one rupee. Migration 032.                                                                                                                                                                                                                                                     |
+| Speed            | Functions moved to Singapore beside the database; the Guide is prefetched.                                                                                                                                                                                                                                                                                              |
+| Feedback         | Every destructive submit shows a pending state; delete triggers are a trash icon.                                                                                                                                                                                                                                                                                       |
+| Guide            | Location chips, bold rule titles and a folded setup section — a fifth shorter than before, and scannable.                                                                                                                                                                                                                                                               |
+| Settings         | The rate panel previews five changes (rounded up to a whole date) instead of seven days, so it no longer scrolls inside itself.                                                                                                                                                                                                                                         |
+| Dashboard        | The charts take a 7 / 14 / 30 / 90-day window (`<TrendRange>`), carried through the day arrows by `<DateNav extraParams>`.                                                                                                                                                                                                                                              |
+| Dashboard        | The fuel-sales chart toggles Rupees / Litres, split by fuel, so it no longer duplicates the cash-vs-credit chart beside it.                                                                                                                                                                                                                                             |
+| All fuel rates   | Eight rows a page instead of 25, and the 70vh height cap dropped, so nothing scrolls inside the card.                                                                                                                                                                                                                                                                   |
+| Activity         | An audit trail: a trigger on sixteen tables writes who changed what into an append-only `activity_log`, read at `/admin/activity` by the owner. Migration 035.                                                                                                                                                                                                          |
+| Lubricants       | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards.                                                                                                                                                         |
+| Company Assets   | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036.                                                                                                                                                                              |
+| Readings         | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC.                                                                                                               |
+| Stock            | **A dip taken in the morning closes yesterday.** The maths assumed the opposite and reported a whole day's sales as a loss, every day. `taken` + generated `books_date`; `expected_stock` recalculated from history rather than frozen at insert; the dashboard's tank card stopped ignoring the date on screen; and the owner can clear a mistyped dip. Migration 039. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -64,11 +64,11 @@ early whether a single-user offline build needs it at all.
    rounding for different reasons, and three places must agree — see
    `docs/UI_CONVENTIONS.md`.
 3. **A dip is a moment, not a day.** It is checked against `books_date` —
-   the trading day it *closes* — not the day it was taken. This pump dips in
+   the trading day it _closes_ — not the day it was taken. This pump dips in
    the morning, so those differ by one. See `README.md` → "A dip belongs to the
    day it closes".
 4. **The business day is `Asia/Karachi`**, never the server clock. The activity
-   log is the one place a *time of day* is shown, and it is pinned the same way
+   log is the one place a _time of day_ is shown, and it is pinned the same way
    — rendered on a UTC server without pinning, an evening entry prints as an
    afternoon one.
 5. **`activity_log` is written only by trigger and can never be edited.** If a
@@ -294,14 +294,14 @@ A connected sequence of changes reorganizing where things live, driven by
 
 - **A lubricant shelf was added as its own trade**, not as a third
   `fuel_type`. Petrol and diesel live in two fixed tanks and are sold
-  through metered nozzles, so a day's sale is *derived* from meter
+  through metered nozzles, so a day's sale is _derived_ from meter
   readings; oil is a changing list of products sold one tin at a time, so
-  a sale is *typed* as a sale. Reusing the fuel machinery would have meant
+  a sale is _typed_ as a sale. Reusing the fuel machinery would have meant
   inventing a nozzle per brand and editing an enum every time the owner
   switched supplier. Three tables instead: `lubricants` (the products),
   `lubricant_purchases` (restocking) and `lubricant_sales` (the counter).
 - **Everything is measured in litres, packs and loose oil alike.** A pump
-  that sells sealed 4 L cartons *and* 250 ml poured from an open drum is
+  that sells sealed 4 L cartons _and_ 250 ml poured from an open drum is
   selling the same stock either way, and one unit is what keeps the stock
   figure honest across both. The product's `pack_size_litres` is therefore
   only a shortcut on the sale form — a button that fills the litres box —
@@ -322,7 +322,7 @@ A connected sequence of changes reorganizing where things live, driven by
   releases the reference rather than taking the debt with it. The
   append-only trigger gained the column as a third narrow exception, on
   the same terms as the other two. Deleting a sale posts the offsetting
-  credit *before* the delete, in one transaction, exactly as
+  credit _before_ the delete, in one transaction, exactly as
   `delete_reading` does.
 - **`fuel_type` is left null on a lubricant debit.** The ledger's own
   check constraint allows it on a debit, and it keeps the customer
@@ -345,7 +345,7 @@ A connected sequence of changes reorganizing where things live, driven by
   know which table the row came from; it defaults to fuel, so nothing that
   does not send it changed behaviour.
 - **Profit now counts both trades**: `fuel sales + lubricant sales − fuel
-  bought − lubricants bought − expenses`. A pump selling Rs 200,000 of oil
+bought − lubricants bought − expenses`. A pump selling Rs 200,000 of oil
   a month and reporting none of it is not reporting its profit, so this is
   a correction rather than an addition. The cash-basis caveat is unchanged
   and now covers both, which is why closing stock is reported for the
@@ -373,7 +373,7 @@ A connected sequence of changes reorganizing where things live, driven by
   entered against the wrong date — while deliveries, expenses and now
   lubricant sales are each deleted on their own screen where you can see
   what you are removing. A counter sale is one row, so it belongs in that
-  second group. `reset_all_data` *does* clear the trading, and keeps the
+  second group. `reset_all_data` _does_ clear the trading, and keeps the
   product list with its stock zeroed, on the same reasoning that keeps the
   tanks.
 
@@ -427,7 +427,7 @@ What changed:
   on every nav tab, and on the Entered/Enter status, which had been two words
   two letters apart distinguished mainly by amber vs green.
 - **The written date is now the loudest thing in `DateNav`.** A native date
-  box is drawn in the *browser's* locale, so on an en-US browser the 7th of
+  box is drawn in the _browser's_ locale, so on an en-US browser the 7th of
   August renders "08/07/2026" — the 8th of July to anyone reading day-first.
   Markup cannot change that, so the box was demoted to a jump control and the
   spelled-out date carries which day is on screen.
@@ -446,7 +446,7 @@ Two things this pass broke and then fixed, both worth knowing about:
   the larger size. Fixed by moving "/ litre" into the caption rather than by
   shrinking the figure back down. Same story on the dashboard tiles, where
   "Rs 4,386,211" was breaking after the "Rs": those are `whitespace-nowrap`
-  now, and the grid drops to one column below 380px so the number has room.
+  now, and the grid drops to one column below 380px so the number has room..
 
 Checked by rendering a full six-nozzle sheet with realistic figures at 1440,
 1152, 1024, 820, 400, 360 and 320px, scripted to report any element whose
@@ -541,7 +541,7 @@ before Next.js began rendering. Both key types pay it, for different reasons:
 on the legacy shared JWT secret the middleware cannot check an HS256
 signature itself and auth-js falls back to `/auth/v1/user`; on asymmetric
 signing keys it verifies locally but needs the JWKS, and that cache lives on
-the client *instance* — middleware builds a fresh client per request, so it
+the client _instance_ — middleware builds a fresh client per request, so it
 refetches `/.well-known/jwks.json` instead.
 
 It uses `getSession()` now, which reads the cookie and only talks to Supabase
@@ -573,7 +573,7 @@ claims verification and one profile read.
   "Show these days as a table" for the month on screen and links across.
   The table moved into `DailySalesTable` so the two cannot drift apart.
 - **Paged by date window, not by row.** `get_sales_trend` fills in every day
-  between two bounds, including days with no trade, so a page is 25 *days*:
+  between two bounds, including days with no trade, so a page is 25 _days_:
   page 1 is the last 25, page 2 the 25 before that. There is no row count to
   fetch — the page count falls out of the distance between the first trading
   day and today, which is what `getFirstTradingDay()` is for. Days with
@@ -671,7 +671,7 @@ is now refused with a message naming the other date, the two figures and how
 many litres would be duplicated — the message is the instruction, since
 `describe()` passes database errors straight to the user.
 
-**A gap is still allowed.** A later reading starting *after* an earlier one
+**A gap is still allowed.** A later reading starting _after_ an earlier one
 finished means litres are missing, not duplicated — a skipped day or a
 replaced meter — and blocking it would trap someone with no way forward.
 Those stay warnings, as they were. Only overlap, which cannot be honest, is
@@ -701,11 +701,11 @@ Two small things spotted in the entry dialog on the duplicated 06 Aug day.
   reads as a prediction about a button that is not on screen. A saved day now
   gets the true statement instead: "this day and 07 Aug 2026 both cover the
   same 151.15 litres … one of the two has to be cleared: whichever date the
-  meter was not read on." The unentered wording also now says the save *will
-  be refused*, which since migration 026 it will be.
+  meter was not read on." The unentered wording also now says the save _will
+  be refused_, which since migration 026 it will be.
 
 A third case fell out of separating the two: a saved day whose next reading
-starts *above* where it closed is a gap, not an overlap, and now says so —
+starts _above_ where it closed is a gap, not an overlap, and now says so —
 "05 Aug 2026 opens at 18,967.53 but this day closes at 18,900.00 … 67.53
 litres are on neither day."
 
@@ -730,7 +730,7 @@ day. That is a lie rather than a duplicate: it records "nothing sold" for a
 day that traded, with the litres sitting on the later date, and nothing flags
 it afterwards. Now refused outright.
 
-It is deliberately *not* a ban on back-filling, because the honest repair
+It is deliberately _not_ a ban on back-filling, because the honest repair
 looks almost identical and is needed — Unit 2 · Nozzle B had no 04 Aug
 reading and 05 Aug opened 85.35 L above where 03 Aug closed. The test is
 whether the later reading **left room**:
@@ -813,6 +813,7 @@ stale:
 
 `CLAUDE.md` needed nothing — its pointers to the three docs, the devcheck
 route, the Playwright path and `npm run build` are all still accurate.
+
 ### Dialogs no longer close on a click outside
 
 The owner reported a form vanishing when a drag that started inside the
@@ -848,7 +849,7 @@ The existing lubricant form asked for litres and prefilled the amount, which
 meant dividing 20 by 580 in your head at the counter, several times a day.
 
 **Modelled as a flag on the product, not a new table.** `lubricants.sold_loose`
-(migration 028). A drum *is* a lubricant — bought in litres from a supplier,
+(migration 028). A drum _is_ a lubricant — bought in litres from a supplier,
 sold over the counter, taken on credit onto the same ledger, counted in the
 same monthly report — so a second table would have meant a second copy of the
 stock triggers, the ledger posting, the delete-and-reverse RPC, the report
@@ -870,7 +871,7 @@ litre is 0.0345 L; stored at two decimals that is 0.03, losing a tenth of every
 pour, always in the same direction, on the kind of sale that happens dozens of
 times a day. Done while `lubricant_sales` was still empty — a month later it
 would have been a data migration. Two things had to come apart first and go
-back unchanged: `rate_per_litre` is generated *from* `litres`, and
+back unchanged: `rate_per_litre` is generated _from_ `litres`, and
 `recalc_lubricant_after_product_update` names `opening_stock_litres` in its
 `update of` list, and Postgres will not retype a column either depends on.
 
@@ -893,7 +894,7 @@ drum lands on that link rather than on "no lubricants yet".
 
 The sale dialog asks for rupees with Rs 20/30/50/100 shortcuts, states the
 consequence underneath ("At Rs 580.00 a litre, Rs 30 is 0.052 L off the drum")
-and names what is left in the drum. The rate is shown *before* an amount is
+and names what is left in the drum. The rate is shown _before_ an amount is
 typed, because a wrong rate is the one thing that can make every loose sale
 wrong at once. With one drum the product select is not rendered at all.
 
@@ -906,7 +907,7 @@ up with its selling rate.
 ### Everywhere else
 
 Reports splits "of which loose oil" out of the lubricant line and badges the
-drum in the per-product table — it is most of the sale *count* and a small
+drum in the per-product table — it is most of the sale _count_ and a small
 share of the money, so one combined figure flatters neither. The workbook gains
 the same split on Summary and a **Kind** column on the Lubricants sheet, so
 "just the drum for August" is a filter rather than trusting a spelling. The
@@ -920,8 +921,8 @@ Asked for after noticing Purchases would grow unreadable after a year. Doing it
 turned up a worse bug than the one being fixed.
 
 **`.limit()` defaults were silently truncating figures.** `getPurchases`
-stopped at 100 rows — but the Purchases page totals *what is still owed to
-suppliers across every row*, so the hundred-and-first delivery pushed the
+stopped at 100 rows — but the Purchases page totals _what is still owed to
+suppliers across every row_, so the hundred-and-first delivery pushed the
 oldest unpaid ones out of the sum and the pump under-reported its own debt,
 with nothing on screen to say so. `getStockChecks` capped at 60 had the same
 shape: the page looks up the check belonging to the date on screen, so stepping
@@ -936,7 +937,7 @@ month or customer id already in the query string survives.
 
 Where the slice happens is deliberate and differs by page — the reasoning is in
 `docs/UI_CONVENTIONS.md`, but briefly: page in the database only when the list
-is *only* a list (the customer ledger, whose balance comes from an RPC that
+is _only_ a list (the customer ledger, whose balance comes from an RPC that
 sums over everything), and fetch-then-slice wherever the page derives a figure
 from the whole set.
 
@@ -1177,7 +1178,7 @@ seemed obvious.
 `requirePageRole()` reads cookies. Before any HTML exists the server does
 `getClaims()` plus a `profiles` SELECT - at least one Supabase round trip. The
 Guide's own content is a compile-time constant in `guide-content.js`, so for
-that page the round trip *is* the entire wait, and `loading.js` covers it with
+that page the round trip _is_ the entire wait, and `loading.js` covers it with
 a full-page skeleton that makes 300ms read as a page load.
 
 `proxy.js` and the layout are already clean: the proxy uses `getSession()` (no
@@ -1191,7 +1192,7 @@ what locks out a deactivated staff login on their next navigation. Load-bearing.
 **Deleting the skeleton does not work either.** Tested with two throwaway
 routes: a child segment with no `loading.js` of its own **inherits the
 parent's**. Removing `app/admin/guide/loading.js` would give the Guide the
-*dashboard's* skeleton, which is worse.
+_dashboard's_ skeleton, which is worse.
 
 **What does work, measured on a production build** (dev mode is not
 representative - it showed no benefit at all, which nearly led to the wrong
@@ -1247,7 +1248,7 @@ it.
 **This also called off the JWT change.** The plan had been to move the role
 into the access token to save the `profiles` round trip on every page - the
 owner had agreed, on the grounds that staff are rarely deactivated. But that
-round trip was only expensive *because* of the region; once the function sits
+round trip was only expensive _because_ of the region; once the function sits
 beside the database it costs about 2ms. Trading immediate lockout of a
 deactivated staff login for 2ms is a bad deal, and it would have stayed in the
 codebase long after the reason for it disappeared. Not done.
@@ -1278,8 +1279,8 @@ disagree, with nothing to settle the argument.
 
 ### "Increases what they owe" was unreadable, and getting it wrong is silent
 
-The manual adjustment offered a dropdown reading *Increases what they owe* and
-*Reduces what they owe*. The owner could not tell them apart at a glance — two
+The manual adjustment offered a dropdown reading _Increases what they owe_ and
+_Reduces what they owe_. The owner could not tell them apart at a glance — two
 long phrases differing by one word in the middle, both starting the same shape.
 
 This is the worst place in the app for an ambiguous control. Picking the wrong
@@ -1290,7 +1291,7 @@ a second entry. The only defence is not making it in the first place.
 Two changes, and the second is the one that actually works:
 
 - **Cards in yard language, shared between both forms.** `BalanceDirection`
-  gives "They owe more" / "They owe less", each with a line saying *when* to use
+  gives "They owe more" / "They owe less", each with a line saying _when_ to use
   it — the situation is easier to recognise than the arithmetic. Shared so the
   same two ideas are never described in two vocabularies, which is how the
   confusion started.
@@ -1352,7 +1353,7 @@ Both are `.btn-primary`, which is a deliberate departure from one-primary-per-
 view: they are peers, and demoting either would point the reader at the wrong
 one. Noted in `docs/UI_CONVENTIONS.md` so it is not "corrected" later.
 
-*Process note*: `npx prettier` was run on `CustomerForm.js` without checking the
+_Process note_: `npx prettier` was run on `CustomerForm.js` without checking the
 repo first. There is no prettier config here and the codebase uses single quotes
 at a 100 column width, so the default run rewrote the whole file to double
 quotes. Re-run as `--single-quote --print-width 100`, which reproduces existing
@@ -1375,12 +1376,12 @@ than taking a dependency and someone else's idea of what a bin looks like. The
 trash was drawn to match.
 
 This is the one deliberate exception to "icons never carry meaning alone". That
-rule is about icons carrying *information* — a nozzle's Entered badge, a fuel
+rule is about icons carrying _information_ — a nozzle's Entered badge, a fuel
 type — where colour is the cue that fails in a dim office. A control is
 different, and two conditions keep it honest: `label` is mandatory and becomes
 both `aria-label` and the hover title, and every one of these confirms **in
-words** before anything happens. Text is kept where the words *are* the
-distinction: *Bring back* beside *Delete for good* would be a guess as two
+words** before anything happens. Text is kept where the words _are_ the
+distinction: _Bring back_ beside _Delete for good_ would be a guess as two
 icons.
 
 **"Clicking some buttons freezes the UI."** It was not a freeze — it was
@@ -1424,8 +1425,8 @@ the pencil icon on the second. Both languages checked by shape afterwards:
 the next piece of work mentioned is an offline Electron build:
 
 - A **"Where things stand"** section at the top of this file. Ten narrative
-  entries in theme order is the right shape for *why*, and the wrong shape for
-  *what is true today* — so there is now a table of the recent work and a list
+  entries in theme order is the right shape for _why_, and the wrong shape for
+  _what is true today_ — so there is now a table of the recent work and a list
   of the three things that are load-bearing and easy to break.
 - A **"If you are porting this off Supabase"** section in `README.md`, because
   the most misleading thing about this codebase is how little of the important
@@ -1439,9 +1440,9 @@ the next piece of work mentioned is an offline Electron build:
 
 ### The guide had too much detail to be read
 
-The owner's verdict on the guide, after it had been brought up to date: *"too
+The owner's verdict on the guide, after it had been brought up to date: _"too
 much detail... add some visual markers instead, so that it does not become
-boring to read."* It measured **4,603px** — five screens on a laptop — and the
+boring to read."_ It measured **4,603px** — five screens on a laptop — and the
 reader it is written for is an attendant who has opened it to find one answer.
 
 Where the height was: setup 1,133px (24%), the evening routine 1,127px (24%),
@@ -1452,7 +1453,7 @@ the rules 779px (17%), the section map 668px (14%), roles 442px (10%).
 - **Location chips.** Ten steps across the two languages said, in a sentence,
   where to go. They now carry `where: { icon, path }` and render it as a pill
   under the step heading — `Lubricants → Record a lubricant sale`, with the
-  *same icon as the sidebar tab*, so it points at something already on screen.
+  _same icon as the sidebar tab_, so it points at something already on screen.
 - **Rules lead with the claim.** `rules.items` went from strings to
   `{ title, body }`; the title is bold. Ten rules are now ten scannable lines
   rather than ten paragraphs behind ten identical warning triangles — the
@@ -1461,7 +1462,7 @@ the rules 779px (17%), the section map 668px (14%), roles 442px (10%).
   so it is now a native `<details>` styled as a card row. No JavaScript, no
   state, still found by the browser's own search.
 
-The chips *raised* the height first — 4,603 → 4,957px — which is worth
+The chips _raised_ the height first — 4,603 → 4,957px — which is worth
 recording, because it is the shape of this kind of change: a marker costs
 vertical space and buys scanning speed. Folding the setup is what paid for
 them. Final: **3,850px English, 3,718px Urdu**, a fifth shorter than it began
@@ -1479,7 +1480,7 @@ in the app looks broken at 400px.
 
 ### The rate panel on Settings shows five changes, not seven days
 
-*"Show only the recent 5 readings, rest should be visible in view all."*
+_"Show only the recent 5 readings, rest should be visible in view all."_
 
 The slice was seven whole **days**, and the reason it was counted in days
 rather than rows is still right: the rate for both fuels usually moves
@@ -1511,13 +1512,13 @@ returns all of them, no rows returns none.
 ### A window on the dashboard charts, and eight rates to a page
 
 Two requests, both about a screen being fixed at a size that no longer suited
-it: *"the graphs on dashboard also need date filter"* and *"this page should
+it: _"the graphs on dashboard also need date filter"_ and _"this page should
 show 8 max and next page the remaining, means the pagination is set at max 8
-so scroll bar does not appear."*
+so scroll bar does not appear."_
 
 **The charts can now be asked for 7, 14, 30 or 90 days.** They were hard-wired
 to 14. `<TrendRange>` is four fixed windows rather than a from/to pair,
-because the day they *end* on is already chosen by `<DateNav>` at the top of
+because the day they _end_ on is already chosen by `<DateNav>` at the top of
 the page — the only thing missing was how far back to reach, and asked as a
 range that would be two date pickers, four taps, and a window that can be
 entered backwards or empty. One tap, no invalid state. 90 is the outer limit
@@ -1561,8 +1562,8 @@ round — when a chart looks wrong, measure a bar before believing the picture.
 
 ### The chart filter was throwing the reader back to the top
 
-Reported the day it went out: *"i deployed, its working, but changing from 7
-days to 14 moves the UI to the top."*
+Reported the day it went out: _"i deployed, its working, but changing from 7
+days to 14 moves the UI to the top."_
 
 A Next.js `<Link>` resets the scroll position, which is right when the whole
 page changes and wrong for a filter. The charts are the last thing on the
@@ -1586,8 +1587,8 @@ page.**
 
 ### Who did what, written by the database
 
-*"Add trail logs and log the user activity and create a tabular log data in
-the navigation menu after guide button."*
+_"Add trail logs and log the user activity and create a tabular log data in
+the navigation menu after guide button."_
 
 The owner has staff logins, and the app deliberately lets a past day be
 corrected — necessary, and also the exact shape of a mistake being quietly
@@ -1604,7 +1605,7 @@ nobody expected, which is precisely the case an app-level log misses.
 **One function serves all sixteen tables** by going through `to_jsonb(NEW)`
 rather than naming columns, so a column renamed later degrades to a vaguer log
 line instead of breaking the write. Each line is built as a finished English
-sentence *at write time* — "Unit 1 · Nozzle A — 151.15 L, Rs 50,055" — because
+sentence _at write time_ — "Unit 1 · Nozzle A — 151.15 L, Rs 50,055" — because
 half these rows describe something that no longer exists, and a log that joined
 back to the row at read time would render a deletion as blanks.
 
@@ -1616,13 +1617,13 @@ before it shipped rather than after.
 
 **Three things it deliberately stays quiet about**, each found by running it:
 
-- *Stock recalculation.* `tanks.current_stock_litres` is recomputed by trigger
+- _Stock recalculation._ `tanks.current_stock_litres` is recomputed by trigger
   after every reading, so logging it would bury each real event under a line of
   machine bookkeeping. An update whose only changed columns are ignored is not
   logged at all.
-- *The ledger row a credit slip posts for itself.* One event, described twice,
+- _The ledger row a credit slip posts for itself._ One event, described twice,
   and the slip is the half a person recognises.
-- *The cascade under a deleted reading.* Deleting a reading deletes its credit
+- _The cascade under a deleted reading._ Deleting a reading deletes its credit
   slips, and each slip's `on delete set null` then UPDATEs the ledger row it had
   posted. The log said "Charge to a customer changed" underneath the deletion
   that caused it. `credit_sale_id` and `lubricant_sale_id` joined the ignore
@@ -1684,7 +1685,7 @@ The owner's report, and it was exactly right. The page counted **packed sales
 only** and nothing on it said so: four unqualified tiles (Sales / Litres sold /
 Cash / On credit), a heading reading "Sold on 09 Aug", and a description —
 "Counter sales. Stock is kept in litres, packs and loose oil alike" — that
-described the *stock* and implied the drum was included in the *sales*.
+described the _stock_ and implied the drum was included in the _sales_.
 
 Two feet below, the shelf table listed the drum with "sold 1 L" against it. So
 the screen said "nothing sold today" and "the drum sold a litre" at the same
@@ -1697,7 +1698,7 @@ whole day, because "how much of today's oil is not in the drawer" does not care
 which container it came out of). The split that was invisible is now the first
 thing on the page.
 
-**The shelf says which span it covers.** *Bought* and *Sold* there are running
+**The shelf says which span it covers.** _Bought_ and _Sold_ there are running
 totals since the pump opened, and that was in 12px grey text at the very bottom.
 It is now a line under the heading — "Everything bought and sold up to 09 Aug
 2026, not just today" — which is the sentence that resolves the contradiction
@@ -1713,13 +1714,13 @@ red-green colourblind reader. There are now `out of stock` and `low` badges.
 
 ### The drum came back onto the same page
 
-*"Lube oil sale should also show here instead of a separate page"* and *"I
-don't want this button here, just the loose sales here."*
+_"Lube oil sale should also show here instead of a separate page"_ and _"I
+don't want this button here, just the loose sales here."_
 
 This reverses the split recorded further up this file, and the original reason
 for it was sound: a run of rupee-priced pours buries the four carton sales that
 need reading. What changed is the answer, not the problem. A route split makes
-the reader work out *where a sale lives* before they can look for it, and a
+the reader work out _where a sale lives_ before they can look for it, and a
 day's oil takings were never on one screen.
 
 So: one table, `loose` badge on the pours, and an `All oil / Packed only /
@@ -1780,13 +1781,13 @@ ends above it leaves the owner unable to sign out with nothing on screen to say
 why. What changed is that it is a 6px hairline now (`.nav-scroll`) instead of
 the browser default, and it only appears below about 810px of viewport.
 
-**The delete guards became dialogs.** Reported as *"they shift the UI"*, and
+**The delete guards became dialogs.** Reported as _"they shift the UI"_, and
 that is exactly it: each of the seven replaced its own trash icon with a
 question, two buttons and sometimes a paragraph, inside a table cell — so the
 row grew, the column widened, and every row below jumped. On the Customers
 table the row you were aiming at moved while you were reading the question.
 
-`<ConfirmAction>` is the shared shape now. Verified by watching the row *below*
+`<ConfirmAction>` is the shared shape now. Verified by watching the row _below_
 the one being confirmed: it moves **0px** at 1152 and at 400, where before it
 dropped by the height of the expanded block. The dialogs also have room for the
 sentence that matters — the fuel-rate one can say in full that readings already
@@ -1796,13 +1797,13 @@ cell.
 Two things kept deliberately: a refusal leaves the dialog **open**, because the
 database's explanation is the whole point of the interaction and closing would
 throw it away; and `PurgeCustomerButton` keeps its own dialog, because its
-trigger must be the words *Delete for good* beside *Bring back*, and its body
+trigger must be the words _Delete for good_ beside _Bring back_, and its body
 owns the type-the-name field that gates the submit.
 
 ### The two dashboard charts were drawing the same picture
 
-*"Both of these graphs shows almost the same thing, configure the left graph
-to show sales of petrol and diesel in litres too with a toggle."*
+_"Both of these graphs shows almost the same thing, configure the left graph
+to show sales of petrol and diesel in litres too with a toggle."_
 
 Correct: on a pump paid almost entirely in cash, "total sales" and "the cash
 bar" on the chart beside it are the same height every day, so the second chart
@@ -1830,14 +1831,14 @@ and looks like a regression that is not one.
 
 ### Company Assets — a private record of what the pump owns
 
-*"I need a page named Company Assets, where I can add all the company assets
+_"I need a page named Company Assets, where I can add all the company assets
 with their value at the time of purchase, and edit or delete them. This page
-is just for the owner to see what he bought using pump money."*
+is just for the owner to see what he bought using pump money."_
 
 A new page, `/admin/company-assets`, owner-only in the same way Banking is —
 RLS refuses `data_entry` outright, the nav link is hidden for anyone else, and
 neither is treated as the real gate. Nothing here touches a sale, an expense,
-or the month's profit; it is a separate ledger of things bought and *kept*
+or the month's profit; it is a separate ledger of things bought and _kept_
 (a vehicle, a generator, machinery, property), not things bought and used up.
 
 **Cards, not a table.** Every other list in the app is a table because its
@@ -1887,9 +1888,9 @@ the same check the guards-that-moved-the-page fix above established.
 
 ### A whole day went in at zero, and nothing on screen said so
 
-*"Father came back after 2 days to enter the reading and mistakenly added the
+_"Father came back after 2 days to enter the reading and mistakenly added the
 reading in today's section, instead of Sunday, without knowing that he missed
-a day."* Real evening, real numbers: 09 Aug 2026 sat at 0 of 6 nozzles while
+a day."_ Real evening, real numbers: 09 Aug 2026 sat at 0 of 6 nozzles while
 10 Aug was entered in full — the meter still balanced (opening carried
 straight from 08 Aug's close), so nothing was double-counted, but a whole
 day's cash and litres were never recorded as their own day, and nothing told
@@ -1906,8 +1907,8 @@ Two things were built. One survived.
   the controls, then the same tiles inline, then seven small circles centred
   beside the date banner with a pulse on a day nobody had entered. Each was
   lighter than the last and none of them earned the room they took on a screen
-  whose job is six nozzles — *"I just needed a visual indication… things did
-  not work out."* Its RPC (`get_reading_completion`, migration 037) went with
+  whose job is six nozzles — _"I just needed a visual indication… things did
+  not work out."_ Its RPC (`get_reading_completion`, migration 037) went with
   it in **038**. The full account is in docs/UI_CONVENTIONS.md → "A day-completion
   strip on Readings was tried and removed", written down so a fourth attempt
   starts from what already failed rather than from the idea.
@@ -1928,7 +1929,7 @@ after it, at both widths.
 
 ## The dip that was measuring the wrong day
 
-Reported as *"the daily stock reading when compared to dips differ by a lot"*.
+Reported as _"the daily stock reading when compared to dips differ by a lot"_.
 Two bugs and a third found on the way, all in the same figure.
 
 ### The dip is taken before the day starts, and the maths assumed after
@@ -1966,7 +1967,7 @@ both.
 
 Found while proving the first. The stored figure was a snapshot taken the
 moment the dip was saved, and `gain_loss` is a generated column off it — so
-anything entered *afterwards* for an earlier date left it permanently wrong,
+anything entered _afterwards_ for an earlier date left it permanently wrong,
 with nothing on screen to say so.
 
 It had already happened. The dips for 3–8 Aug were back-filled on the 11th in
@@ -1977,7 +1978,7 @@ against a baseline that was superseded a minute later.
 
 `expected_stock` is now **recalculated from history by trigger**, exactly as
 `tanks.current_stock_litres` already was, and for the same reason. Four
-triggers feed it: deliveries and readings are what happen *between* dips, a dip
+triggers feed it: deliveries and readings are what happen _between_ dips, a dip
 is the baseline for the next one, and a tank's opening stock is the baseline for
 the first. The dip trigger is deliberately `after update OF` named columns —
 the recalc writes `expected_stock`, and an unqualified trigger would call
@@ -1989,10 +1990,10 @@ week.
 
 ### The dashboard's tank stock ignored the date on screen
 
-Reported separately: *"the tank stock on the dashboard is always the same as
-today's no matter which day I am visiting"*. True, and unrelated to the above.
+Reported separately: _"the tank stock on the dashboard is always the same as
+today's no matter which day I am visiting"_. True, and unrelated to the above.
 The card was rendering `tank.current_stock_litres` — a single cached number
-meaning *right now* — while `get_daily_summary` had always returned a per-date
+meaning _right now_ — while `get_daily_summary` had always returned a per-date
 `expected_stock` right beside it. One word. The tanks were the only block on
 that page that ignored the date banner above them.
 
@@ -2035,12 +2036,12 @@ from paper on the 11th and both for the owner to check against the register:
 
 ### The first dip was calling a typo a gain
 
-Follow-up, once the timing fix was live: 1 Aug still showed *"Gain of 4,702 L"*
+Follow-up, once the timing fix was live: 1 Aug still showed _"Gain of 4,702 L"_
 in green on petrol and the same loss on diesel.
 
 The first dip on a tank has no earlier dip behind it, so
 `calculate_expected_stock` falls back to the tank's **opening stock** from
-Settings. That figure was *typed*, not measured — so a difference between it
+Settings. That figure was _typed_, not measured — so a difference between it
 and the first rod reading is usually two numbers disagreeing, not fuel that
 moved. Rendering it in green as a gain says the opposite.
 
@@ -2053,7 +2054,7 @@ so it needs no query and no column.
 
 The wording deliberately stops short of "this is not a gain". If a pump sets its
 opening stock and only dips a week later, real trading sits between the two and
-the difference *is* partly genuine. What is always true is that the baseline was
+the difference _is_ partly genuine. What is always true is that the baseline was
 typed rather than measured, so that is what it says.
 
 And the underlying figure was, in fact, a typo: working back from the 2 Aug dip,
@@ -2146,7 +2147,7 @@ unchanged. What changed is entirely inside `Icon.js`: the old file exported
 a `PATHS` map of name → hand-drawn `<path>` JSX rendered inside one shared
 `<svg>`; the new one exports a `COMPONENTS` map of the same names → MUI
 Outlined icon components. Every existing name kept its old meaning (the
-comments explaining *why* a name looks the way it does — the wrench for
+comments explaining _why_ a name looks the way it does — the wrench for
 Machinery, the briefcase for Assets — carried over to the new file), so no
 caller had to change what name it asks for.
 
@@ -2154,7 +2155,7 @@ caller had to change what name it asks for.
 `<svg className="shrink-0 h-5 w-5">` sized itself directly off the passed
 Tailwind classes. MUI's `SvgIcon` sizes itself in `em` via its own
 Emotion-generated CSS class, and Emotion injects its `<style>` tags at
-runtime — which can land *after* Tailwind's build-time utilities in the
+runtime — which can land _after_ Tailwind's build-time utilities in the
 document, and when two classes of equal specificity disagree, the later one
 in the stylesheet wins. In practice this meant `className="h-5 w-5"` on the
 icon directly was not a reliable way to size it; some icons could render at
@@ -2176,7 +2177,7 @@ picked for what the figure actually is, not decoration: a fuel pump for
 litres sold (Dashboard, Readings), a price tag for Sales, a card for On
 credit, a wallet-with-coins for Cash, a delivery truck for Stock bought, a
 trending-up arrow for Profit. Company Assets' "Biggest holding" tile reuses
-the *same* per-category icon (`vehicle`/`machinery`/`property`/…) that
+the _same_ per-category icon (`vehicle`/`machinery`/`property`/…) that
 `CompanyAssetForm`'s category picker already shows, rather than a new
 generic icon, so the tile tells the reader which category actually won
 rather than just decorating the word.
