@@ -1116,3 +1116,55 @@ Two things fix it, and both are worth copying:
   stays short and fixed ("Expected in tank"); "at the close of 10 Aug 2026"
   sits underneath. A date grows when the month name is longer, and a label
   sharing a row with a number is the wrong place for anything that grows.
+
+## Two entry cards side by side: colour the whole card, name the thing twice
+
+The Stock page puts the petrol and diesel dip boxes next to each other, and the
+figures typed into them are four-digit numbers that look alike. Nothing
+downstream can catch petrol's reading going into diesel's box — both are legal,
+and a dip is the baseline every later day is measured from, so the mistake
+propagates forward until somebody notices a tank behaving impossibly.
+
+Until this change the two cards were identical but for a small badge and a
+name in `text-sm`. Now:
+
+- **The card wears its fuel's colour** — `border-sky-300` + `bg-sky-50` header
+  for petrol, `border-amber-300` + `bg-amber-50` for diesel. The *same* sky and
+  amber `FuelBadge` uses everywhere else, so it reinforces an association the
+  app has already taught rather than inventing a private one.
+- **The tint is on the header and border only.** The body stays white. This is
+  read on a cheap tablet in poor light and the figures need full contrast; a
+  card washed in colour throughout costs exactly the legibility the colour was
+  bought to protect.
+- **Colour is never the only cue** (the standing rule, and it applies hardest
+  here): the tank name is `text-base font-bold` in the fuel's darkest shade, the
+  badge is beside it, and **the input's own label names the tank** — "**Petrol
+  Tank** dip reading in litres". Anyone who cannot separate sky from amber still
+  gets told twice which box they are in.
+
+Reach for this whenever two or more entry surfaces sit side by side, accept the
+same shape of value, and cannot validate each other.
+
+## A date-driven page does not remount: reset form state yourself
+
+`<DateNav>` changes the day with a client-side navigation. The page re-renders
+with new props, but a form component in the same tree position **keeps all of
+its `useState`** — it is the same component instance.
+
+`StockCheckForm` learned this the hard way. Stepping from one day to the next
+carried both the typed dip reading *and* the green "Saved…" line across with
+it, so the next morning's card opened with **yesterday's reading already in the
+box**, one tap from being saved again as today's measurement, under a message
+describing a different day.
+
+Two rules, and they are cheap:
+
+- **Success goes to `<Toast>`, never inline.** `Toast`'s own comment has said
+  this since it was written — *"a success message left sitting in a form is
+  still there when the next entry is being typed"*. Failures stay inline in
+  `<FormMessage>`, because an error has to survive long enough to act on. Guard
+  the inline one with `state?.ok === false` rather than rendering both.
+- **Clear the controlled state on success AND on date change.** `form.reset()`
+  alone does nothing to a controlled input — the `useState` behind it has to be
+  set back too. The date-change effect is the belt to the save-effect's braces:
+  if a save is ever missed, the box still empties when the day does.
