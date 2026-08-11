@@ -189,16 +189,23 @@ export default async function DashboardPage({ searchParams }) {
 
           return (
             <div key={tank.id} className="card p-4">
-              <div className="flex items-baseline justify-between">
+              <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base font-bold text-ink-900">{tank.name}</h3>
                 <span
-                  className={`tabular text-lg font-bold ${
+                  className={`tabular whitespace-nowrap text-lg font-bold ${
                     stock < 0 ? 'text-red-700' : 'text-ink-900'
                   }`}
                 >
                   {formatLitres(stock)}
                 </span>
               </div>
+
+              {/* Say WHICH MOMENT this figure is, in the same words the Stock
+                  page uses. It is an end-of-day number - the day's sales already
+                  taken off and its deliveries already added on - and nothing on
+                  this card said so, which is a fair thing to have to ask about a
+                  tank level sitting under a list of that day's sales. */}
+              <p className="text-sm text-ink-600">at the close of {formatDate(date)}</p>
 
               {/* Book stock below zero means more fuel has been sold than ever
                   went into the tank - so a delivery is missing, or an opening
