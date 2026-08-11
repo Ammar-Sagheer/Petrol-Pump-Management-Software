@@ -2061,3 +2061,72 @@ diesel really held ~5,052 L and petrol ~1,408 L at the close of 31 Jul. The
 Settings openings (5,556 / 854) are close to both. The dips as entered
 (854 / 5,556) are ~4,200 L out on each — **the two tanks' readings had been
 entered into each other's cards.**
+
+## Stat tiles became their own raised cards, and customers got avatars
+
+The owner sent screenshots of a MUI dashboard template he liked and asked for
+the same feel: individually raised stat cards, a coloured trend pill instead
+of plain sub-text, and an initials avatar beside each name in a list. The data
+and every server call stayed exactly as they were — this is a rendering pass
+on `StatTile`/`StatGrid` and the Customers table only, not a new feature.
+
+**`StatTile` is now its own `.card`.** It used to be a cell inside one shared
+card with 1px hairline dividers between tiles (`StatGrid` painted the dividers
+by giving the grid a coloured background and gap-px). Four cells fused into one
+slab read as a single block; four separately shadowed cards read as four
+things to check off one at a time against the drawer, which is closer to how
+the page is actually used. `sub` (the small caption under the figure, e.g. "23%
+of takings") now renders as a rounded pill tinted by `tone` — brand-green for
+`positive`, red for `negative`, grey for `default` — with a small filled
+triangle for the two directional tones. This is the same information as the
+plain grey line it replaced, just legible at a glance.
+
+**`StatTile` grew an optional `icon` prop.** Passing an icon name (from
+`Icon.js`) switches the tile to a horizontal layout — the icon in a tinted
+ring at the left, label and figure stacked to its right — the shape the
+reference screenshot used for its stat row. Left off, which is every existing
+call site except the two on Customers, the tile keeps the plain label-over-
+figure stack. This was deliberately opt-in rather than applied everywhere:
+half the tiles in this app (litres sold, cash, credit) have no icon that
+actually means anything, and forcing one on would be decoration standing in
+for a real cue, which `docs/UI_CONVENTIONS.md`'s icon rule already warns
+against.
+
+**Customers got an initials avatar**, a coloured circle carrying the first
+letter of the name, on both the active and the removed-customers tables.
+`app/_lib/customer-avatar.js` picks the colour from a small hash of the
+customer's id — not `Math.random()`, which would give a name a new colour on
+every reload and read as a bug rather than a feature. Deterministic-per-id is
+the "random" that was actually wanted: assigned once, stable forever after,
+and one more thing besides the name itself that helps the owner spot a
+regular in a long list. (An emoji-face version was tried first per an earlier
+version of the same request and replaced with initials once asked for — the
+hashing approach carried over unchanged, only the rendered glyph changed.)
+
+**Verified** by rendering both components with realistic fixture data — five
+customers with PKR six-figure balances, one over its credit limit, one in
+credit — at 1100px and 400px. Screenshotted rather than just measured: the
+pill sub-text and the icon ring both had to be checked for wrapping at the
+phone width, and the "Rs 4,386,211 never wraps" rule from the type-scale
+section applies to the new pill exactly as it did to the plain text it
+replaced.
+
+## One Material UI icon, and what it actually cost
+
+Follow-up to the stat-tile restyle above: the owner asked specifically for a
+Material UI icon on the Customers "Total outstanding" tile. `StatTile` grew
+an `iconNode` prop — a rendered node, sized already — that takes precedence
+over the existing `icon` (name-from-`Icon.js`) prop, so this one tile could
+differ without teaching the shared icon set about a package the rest of the
+app deliberately does not use (see `Icon.js`'s own comment on why there is no
+icon library here).
+
+**"Just one icon" turned out to be four packages.** `@mui/icons-material`
+icons are components built on `@mui/material`'s `SvgIcon`, and `@mui/material`
+itself needs `@emotion/react`/`@emotion/styled` as peer dependencies to
+render at all — there is no way to import a single MUI icon without all
+three riding along. Confirmed this with the owner before installing rather
+than assuming "icons only" was actually one package. No MUI theme or
+`ThemeProvider` was set up; the icon is used exactly once, styled with
+`sx={{ fontSize: 20 }}` to match the 20px the rest of the icon set already
+uses and inheriting `currentColor` from its ring the same way.

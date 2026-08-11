@@ -28,7 +28,7 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | Component | What it is for |
 |---|---|
 | `<DateNav>` | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change. |
-| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. |
+| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`. Pass `icon` (a name from `Icon.js`) to switch a tile to the icon-ring layout — opt-in, only where an icon actually means something (see Customers). |
 | `<TrendRange>` | The Dashboard's 7 / 14 / 30 / 90-day chart window. |
 | `<BalanceDirection>` | Which way a customer's balance moves, in register words: بنام / جمع. |
 | `<ActivityTable>` | The audit trail. The one list that is a grid rather than a table — see why below. |
@@ -988,6 +988,27 @@ Two things this pattern always needs:
   customer owes, and money the pump owes them. Before adding this pattern to a
   third screen, ask what disappears from a total when the row leaves the list.
 
+## A name in a list gets a coloured initial, not a photo
+
+The Customers table puts a small coloured circle carrying the first letter of
+the name in front of every row, on both the active and the Removed tables.
+`app/_lib/customer-avatar.js` exports `customerInitial(name)` and
+`customerAvatarColor(seed)` — the colour is a small hash of the customer's
+id against a fixed palette, **not `Math.random()`**. A name that changed
+colour on every reload would read as a bug, and a stable colour is one more
+thing that helps the owner recognise a regular in a long list, the same way
+`customerEmoji` (an earlier version of this, replaced once initials were
+asked for instead) was stable by design rather than genuinely random.
+
+Retired customers get the same shape in muted grey (`bg-ink-100` /
+`text-ink-500`) rather than the coloured palette, matching that table's
+already-muted link colour — the avatar should not make a removed row look
+more prominent than the active ones above it.
+
+If a third list of named things wants this treatment, reuse
+`customer-avatar.js` rather than inventing a second hash — the point of
+picking one deterministic scheme is that it only needs auditing once.
+
 ## Icons
 
 - `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, drawn inline
@@ -1002,6 +1023,20 @@ Two things this pattern always needs:
 - **Do not icon everything.** The fuel badges stay plain: Petrol, Diesel and
   Lubricant already differ in both word and colour, and a droplet on all
   three would add shape without adding distinction.
+- **`@mui/icons-material` is a one-off exception, not a second icon set.**
+  The Customers "Total outstanding" tile uses a Material UI icon
+  (`DescriptionOutlined`) at the owner's explicit request, passed via
+  `StatTile`'s `iconNode` prop rather than `icon`. This pulls in
+  `@mui/material`, `@mui/icons-material`, `@emotion/react` and
+  `@emotion/styled` as dependencies — `@mui/icons-material` cannot render
+  without `@mui/material`'s `SvgIcon`, which in turn needs Emotion, so
+  "just one icon" is four packages, not one. No MUI theme, `ThemeProvider`
+  or component is used anywhere else; the icon renders with `sx={{
+  fontSize: 20 }}` to match the app's existing 20px icon size and inherits
+  `currentColor` the same way the hand-drawn set does. **Reach for `Icon.js`
+  first** — adding a path there costs nothing and keeps the bundle small;
+  `iconNode` exists for the rare case a specific MUI icon was asked for by
+  name.
 
 ## Page structure
 

@@ -205,6 +205,14 @@ const PATHS = {
       <circle cx="12" cy="17" r="0.9" />
     </>
   ),
+  // List: a sheet of paper with rows of text - a running total of many
+  // records (invoices, customers), not any one figure.
+  list: (
+    <>
+      <path d="M5.8 4.5h12.4a1.3 1.3 0 0 1 1.3 1.3v12.4a1.3 1.3 0 0 1-1.3 1.3H5.8a1.3 1.3 0 0 1-1.3-1.3V5.8a1.3 1.3 0 0 1 1.3-1.3Z" />
+      <path d="M8 9h8M8 12.5h8M8 16h5" />
+    </>
+  ),
 };
 
 /**
