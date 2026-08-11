@@ -72,20 +72,29 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode }
           : 'bg-ink-100 text-ink-600';
 
     return (
-      <div className="card flex items-center gap-3 px-4 py-4 @[50rem]:px-5 @[50rem]:py-5">
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${ringClass}`}
-          aria-hidden="true"
-        >
-          {iconNode ?? <Icon name={icon} className="h-5 w-5" />}
-        </span>
-        <div className="min-w-0">
-          <p className="figure-label">{label}</p>
-          <p className={`tabular whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}>
-            {value}
-          </p>
-          {sub_}
+      <div className="card flex flex-col gap-2 px-4 py-4 @[50rem]:px-5 @[50rem]:py-5">
+        <div className="flex items-center gap-3">
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${ringClass}`}
+            aria-hidden="true"
+          >
+            {iconNode ?? <Icon name={icon} className="h-5 w-5" />}
+          </span>
+          <div className="min-w-0">
+            <p className="figure-label">{label}</p>
+            <p
+              className={`tabular whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}
+            >
+              {value}
+            </p>
+          </div>
         </div>
+        {/* `sub` sits below the icon+figure row, spanning the full card width
+            - not squeezed into the text column beside the ring. A long
+            description ("sales - stock bought - expenses") wrapped to three
+            cramped lines in that narrower column; the full width gives it
+            room to wrap at most once. */}
+        {sub_}
       </div>
     );
   }
@@ -105,7 +114,8 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode }
 }
 
 export function StatGrid({ children, columns = 4 }) {
-  const columnClass = columns === 2 ? '' : '@[50rem]:grid-cols-4';
+  const columnClass =
+    columns === 2 ? '' : columns === 3 ? '@[50rem]:grid-cols-3' : '@[50rem]:grid-cols-4';
 
   /*
    * The column count follows the WIDTH OF THIS GRID, not the width of the

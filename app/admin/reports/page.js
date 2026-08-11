@@ -113,6 +113,7 @@ export default async function ReportsPage({ searchParams }) {
 
       <StatGrid>
         <StatTile
+          icon="sales"
           label="Sales"
           value={formatPKR(totalSales)}
           sub={
@@ -122,6 +123,7 @@ export default async function ReportsPage({ searchParams }) {
           }
         />
         <StatTile
+          icon="purchases"
           label="Stock bought"
           value={formatPKR(totalStockCost)}
           sub={
@@ -134,6 +136,7 @@ export default async function ReportsPage({ searchParams }) {
             category, moved to /admin/expenses - so the tile carries the link
             rather than leaving the figure with no way through to its detail. */}
         <StatTile
+          icon="expenses"
           label="Expenses"
           value={formatPKR(report.expenses_total)}
           sub={
@@ -146,6 +149,7 @@ export default async function ReportsPage({ searchParams }) {
           }
         />
         <StatTile
+          icon="profit"
           label="Profit"
           value={formatPKR(profit)}
           tone={profit >= 0 ? 'positive' : 'negative'}

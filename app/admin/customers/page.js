@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 
 import { requirePageRole, ROLES, formatPKR } from '@/app/_lib/helpers';
 import { getCustomerBalances, getRetiredCustomers } from '@/app/_lib/data-service';
@@ -56,7 +55,7 @@ export default async function CustomersPage() {
           <div className="mb-6">
             <StatGrid columns={2}>
               <StatTile
-                iconNode={<DescriptionOutlinedIcon sx={{ fontSize: 20 }} />}
+                icon="list"
                 label="Total outstanding"
                 value={formatPKR(totalOwed)}
                 sub={`${customers.length} customer${customers.length === 1 ? '' : 's'}`}

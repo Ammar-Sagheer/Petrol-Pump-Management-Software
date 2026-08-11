@@ -2130,3 +2130,138 @@ than assuming "icons only" was actually one package. No MUI theme or
 `ThemeProvider` was set up; the icon is used exactly once, styled with
 `sx={{ fontSize: 20 }}` to match the 20px the rest of the icon set already
 uses and inheriting `currentColor` from its ring the same way.
+
+## Every icon migrated to Material UI
+
+Follow-up to the single MUI icon above: the owner asked for the whole icon
+set to move to Material UI, not just the one Customers tile, plus icon
+rings added to the stat tiles across the rest of the app that didn't have
+them yet (Dashboard, Readings, Lubricants, Reports, Company Assets).
+
+**`Icon.js` kept its exact public shape.** Every one of the ~30 call sites
+across the app (`AdminSidebar`, `DateNav`, `Pager`, `GuideFlow`,
+`ReadingForm`, the Guide's bilingual content data, `CompanyAssetForm`'s
+category picker, …) still writes `<Icon name="..." className="h-5 w-5" />`
+unchanged. What changed is entirely inside `Icon.js`: the old file exported
+a `PATHS` map of name → hand-drawn `<path>` JSX rendered inside one shared
+`<svg>`; the new one exports a `COMPONENTS` map of the same names → MUI
+Outlined icon components. Every existing name kept its old meaning (the
+comments explaining *why* a name looks the way it does — the wrench for
+Machinery, the briefcase for Assets — carried over to the new file), so no
+caller had to change what name it asks for.
+
+**Sizing needed a wrapper, and this was the one real gotcha.** The old
+`<svg className="shrink-0 h-5 w-5">` sized itself directly off the passed
+Tailwind classes. MUI's `SvgIcon` sizes itself in `em` via its own
+Emotion-generated CSS class, and Emotion injects its `<style>` tags at
+runtime — which can land *after* Tailwind's build-time utilities in the
+document, and when two classes of equal specificity disagree, the later one
+in the stylesheet wins. In practice this meant `className="h-5 w-5"` on the
+icon directly was not a reliable way to size it; some icons could render at
+MUI's own default 1em/24px regardless of what was asked for. The fix:
+`Icon` now renders `<span className={className}>` (a plain sized box) with
+the MUI icon inside stretched to `style={{ width: '100%', height: '100%'
+}}` — an inline style, which always wins the cascade regardless of
+injection order. Every icon in the app is sized by its wrapper span now,
+not by the icon component itself.
+
+**Colour needed no change.** MUI's `SvgIcon` fills with `currentColor` by
+default when no `color` prop is passed, the same mechanism the hand-drawn
+set used — so every existing `text-*` class already controlling an icon's
+colour (the amber warning triangle, the brand-green check, a red delete
+icon) kept working without being touched.
+
+**Stat tile icon rings, applied to every existing stat row.** Each icon was
+picked for what the figure actually is, not decoration: a fuel pump for
+litres sold (Dashboard, Readings), a price tag for Sales, a card for On
+credit, a wallet-with-coins for Cash, a delivery truck for Stock bought, a
+trending-up arrow for Profit. Company Assets' "Biggest holding" tile reuses
+the *same* per-category icon (`vehicle`/`machinery`/`property`/…) that
+`CompanyAssetForm`'s category picker already shows, rather than a new
+generic icon, so the tile tells the reader which category actually won
+rather than just decorating the word.
+
+**`StatTile`'s icon-ring layout grew a fix while wiring this up.** The
+Reports "Profit" tile's `sub` — "sales − stock bought − expenses" — used to
+sit in the text column beside the icon ring, and wrapped to three cramped
+lines there once the ring took width away from that column. `sub` now
+renders on its own row below the icon+figure, spanning the full card width,
+so the same text wraps at most once. Caught by rendering the fixture data
+and screenshotting, not by a DOM measurement — see the project skill on why
+that check matters.
+
+**Verified** the same way as the earlier passes: a disposable devcheck route
+(deleted before commit) rendering the full sidebar icon set at 24px, the
+chevron rotations used by `Pager`/`DateNav`, and every page's stat row with
+its new icon, screenshotted at 1100px and 400px.
+
+## Every MUI icon was hydration-broken, and the fix was one provider
+
+The owner hit a hydration mismatch on `/admin/readings` right after the
+Material UI icon migration landed — React's error named `ChevronRightOutlinedIcon`
+specifically, but the cause was not specific to that icon at all.
+
+**The actual cause.** MUI's icons render through `SvgIcon`, styled by
+Emotion. Emotion normally injects a `<style data-emotion="...">` tag next to
+whatever it styles, and on the server that has to be collected and streamed
+down as part of the same response — otherwise the server-rendered HTML has
+no style tag (styles get generated but never flushed to the response) while
+the client's own first render generates and inserts one, and React sees the
+mismatch as soon as it tries to reconcile the two. `app/layout.js` had no
+such collection in place: the whole MUI migration had been visually
+verified by rendering pages and screenshotting them, which caught wrapping
+and sizing bugs but not this, because a plain server render followed by a
+Playwright screenshot never distinguishes "the server sent the right HTML"
+from "the client silently regenerated it after a hydration error" — both
+end up looking identical in a screenshot. The bug needed something actually
+checking the browser console, which the earlier verification passes had
+not done.
+
+**The fix.** `@mui/material-nextjs`'s `AppRouterCacheProvider`
+(`v16-appRouter`, matching this app's Next.js version) now wraps `children`
+in `app/layout.js`. It runs Emotion's cache through Next's
+`useServerInsertedHTML`, so styles generated during the server render are
+flushed into the same response instead of appearing only after client-side
+hydration. Confirmed both ways: the browser console is silent where it
+previously threw a hydration error, and the raw SSR HTML (`curl`) now
+contains a `data-emotion="mui ..."` style tag inline, which it did not
+before.
+
+**What this means for anything else that reaches for MUI later.** Any MUI
+component styled through Emotion needs this provider present, not just
+icons — `Icon.js` only surfaced it first because it is the one place MUI
+is used today. If a hydration error names a Material UI component,
+check `AppRouterCacheProvider` is still wrapping the tree before looking
+for a bug in that component itself.
+
+## Banking joined the shared stat tiles, and its account cards separated
+
+The Banking page had been left behind by the stat-tile restyle: its three
+headline figures were a private `Stat` component and a hand-rolled
+`grid gap-px bg-ink-200` strip - the exact fused-slab shape `StatGrid` had
+already moved away from - and its account cards ran name, balance and the
+two paid-in/paid-out figures together as one block of text.
+
+- **The three totals now use the shared `StatGrid`/`StatTile`**, with icon
+  rings like every other page: a bank for Balance now, cash for Paid in,
+  a wallet for Paid out. The page's own `Stat` function is deleted; there
+  is no longer a second implementation of a stat strip anywhere in the app,
+  which was the whole point of extracting `AdminStats` in the first place.
+  `StatGrid` gained a `columns={3}` option for this - it previously
+  understood only 2 and 4.
+- **Account cards carry the same tinted icon ring as a stat tile**, so a
+  card reads as a sibling of the figures above it rather than as an
+  unrelated block, and the account name moved up from `text-sm` to
+  `text-base` (it is the card's heading; it was the same size as the bank
+  name beneath it).
+- **Paid in and paid out became tinted panels** rather than two bare figures
+  under a hairline rule. They were 12px labels over 12px figures, with the
+  green/amber colour doing nearly all the work of telling the two apart -
+  now each has its own edge, the figure is `text-base`, and the labels sit
+  at the app's 12px floor rather than below it.
+- **The In/Out columns in the transactions table gained direction arrows**
+  (`moneyIn`/`moneyOut`, an arrow coming in and one going out). Those two
+  columns were previously identical in shape and told apart only by which
+  one had a figure in it and what colour it was - green against amber,
+  which is exactly the colour pair the icons rule in
+  `docs/UI_CONVENTIONS.md` says must never be the only cue.

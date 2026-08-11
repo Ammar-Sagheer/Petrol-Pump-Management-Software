@@ -28,7 +28,7 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | Component | What it is for |
 |---|---|
 | `<DateNav>` | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change. |
-| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`. Pass `icon` (a name from `Icon.js`) to switch a tile to the icon-ring layout — opt-in, only where an icon actually means something (see Customers). |
+| `<StatGrid>` / `<StatTile>` | The headline-figures strip, on every page that has one — **never hand-roll a second copy**, which is how three pages ended up with the same latent bug once already. Container queries, not viewport breakpoints. `columns` takes 2, 3 or 4. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`, on its own full-width row below the figure. Pass `icon` (a name from `Icon.js`) for the icon-ring layout. |
 | `<TrendRange>` | The Dashboard's 7 / 14 / 30 / 90-day chart window. |
 | `<BalanceDirection>` | Which way a customer's balance moves, in register words: بنام / جمع. |
 | `<ActivityTable>` | The audit trail. The one list that is a grid rather than a table — see why below. |
@@ -1011,9 +1011,23 @@ picking one deterministic scheme is that it only needs auditing once.
 
 ## Icons
 
-- `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, drawn inline
-  on a 24px grid at 1.75 stroke, in `currentColor`. Adding one means editing
-  that file; there is deliberately no icon package.
+- `<Icon name>` (`app/_components/ui/Icon.js`) — the whole set, on a 24px
+  grid, in `currentColor`. **Backed by Material UI** (`@mui/icons-material`,
+  the Outlined variant throughout) at the owner's explicit request — this
+  used to be a hand-drawn SVG per name and deliberately avoided any icon
+  package; that reasoning is recorded in `docs/CHANGELOG.md` rather than
+  here, since it no longer describes the current code. `Icon.js` is still
+  the single place that decides what a name means: every call site writes
+  `<Icon name="tank" className="h-5 w-5" />` exactly as before, so adding or
+  changing an icon means editing this one file's `COMPONENTS` map, not every
+  caller.
+- **Sizing goes through a wrapper, not MUI's own sizing.** `Icon` renders a
+  `<span>` sized by the `className` (e.g. `h-5 w-5`) with the MUI icon
+  stretched to fill it via an inline style. MUI's `SvgIcon` sizes itself in
+  `em` through its own Emotion-generated class, which can land after
+  Tailwind's utilities in the stylesheet and win the cascade — so the
+  className alone was not reliably sizing the icon. An inline style on the
+  icon always wins, so the span is what actually carries the size.
 - **An icon never carries meaning alone.** Every icon in the app sits beside
   its own word — nav tabs, the Entered/Enter status, the Check warning — and
   is `aria-hidden`. The icon is the redundant second cue: shape, on top of
@@ -1022,21 +1036,29 @@ picking one deterministic scheme is that it only needs auditing once.
   "Enter" in amber next to "Entered" in green was doing.
 - **Do not icon everything.** The fuel badges stay plain: Petrol, Diesel and
   Lubricant already differ in both word and colour, and a droplet on all
-  three would add shape without adding distinction.
-- **`@mui/icons-material` is a one-off exception, not a second icon set.**
-  The Customers "Total outstanding" tile uses a Material UI icon
-  (`DescriptionOutlined`) at the owner's explicit request, passed via
-  `StatTile`'s `iconNode` prop rather than `icon`. This pulls in
-  `@mui/material`, `@mui/icons-material`, `@emotion/react` and
-  `@emotion/styled` as dependencies — `@mui/icons-material` cannot render
-  without `@mui/material`'s `SvgIcon`, which in turn needs Emotion, so
-  "just one icon" is four packages, not one. No MUI theme, `ThemeProvider`
-  or component is used anywhere else; the icon renders with `sx={{
-  fontSize: 20 }}` to match the app's existing 20px icon size and inherits
-  `currentColor` the same way the hand-drawn set does. **Reach for `Icon.js`
-  first** — adding a path there costs nothing and keeps the bundle small;
-  `iconNode` exists for the rare case a specific MUI icon was asked for by
-  name.
+  three would add shape without adding distinction. Stat tiles across the
+  app now carry an icon ring (see `<StatGrid>`/`<StatTile>` above) because
+  the owner asked for that look specifically — it is a deliberate exception
+  made once, not a licence to add an icon to every future control.
+- **`StatTile`'s `iconNode` prop is a narrower escape hatch than `icon`**,
+  for a rendered node that isn't in `Icon.js`'s own set at all (a category
+  badge's existing markup, say). Reach for `icon` — a name into the shared
+  set — first; `iconNode` exists so one tile can differ without every other
+  call site needing to know about it.
+- **`app/layout.js` wraps the whole app in MUI's `AppRouterCacheProvider`
+  (`@mui/material-nextjs/v16-appRouter`), and this is not optional.**
+  Without it, every MUI icon threw a hydration mismatch: MUI's styling
+  engine (Emotion) injects a `<style data-emotion>` tag next to each icon,
+  and without server-side coordination that injection happens on the
+  client only, so the server-rendered tree (icon, no style tag yet) and the
+  client's first render (style tag present) disagree before React can
+  reconcile them. `AppRouterCacheProvider` collects Emotion's styles during
+  the server render and streams them down inline, so the client's first
+  paint already has them — the same problem `next/font` and Tailwind's own
+  build-time CSS never have, because neither injects `<style>` tags at
+  request time. If a future MUI component (not just an icon) starts
+  throwing the same hydration error, check this provider is still wrapping
+  it before looking anywhere else.
 
 ## Page structure
 
