@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **038**.
+logins, one pump. Migrations run to **039**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -41,28 +41,37 @@ logins, one pump. Migrations run to **038**.
 | Lubricants | Packed and loose sales merged into one filtered table (the drum's route is now a redirect), the day's totals split and labelled, low-stock badges, and the Urdu register words بنام / جمع on the balance cards. |
 | Company Assets | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036. |
 | Readings | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC. |
+| Stock | **A dip taken in the morning closes yesterday.** The maths assumed the opposite and reported a whole day's sales as a loss, every day. `taken` + generated `books_date`; `expected_stock` recalculated from history rather than frozen at insert; the dashboard's tank card stopped ignoring the date on screen; and the owner can clear a mistyped dip. Migration 039. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Thirty-eight
+almost none of the important logic is in the JavaScript. Thirty-nine
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 seventeen tables that diffs `jsonb` and writes an English sentence. Decide
 early whether a single-user offline build needs it at all.
 
-**Three things that are load-bearing and easy to break:**
+**Five things that are load-bearing and easy to break:**
 
 1. **The database enforces the money rules, not the app.** Balanced days,
    append-only ledger, no overlapping meter readings, stock recalculated from
    history. `README.md` → "What the database will not let you do" is the list.
+   **Anything derived is recalculated, never written once** — tank stock and,
+   since 039, a dip's `expected_stock`. A figure stored at insert and never
+   revisited will be wrong the moment anything behind it is back-dated, and
+   nothing on screen will say so.
 2. **Whole rupees on the ledger, two decimals on the meter.** Different
    rounding for different reasons, and three places must agree — see
    `docs/UI_CONVENTIONS.md`.
-3. **The business day is `Asia/Karachi`**, never the server clock. The activity
+3. **A dip is a moment, not a day.** It is checked against `books_date` —
+   the trading day it *closes* — not the day it was taken. This pump dips in
+   the morning, so those differ by one. See `README.md` → "A dip belongs to the
+   day it closes".
+4. **The business day is `Asia/Karachi`**, never the server clock. The activity
    log is the one place a *time of day* is shown, and it is pinned the same way
    — rendered on a UTC server without pinning, an evening entry prints as an
    afternoon one.
-4. **`activity_log` is written only by trigger and can never be edited.** If a
+5. **`activity_log` is written only by trigger and can never be edited.** If a
    future change adds a table that holds money, attach the trigger to it in the
    same migration; if one is renamed, the log line degrades rather than
    breaking, so nothing will tell you.
@@ -1916,3 +1925,110 @@ Verified with a fixture reproducing the exact scenario — a gap from Saturday
 to Monday, and a control nozzle with no gap for contrast — at 1152 and 400px:
 the Save button measured disabled before the checkbox was ticked and enabled
 after it, at both widths.
+
+## The dip that was measuring the wrong day
+
+Reported as *"the daily stock reading when compared to dips differ by a lot"*.
+Two bugs and a third found on the way, all in the same figure.
+
+### The dip is taken before the day starts, and the maths assumed after
+
+The Stock page was reporting a loss of a whole day's fuel, every day. On
+11 Aug 2026 petrol showed a **loss of 1,652 L** and diesel a loss of 212 L.
+Petrol had sold 1,683 L the day before and diesel 207 L. Not a coincidence:
+the books were being asked the wrong question.
+
+The pump dips the tanks **first thing in the morning**, before the pumps are
+switched on, and records that dip against the same day — at the same sitting
+as yesterday's nozzle readings. So a dip dated the 11th measures the tank at
+the **close of the 10th**. `calculate_expected_stock` assumed the opposite, and
+subtracted the 11th's sales — nothing yet, the day had barely begun — instead
+of the 10th's. Every morning dip was compared against a book figure that still
+had yesterday's fuel in it.
+
+Corrected, the two dips whose timing we can actually vouch for read **+31 L**
+on petrol and **−5 L** on diesel. The pump had been measuring itself accurately
+the whole time.
+
+`check_date` keeps its meaning — the day the rod went in, which is what the
+person recording it knows. A new `taken` column ('morning' / 'evening') says
+when, and **`books_date` is generated from the two**: the trading day the dip
+closes, and what every gain/loss figure is now computed and reported against.
+Existing rows default to morning, because that is the pump's routine; nothing
+was re-dated. Migration **039**.
+
+A second unique index on `(tank_id, books_date)` was added beside the existing
+one on `(tank_id, check_date)`: an evening dip on the 10th and a morning dip on
+the 11th are two measurements of one moment, and the monthly report would count
+both.
+
+### `expected_stock` was written once and never looked at again
+
+Found while proving the first. The stored figure was a snapshot taken the
+moment the dip was saved, and `gain_loss` is a generated column off it — so
+anything entered *afterwards* for an earlier date left it permanently wrong,
+with nothing on screen to say so.
+
+It had already happened. The dips for 3–8 Aug were back-filled on the 11th in
+**newest-first order**, so every one of them took its baseline from the 2 Aug
+dip instead of the day before it, and all six landed on the same phantom "gain
+of about 3,300 L". Nothing was wrong with the fuel — the rows were computed
+against a baseline that was superseded a minute later.
+
+`expected_stock` is now **recalculated from history by trigger**, exactly as
+`tanks.current_stock_litres` already was, and for the same reason. Four
+triggers feed it: deliveries and readings are what happen *between* dips, a dip
+is the baseline for the next one, and a tank's opening stock is the baseline for
+the first. The dip trigger is deliberately `after update OF` named columns —
+the recalc writes `expected_stock`, and an unqualified trigger would call
+itself.
+
+Both derived columns joined the activity log's ignored list, so a day's
+readings no longer credit whoever typed them with "changing" a dip taken last
+week.
+
+### The dashboard's tank stock ignored the date on screen
+
+Reported separately: *"the tank stock on the dashboard is always the same as
+today's no matter which day I am visiting"*. True, and unrelated to the above.
+The card was rendering `tank.current_stock_litres` — a single cached number
+meaning *right now* — while `get_daily_summary` had always returned a per-date
+`expected_stock` right beside it. One word. The tanks were the only block on
+that page that ignored the date banner above them.
+
+The "no dip recorded" link now opens the **next** morning's Stock page, since
+that is the dip that closes the day being looked at.
+
+### Correcting a dip
+
+There was no way to fix a mistyped rod reading, and a dip is the baseline every
+later figure is built on — so a wrong one is wrong for every day after it, not
+just its own. The owner now gets **Clear this dip** (`<ConfirmAction>`, trash
+icon, same as a purchase) and re-enters it. No edit form: a dip is two figures
+and a note, so re-entering is no slower, and it keeps one code path for what a
+dip is worth rather than two that could drift.
+
+### How it was verified
+
+The whole migration chain 001→039 was applied to a throwaway local Postgres 16
+with a small `auth` shim, then seeded with the pump's real August figures, then
+exercised: dips inserted in the scrambled order production really used, a
+reading deleted and typed back, a dip deleted, a late delivery added, a
+duplicate `books_date` refused. Deleting the 10th's reading reproduced the
+**exact −1,652 L** the app was showing, and typing it back returned +31.12 —
+which is the bug and its fix in one assertion. The activity log stayed silent
+throughout.
+
+### What this did NOT fix, and is data rather than code
+
+Two things surfaced once the arithmetic was honest, both in days back-filled
+from paper on the 11th and both for the owner to check against the register:
+
+- **1 Aug looks crossed.** The tank opening stocks are petrol 854 L / diesel
+  5,556 L; the dips recorded for 1 Aug are petrol 5,556 / diesel 854. Diesel
+  cannot go from 854 to 4,720 overnight with no delivery, so the pair appear to
+  have been entered into the wrong tanks.
+- **8 Aug repeats 9 Aug exactly** — 5,533 and 2,337 on both days, for both
+  tanks — which reads as a copied row rather than two measurements.
+
+**Clear this dip** exists partly so these can be corrected now.

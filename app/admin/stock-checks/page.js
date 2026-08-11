@@ -42,7 +42,8 @@ export const metadata = { title: 'Stock' };
 const PER_PAGE = 25;
 
 export default async function StockChecksPage({ searchParams }) {
-  await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
+  const canManage = profile?.role === ROLES.SUPER_ADMIN;
 
   const params = await searchParams;
   const page = pageFrom(params);
@@ -98,6 +99,7 @@ export default async function StockChecksPage({ searchParams }) {
             tank={tank}
             date={date}
             existingCheck={checksOnDate.get(tank.id) ?? null}
+            canManage={canManage}
           />
         ))}
       </div>
@@ -192,7 +194,11 @@ export default async function StockChecksPage({ searchParams }) {
           <table className="w-full min-w-[38rem]">
             <thead className="border-b border-ink-200 bg-ink-50">
               <tr>
-                <th className="th">Date</th>
+                {/* The day the dip CLOSES leads, because that is the day its
+                    gain or loss belongs to and the day it lines up with on
+                    Readings. When the rod actually went in is the second line
+                    - real, but not what anyone is scanning this column for. */}
+                <th className="th">Day checked</th>
                 <th className="th">Tank</th>
                 <th className="th text-right">Expected</th>
                 <th className="th text-right">Measured</th>
@@ -205,7 +211,12 @@ export default async function StockChecksPage({ searchParams }) {
                 const difference = Number(check.gain_loss);
                 return (
                   <tr key={check.id}>
-                    <td className="td whitespace-nowrap">{formatDate(check.check_date)}</td>
+                    <td className="td whitespace-nowrap">
+                      {formatDate(check.books_date ?? check.check_date)}
+                      <span className="block text-xs text-ink-500">
+                        dipped {check.taken ?? 'morning'} of {formatDate(check.check_date)}
+                      </span>
+                    </td>
                     <td className="td">
                       <FuelBadge fuelType={check.tank?.fuel_type} />
                     </td>

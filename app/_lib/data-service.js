@@ -9,7 +9,7 @@
  */
 import 'server-only';
 import { createClient } from './supabase-server';
-import { todayISO } from './date-helpers';
+import { todayISO, shiftISODate } from './date-helpers';
 
 /** Turns a Supabase { data, error } into data, or throws something readable. */
 function unwrap({ data, error }, what) {
@@ -334,14 +334,27 @@ export async function getExpectedStock(tankId, date) {
   return data === null ? null : Number(data);
 }
 
-/** Expected stock for every tank on a date, ready for the stock check form. */
+/*
+ * Expected stock for every tank, ready for the stock check form.
+ *
+ * TWO figures per tank, not one. A dip taken on the morning of the 11th closes
+ * the 10th; one taken after the pumps stop on the 11th closes the 11th. Which
+ * of the two the form is asking about is a choice the person recording it makes
+ * on screen, so both arrive with the page and the card shows whichever is
+ * selected - rather than a round trip to the server for a number that was
+ * already one query away.
+ */
 export async function getExpectedStockForAllTanks(date) {
   const tanks = await getTanks();
+  const previous = shiftISODate(date, -1);
   return Promise.all(
-    tanks.map(async (tank) => ({
-      ...tank,
-      expected_stock: await getExpectedStock(tank.id, date),
-    })),
+    tanks.map(async (tank) => {
+      const [ifEvening, ifMorning] = await Promise.all([
+        getExpectedStock(tank.id, date),
+        getExpectedStock(tank.id, previous),
+      ]);
+      return { ...tank, expected_if_evening: ifEvening, expected_if_morning: ifMorning };
+    }),
   );
 }
 

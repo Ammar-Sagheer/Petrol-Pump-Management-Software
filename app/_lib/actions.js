@@ -30,6 +30,8 @@ import {
   formatLitresFine,
   formatPKR,
   formatRate,
+  shiftISODate,
+  formatDate,
 } from './helpers';
 import { ASSET_CATEGORIES } from './asset-categories';
 
@@ -1027,6 +1029,7 @@ export async function createStockCheck(_prevState, formData) {
 
   const tankId = text(formData, 'tank_id');
   const checkDate = text(formData, 'check_date');
+  const taken = text(formData, 'taken') === 'evening' ? 'evening' : 'morning';
   const actualDip = number(formData, 'actual_dip_reading');
   const note = text(formData, 'note');
 
@@ -1034,13 +1037,24 @@ export async function createStockCheck(_prevState, formData) {
   if (!checkDate) return fail('Enter the date of the dip.');
   if (actualDip === null || actualDip < 0) return fail('Enter the measured dip reading.');
 
+  /*
+   * A dip is a moment, not a day. The pump dips first thing in the morning,
+   * before the pumps are switched on, so a dip dated the 11th measures the
+   * tank as it stood at the CLOSE OF THE 10TH - and that is the day its
+   * gain/loss belongs to. See migration 039; the database generates the same
+   * figure into `books_date` and reports on it.
+   */
+  const closesDate = taken === 'morning' ? shiftISODate(checkDate, -1) : checkDate;
+
   const supabase = await createClient();
 
   // Expected stock is worked out by the database, never sent from the browser -
-  // otherwise the gain/loss figure could be made to say anything.
+  // otherwise the gain/loss figure could be made to say anything. The database
+  // recomputes it from history on the way in as well, so this value is what the
+  // message below reports rather than the last word on what gets stored.
   const { data: expected, error: expectedError } = await supabase.rpc('calculate_expected_stock', {
     p_tank_id: tankId,
-    p_date: checkDate,
+    p_date: closesDate,
   });
 
   if (expectedError) {
@@ -1050,6 +1064,7 @@ export async function createStockCheck(_prevState, formData) {
   const { error } = await supabase.from('stock_checks').insert({
     tank_id: tankId,
     check_date: checkDate,
+    taken,
     expected_stock: expected ?? 0,
     actual_dip_reading: actualDip,
     note: note || null,
@@ -1062,12 +1077,44 @@ export async function createStockCheck(_prevState, formData) {
   revalidatePath('/admin/stock-checks');
   revalidatePath('/admin');
 
-  if (difference === 0) return ok('Saved. Stock matches the books exactly.');
+  const closes = `Checked against ${formatDate(closesDate)}.`;
+  if (difference === 0) return ok(`Saved. Stock matches the books exactly. ${closes}`);
   return ok(
     difference > 0
-      ? `Saved. Gain of ${difference} L against the books.`
-      : `Saved. Loss of ${Math.abs(difference)} L against the books.`,
+      ? `Saved. Gain of ${difference} L against the books. ${closes}`
+      : `Saved. Loss of ${Math.abs(difference)} L against the books. ${closes}`,
   );
+}
+
+/**
+ * Removes a dip. Owner only, and the way a mistyped rod reading gets corrected:
+ * clear it and record it again, the same shape as deleting a purchase or
+ * clearing a day on Readings.
+ *
+ * There is no edit. A dip is two figures and a note, so re-entering it is no
+ * slower than editing it - and it keeps one code path for "what a dip is worth"
+ * rather than two that could drift apart. Everything downstream is recalculated
+ * from history by trigger, so the dips AFTER this one re-base themselves onto
+ * whatever is left behind it.
+ */
+export async function deleteStockCheck(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const checkId = text(formData, 'check_id');
+  if (!checkId) return fail('Missing the dip.');
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('stock_checks').delete().eq('id', checkId);
+
+  if (error) return fail(describe(error, 'Could not clear the dip.'));
+
+  revalidatePath('/admin/stock-checks');
+  revalidatePath('/admin');
+  return ok('Dip cleared. Record the corrected reading now.');
 }
 
 // ---------------------------------------------------------------------------

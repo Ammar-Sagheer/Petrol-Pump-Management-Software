@@ -2,21 +2,71 @@
 
 import { useActionState, useState } from 'react';
 
-import { createStockCheck } from '@/app/_lib/actions';
+import { createStockCheck, deleteStockCheck } from '@/app/_lib/actions';
+import { shiftISODate, formatDate } from '@/app/_lib/date-helpers';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
+import ConfirmAction from '@/app/_components/ui/ConfirmAction';
+import BalanceDirection from '@/app/_components/admin/BalanceDirection';
 
 const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 const showLitres = (n) => `${litreFormat.format(n || 0)} L`;
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-export default function StockCheckForm({ tank, date, existingCheck }) {
-  const [state, formAction] = useActionState(createStockCheck, null);
-  const [dip, setDip] = useState('');
+/*
+ * A dip is a MOMENT, not a day, and which day it judges depends on when the rod
+ * went in.
+ *
+ * This pump dips first thing in the morning, before the pumps are switched on,
+ * so a dip taken on the 11th measures the tank as it stood at the close of the
+ * 10th - and has to be compared against the 10th's books. Recording it against
+ * the 11th, as the app did until migration 039, compared it against a book
+ * figure that still had the 10th's fuel in it and reported a whole day's sales
+ * as a loss, every single day.
+ *
+ * Morning is the default because it is the pump's routine. Both options are
+ * legal and only the person holding the rod knows which is right, so this
+ * follows the rule in docs/UI_CONVENTIONS.md for exactly that shape of control:
+ * name the choice in plain words, then SHOW THE CONSEQUENCE - the day it closes
+ * and the book figure that produces - before it is committed.
+ */
+const TIMINGS = [
+  {
+    value: 'morning',
+    title: 'Morning — before the pumps opened',
+    detail: 'The usual one. It closes yesterday, whose readings you are entering now.',
+  },
+  {
+    value: 'evening',
+    title: 'Evening — after the pumps closed',
+    detail: 'Only if the rod went in at the end of the day, after the last sale.',
+  },
+];
 
-  const expected = Number(tank.expected_stock ?? 0);
+export default function StockCheckForm({ tank, date, existingCheck, canManage = false }) {
+  const [state, formAction] = useActionState(createStockCheck, null);
+  const [clearState, clearAction] = useActionState(deleteStockCheck, null);
+  const [dip, setDip] = useState('');
+  const [taken, setTaken] = useState('morning');
+
+  // The day this dip closes, and so the books it is judged against.
+  const closesDate = taken === 'morning' ? shiftISODate(date, -1) : date;
+
+  /*
+   * Once a dip is recorded, its OWN stored figures are what the card shows -
+   * not a live recomputation for whichever timing the toggle happens to be
+   * sitting on. They cannot go stale: migration 039 rebuilds expected_stock
+   * from history whenever anything behind it moves.
+   */
+  const shownClosesDate = existingCheck
+    ? (existingCheck.books_date ?? shiftISODate(date, -1))
+    : closesDate;
+  const expected = existingCheck
+    ? Number(existingCheck.expected_stock ?? 0)
+    : Number((taken === 'morning' ? tank.expected_if_morning : tank.expected_if_evening) ?? 0);
+
   const dipValue = dip === '' ? null : Number(dip);
   const hasDip = dipValue !== null && Number.isFinite(dipValue);
   const difference = hasDip ? round2(dipValue - expected) : null;
@@ -42,18 +92,21 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
       </header>
 
       <div className="mb-4">
-        <div className="flex items-baseline justify-between">
-          <span className="figure-label">
-            Expected in tank
-          </span>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="figure-label">Expected in tank</span>
+          {/* nowrap: at a phone's width this figure was breaking between the
+              number and its unit, leaving a bare "L" on the next line. */}
           <span
-            className={`tabular text-lg font-bold ${
+            className={`tabular whitespace-nowrap text-lg font-bold ${
               overCapacity || belowZero ? 'text-red-700' : 'text-ink-900'
             }`}
           >
             {showLitres(expected)}
           </span>
         </div>
+        {/* Which day's books that is. Its own line rather than part of the
+            label above, so the date can never squeeze the figure. */}
+        <p className="text-sm text-ink-600">at the close of {formatDate(shownClosesDate)}</p>
         <div
           className="mt-2 h-2 overflow-hidden rounded-full bg-ink-200"
           role="img"
@@ -90,33 +143,81 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
 
       {existingCheck ? (
         <div className="rounded-lg border border-ink-200 bg-ink-50 p-3 text-sm">
-          <p className="text-ink-600">
-            A dip was already recorded for this date:{' '}
-            <span className="tabular font-semibold text-ink-900">
-              {showLitres(existingCheck.actual_dip_reading)}
-            </span>
-          </p>
-          <p
-            className={[
-              'tabular mt-1 font-bold',
-              Number(existingCheck.gain_loss) === 0
-                ? 'text-ink-700'
-                : Number(existingCheck.gain_loss) > 0
-                  ? 'text-brand-700'
-                  : 'text-red-700',
-            ].join(' ')}
-          >
-            {Number(existingCheck.gain_loss) === 0
-              ? 'Matches the books exactly'
-              : Number(existingCheck.gain_loss) > 0
-                ? `Gain of ${showLitres(existingCheck.gain_loss)}`
-                : `Loss of ${showLitres(Math.abs(Number(existingCheck.gain_loss)))}`}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-ink-600">
+                A dip was already recorded for this date:{' '}
+                <span className="tabular font-semibold text-ink-900">
+                  {showLitres(existingCheck.actual_dip_reading)}
+                </span>
+              </p>
+              <p className="text-ink-600">
+                Taken {existingCheck.taken ?? 'morning'} of {formatDate(date)}.
+              </p>
+              <p
+                className={[
+                  'tabular mt-1 font-bold',
+                  Number(existingCheck.gain_loss) === 0
+                    ? 'text-ink-700'
+                    : Number(existingCheck.gain_loss) > 0
+                      ? 'text-brand-700'
+                      : 'text-red-700',
+                ].join(' ')}
+              >
+                {Number(existingCheck.gain_loss) === 0
+                  ? 'Matches the books exactly'
+                  : Number(existingCheck.gain_loss) > 0
+                    ? `Gain of ${showLitres(existingCheck.gain_loss)}`
+                    : `Loss of ${showLitres(Math.abs(Number(existingCheck.gain_loss)))}`}
+              </p>
+            </div>
+
+            {/* A mistyped rod reading has to be correctable, and a dip is the
+                baseline every later figure is built on - so a wrong one is
+                wrong for every day after it, not just its own. Cleared and
+                re-entered rather than edited, the same as a purchase. */}
+            {canManage ? (
+              <ConfirmAction
+                triggerLabel={`Clear the ${tank.name} dip`}
+                title="Clear this dip?"
+                confirmLabel="Clear dip"
+                pendingLabel="Clearing…"
+                action={clearAction}
+                state={clearState}
+                hidden={{ check_id: existingCheck.id }}
+              >
+                <p>
+                  The {showLitres(existingCheck.actual_dip_reading)} measured on{' '}
+                  {formatDate(date)} will be removed, and you can record the corrected reading
+                  straight away.
+                </p>
+                <p>
+                  Every later dip is measured from this one, so their gain and loss figures will
+                  be worked out again from whatever is left behind it.
+                </p>
+                <FormMessage state={clearState} />
+              </ConfirmAction>
+            ) : null}
+          </div>
         </div>
       ) : (
         <form action={formAction} className="space-y-3">
           <input type="hidden" name="tank_id" value={tank.id} />
           <input type="hidden" name="check_date" value={date} />
+
+          <div>
+            <span className="label block">When was the rod put in?</span>
+            <BalanceDirection
+              name="taken"
+              value={taken}
+              onChange={setTaken}
+              options={TIMINGS}
+            />
+            <p className="mt-1 text-sm text-ink-600">
+              A dip taken on the morning of {formatDate(date)} measures what was left at the end
+              of {formatDate(shiftISODate(date, -1))}, so that is the day it is checked against.
+            </p>
+          </div>
 
           <div>
             <label className="label" htmlFor={`dip-${tank.id}`}>
@@ -157,6 +258,9 @@ export default function StockCheckForm({ tank, date, existingCheck }) {
                 : difference > 0
                   ? `Gain of ${showLitres(difference)} against the books.`
                   : `Loss of ${showLitres(Math.abs(difference))} against the books.`}
+              <span className="mt-0.5 block text-xs font-normal">
+                For {formatDate(closesDate)}.
+              </span>
             </p>
           ) : null}
 

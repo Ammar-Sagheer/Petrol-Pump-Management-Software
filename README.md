@@ -203,7 +203,11 @@ amount of application code can get around them.
   Readings instead, which reverses the slip properly.
 - **Tank and lubricant stock are recalculated from history**, never incremented,
   so the cached figures cannot drift away from the purchases, sales and dips
-  that produced them.
+  that produced them. **A dip's gain/loss is rebuilt the same way** — see "The
+  gain/loss figures are never stale" below.
+- **Two dips may not close the same trading day** for one tank. A dip is a
+  moment; an evening dip on the 10th and a morning dip on the 11th measure the
+  same one, and counting both would double a month's gain or loss.
 - **A tank cannot be given more opening stock than it holds.**
 - **No bank account may go below zero** — checked per account, not across the
   total. A payment too large for one account is split across the others the
@@ -239,6 +243,48 @@ calculated one. Before the first dip it falls back to the tank's opening stock
 (set under **Settings → Tanks**).
 
 `gain / loss = actual dip − expected`.
+
+### A dip belongs to the day it closes, not the day it was taken
+
+This pump dips **first thing in the morning**, before the pumps are switched
+on, at the same sitting as yesterday's nozzle readings are typed in. A dip
+taken on the morning of the 11th therefore measures the tank as it stood at the
+**close of the 10th**, and it is the 10th's sales it has to be checked against.
+
+So a dip records two things: `check_date`, the day the rod went in, and
+`taken` — `morning` or `evening`. From them the database generates
+**`books_date`**, the trading day the dip closes:
+
+```
+taken = 'morning'   books_date = check_date − 1
+taken = 'evening'   books_date = check_date
+```
+
+**`books_date` is what every gain/loss figure is computed and reported
+against** — the Stock page's history, the dashboard's tank card, and the
+month's gain/loss in the report and the export. The Stock page still asks for
+the dip on the day you took it; the card names the day it closes before you
+save it. Getting this wrong is not a rounding error: it reports a whole day's
+sales as a loss, every day. See migration 039 and `docs/CHANGELOG.md`.
+
+Two dips may not close the same trading day for one tank — an evening dip on
+the 10th and a morning dip on the 11th are two measurements of one moment.
+
+### The gain/loss figures are never stale
+
+`stock_checks.expected_stock` is **recalculated from history by trigger**,
+never written once and left. A reading typed the next morning, a delivery
+dated to when it actually arrived, or an earlier dip back-filled afterwards all
+move the figures that come after them, and they are all rebuilt on the spot.
+`gain_loss` is a generated column off it, so both stay right together. Same
+rule, and the same reason, as `tanks.current_stock_litres`.
+
+### Correcting a dip
+
+A mistyped rod reading is the baseline every later figure is built on, so a
+wrong one is wrong for every day after it. The owner clears it on the Stock
+page (**Clear this dip**) and records it again. Everything behind it re-bases
+itself.
 
 ---
 
@@ -426,6 +472,7 @@ Applied in order:
 | `036_company_assets.sql` | Company Assets: what the pump has bought and kept, owner-only, extends the activity-log trigger to a seventeenth table |
 | `037_reading_completion_by_date.sql` | How many nozzles were read on each recent day, for the Readings page's day strip |
 | `038_drop_reading_completion.sql` | Drops 037 again — the day strip it fed was removed; the gap warning that replaced it needs no new query |
+| `039_dip_belongs_to_the_day_it_closes.sql` | A dip is a moment, not a day: `taken` + generated `books_date`, so a morning dip closes yesterday. And `expected_stock` recalculated from history by trigger instead of frozen at insert |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
