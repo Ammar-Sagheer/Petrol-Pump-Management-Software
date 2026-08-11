@@ -1208,3 +1208,35 @@ The general rule: a number that means *"as at some moment"* and sits on a page
 that can be scrolled through time must name its moment. Every other card on a
 dated page describes the day in the banner; a figure that describes the day's
 *end* looks identical to one describing its start.
+
+## Fuel colours live in one file
+
+`app/_lib/fuel-colors.js` is the single definition of what petrol, diesel and
+lubricant look like. Everything reads from it: `FuelBadge`, the Dashboard's
+by-fuel and tank cards, the tank progress bars, `SalesTrendChart`, and the Stock
+page's dip cards.
+
+Before it existed the colours were retyped in six files and **had already
+drifted** — the charts used `#0284c7`/`#ca8a04` while the badges used the
+sky/amber 100s, so the same fuel was one colour in a chart and a different one
+in the table underneath it. A shared token is not tidiness here; it is the only
+way the pump's two fuels stay recognisable across nine screens.
+
+Each entry carries what the surfaces actually need:
+
+| key | for |
+|---|---|
+| `solid` / `solidMuted` | a filled band or chip, and quieter text on it |
+| `border` | the card outline that goes round a solid band |
+| `onWhite` | the fuel's colour as text on a white background |
+| `hex` | charts and progress bars, which need a raw value |
+
+`fuelColor(type)` falls back to a neutral rather than to one of the fuels, so an
+unrecognised value never silently paints itself petrol.
+
+**The dark/light rule travels with them.** Petrol is a dark navy carrying white
+text; diesel a bright yellow carrying near-black text. Any new surface keeps that
+relationship — if a change would leave both light or both dark, it is wrong, for
+the reason recorded in the section above and at length in the module's own
+comment. Solid chips replaced the old pale tints for exactly this: two faint
+pastels are the same chip to anyone glancing down a column of nozzles.
