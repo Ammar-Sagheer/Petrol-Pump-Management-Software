@@ -26,25 +26,37 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * reading going into diesel's box is an easy slip and an expensive one, because
  * a dip is the baseline every later day is measured from.
  *
- * Same sky/amber pair `FuelBadge` uses everywhere else, so this reinforces a
+ * Same sky/amber pair `FuelBadge` uses everywhere else, so this reinforces an
  * association the app has already taught rather than inventing a new one.
  * Colour is NOT the only cue and must not be: the tank name, the badge and the
  * dip box's own label all name the fuel, for anyone who cannot tell the two
- * tints apart. The tint is on the header and the border only - the body stays
+ * apart. The colour is on the header band and the border only - the body stays
  * white so the figures keep full contrast on a tablet in poor light.
+ *
+ * WHY THE 800s AND NOT SOMETHING BRIGHTER. The band is solid and carries white
+ * text, so the shade has to earn it: white on `amber-600` is 3.2:1 and fails AA
+ * outright, and `amber-700` only reaches 5.0:1. `sky-800` (7.6:1) and
+ * `amber-800` (7.1:1) both clear AAA, which is the floor worth holding for a
+ * screen read in a forecourt office in poor light.
+ *
+ * They are also within a whisker of each other in luminance (0.089 vs 0.098),
+ * so neither card reads as heavier or more important than the other - a matched
+ * pair differing in hue only, which is the entire point.
  */
 const TANK_STYLES = {
   petrol: {
-    card: 'border-sky-300',
-    header: 'border-sky-200 bg-sky-50',
-    name: 'text-sky-900',
-    capacity: 'text-sky-800',
+    card: 'border-sky-800',
+    header: 'bg-sky-800',
+    headerName: 'text-white',
+    headerMuted: 'text-sky-100',
+    onWhite: 'text-sky-900',
   },
   diesel: {
-    card: 'border-amber-300',
-    header: 'border-amber-200 bg-amber-50',
-    name: 'text-amber-900',
-    capacity: 'text-amber-800',
+    card: 'border-amber-800',
+    header: 'bg-amber-800',
+    headerName: 'text-white',
+    headerMuted: 'text-amber-100',
+    onWhite: 'text-amber-900',
   },
 };
 
@@ -189,10 +201,11 @@ export default function StockCheckForm({
   const belowZero = expected < 0;
 
   const style = TANK_STYLES[tank.fuel_type] ?? {
-    card: 'border-ink-200',
-    header: 'border-ink-200 bg-ink-50',
-    name: 'text-ink-900',
-    capacity: 'text-ink-600',
+    card: 'border-ink-300',
+    header: 'bg-ink-700',
+    headerName: 'text-white',
+    headerMuted: 'text-ink-100',
+    onWhite: 'text-ink-900',
   };
 
   return (
@@ -201,13 +214,13 @@ export default function StockCheckForm({
           which tank you are typing into, and it was the smallest text on the
           card. */}
       <header
-        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b px-4 py-3 ${style.header}`}
+        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 ${style.header}`}
       >
         <div className="flex items-center gap-2">
-          <h2 className={`text-base font-bold ${style.name}`}>{tank.name}</h2>
+          <h2 className={`text-base font-bold ${style.headerName}`}>{tank.name}</h2>
           <FuelBadge fuelType={tank.fuel_type} />
         </div>
-        <span className={`text-sm font-medium ${style.capacity}`}>
+        <span className={`text-sm font-medium ${style.headerMuted}`}>
           Capacity {litreFormat.format(tank.capacity_litres)} L
         </span>
       </header>
@@ -351,7 +364,7 @@ export default function StockCheckForm({
                 the box itself says which tank it belongs to, for anyone who
                 cannot separate sky from amber. */}
               <label className="label" htmlFor={`dip-${tank.id}`}>
-                <span className={`font-bold ${style.name}`}>{tank.name}</span> dip reading{' '}
+                <span className={`font-bold ${style.onWhite}`}>{tank.name}</span> dip reading{' '}
                 <span className="font-semibold text-ink-900">in litres</span>
               </label>
               <NumberInput
