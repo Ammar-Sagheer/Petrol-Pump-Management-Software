@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { requirePageRole, ROLES, formatPKR } from '@/app/_lib/helpers';
 import { getCustomerBalances, getRetiredCustomers } from '@/app/_lib/data-service';
+import { customerInitial, customerAvatarColor } from '@/app/_lib/customer-avatar';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import EmptyState from '@/app/_components/ui/EmptyState';
@@ -53,8 +54,14 @@ export default async function CustomersPage() {
         <>
           <div className="mb-6">
             <StatGrid columns={2}>
-              <StatTile label="Total outstanding" value={formatPKR(totalOwed)} />
               <StatTile
+                icon="customers"
+                label="Total outstanding"
+                value={formatPKR(totalOwed)}
+                sub={`${customers.length} customer${customers.length === 1 ? '' : 's'}`}
+              />
+              <StatTile
+                icon="warning"
                 label="Over their limit"
                 value={String(overLimit.length)}
                 tone={overLimit.length > 0 ? 'negative' : 'default'}
@@ -83,19 +90,28 @@ export default async function CustomersPage() {
                   const limit =
                     customer.credit_limit === null ? null : Number(customer.credit_limit);
                   const isOverLimit = limit !== null && balance > limit;
+                  const avatarColor = customerAvatarColor(customer.customer_id);
 
                   return (
                     <tr key={customer.customer_id} className="hover:bg-ink-50">
                       <td className="td">
-                        <Link
-                          href={`/admin/customers/${customer.customer_id}`}
-                          className="font-semibold text-brand-700 hover:underline"
-                        >
-                          {customer.name}
-                        </Link>
-                        {isOverLimit ? (
-                          <span className="badge ml-2 bg-red-100 text-red-800">Over limit</span>
-                        ) : null}
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColor.bg} ${avatarColor.text}`}
+                            aria-hidden="true"
+                          >
+                            {customerInitial(customer.name)}
+                          </span>
+                          <Link
+                            href={`/admin/customers/${customer.customer_id}`}
+                            className="font-semibold text-brand-700 hover:underline"
+                          >
+                            {customer.name}
+                          </Link>
+                          {isOverLimit ? (
+                            <span className="badge bg-red-100 text-red-800">Over limit</span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="td text-ink-600">{customer.vehicle_number ?? '—'}</td>
                       <td className="td-num text-ink-600">
@@ -159,12 +175,20 @@ export default async function CustomersPage() {
                 {retired.map((customer) => (
                   <tr key={customer.customer_id}>
                     <td className="td">
-                      <Link
-                        href={`/admin/customers/${customer.customer_id}`}
-                        className="font-semibold text-ink-600 hover:underline"
-                      >
-                        {customer.name}
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-100 text-sm font-bold text-ink-500"
+                          aria-hidden="true"
+                        >
+                          {customerInitial(customer.name)}
+                        </span>
+                        <Link
+                          href={`/admin/customers/${customer.customer_id}`}
+                          className="font-semibold text-ink-600 hover:underline"
+                        >
+                          {customer.name}
+                        </Link>
+                      </div>
                     </td>
                     <td className="td text-ink-600">{customer.vehicle_number ?? '—'}</td>
                     <td className="td-num text-ink-600">{formatPKR(customer.balance)}</td>

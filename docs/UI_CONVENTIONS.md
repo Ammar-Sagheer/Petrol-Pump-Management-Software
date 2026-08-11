@@ -28,7 +28,7 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | Component | What it is for |
 |---|---|
 | `<DateNav>` | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change. |
-| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. |
+| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`. Pass `icon` (a name from `Icon.js`) to switch a tile to the icon-ring layout — opt-in, only where an icon actually means something (see Customers). |
 | `<TrendRange>` | The Dashboard's 7 / 14 / 30 / 90-day chart window. |
 | `<BalanceDirection>` | Which way a customer's balance moves, in register words: بنام / جمع. |
 | `<ActivityTable>` | The audit trail. The one list that is a grid rather than a table — see why below. |
@@ -987,6 +987,27 @@ Two things this pattern always needs:
   refused while the balance is non-zero, **in both directions**: money the
   customer owes, and money the pump owes them. Before adding this pattern to a
   third screen, ask what disappears from a total when the row leaves the list.
+
+## A name in a list gets a coloured initial, not a photo
+
+The Customers table puts a small coloured circle carrying the first letter of
+the name in front of every row, on both the active and the Removed tables.
+`app/_lib/customer-avatar.js` exports `customerInitial(name)` and
+`customerAvatarColor(seed)` — the colour is a small hash of the customer's
+id against a fixed palette, **not `Math.random()`**. A name that changed
+colour on every reload would read as a bug, and a stable colour is one more
+thing that helps the owner recognise a regular in a long list, the same way
+`customerEmoji` (an earlier version of this, replaced once initials were
+asked for instead) was stable by design rather than genuinely random.
+
+Retired customers get the same shape in muted grey (`bg-ink-100` /
+`text-ink-500`) rather than the coloured palette, matching that table's
+already-muted link colour — the avatar should not make a removed row look
+more prominent than the active ones above it.
+
+If a third list of named things wants this treatment, reuse
+`customer-avatar.js` rather than inventing a second hash — the point of
+picking one deterministic scheme is that it only needs auditing once.
 
 ## Icons
 
