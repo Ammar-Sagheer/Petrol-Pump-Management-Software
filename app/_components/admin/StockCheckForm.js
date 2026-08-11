@@ -220,15 +220,17 @@ export default function StockCheckForm({
             role="img"
             aria-label={`Tank is about ${Math.round(fillPercent)} percent full`}
           >
+            {/* The fill is the FUEL'S colour, from fuel-colors.js. It was a
+                hardcoded sky/amber pair that no longer matched anything else on
+                the card - the sort of leftover that makes a screen look like
+                random colours rather than a scheme. Red still overrides, because
+                over-capacity is a warning and outranks identity. */}
             <div
-              className={`h-full rounded-full ${
-                overCapacity
-                  ? 'bg-red-500'
-                  : tank.fuel_type === 'petrol'
-                    ? 'bg-sky-500'
-                    : 'bg-amber-500'
-              }`}
-              style={{ width: `${fillPercent}%` }}
+              className={overCapacity ? 'h-full rounded-full bg-red-500' : 'h-full rounded-full'}
+              style={{
+                width: `${fillPercent}%`,
+                backgroundColor: overCapacity ? undefined : color.hex,
+              }}
             />
           </div>
 
@@ -323,7 +325,16 @@ export default function StockCheckForm({
 
             <div>
               <span className="label block">When was the rod put in?</span>
-              <BalanceDirection name="taken" value={taken} onChange={setTaken} options={TIMINGS} />
+              {/* The chosen option wears the TANK'S colour, not the app's green.
+                A green card inside a yellow-banded diesel card reads as a
+                third, unrelated hue dropped into the middle of it. */}
+              <BalanceDirection
+                name="taken"
+                value={taken}
+                onChange={setTaken}
+                options={TIMINGS}
+                activeClass={color.selected}
+              />
               <p className="mt-1 text-sm text-ink-600">
                 A dip taken on the morning of {formatDate(date)} measures what was left at the end
                 of {formatDate(shiftISODate(date, -1))}, so that is the day it is checked against.
