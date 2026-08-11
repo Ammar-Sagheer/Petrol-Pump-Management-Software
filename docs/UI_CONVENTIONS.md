@@ -28,7 +28,7 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | Component | What it is for |
 |---|---|
 | `<DateNav>` | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change. |
-| `<StatGrid>` / `<StatTile>` | The four-figure strip. Container queries, not viewport breakpoints. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`. Pass `icon` (a name from `Icon.js`) to switch a tile to the icon-ring layout — opt-in, only where an icon actually means something (see Customers). |
+| `<StatGrid>` / `<StatTile>` | The headline-figures strip, on every page that has one — **never hand-roll a second copy**, which is how three pages ended up with the same latent bug once already. Container queries, not viewport breakpoints. `columns` takes 2, 3 or 4. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`, on its own full-width row below the figure. Pass `icon` (a name from `Icon.js`) for the icon-ring layout. |
 | `<TrendRange>` | The Dashboard's 7 / 14 / 30 / 90-day chart window. |
 | `<BalanceDirection>` | Which way a customer's balance moves, in register words: بنام / جمع. |
 | `<ActivityTable>` | The audit trail. The one list that is a grid rather than a table — see why below. |

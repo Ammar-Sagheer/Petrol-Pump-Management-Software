@@ -2233,3 +2233,35 @@ icons — `Icon.js` only surfaced it first because it is the one place MUI
 is used today. If a hydration error names a Material UI component,
 check `AppRouterCacheProvider` is still wrapping the tree before looking
 for a bug in that component itself.
+
+## Banking joined the shared stat tiles, and its account cards separated
+
+The Banking page had been left behind by the stat-tile restyle: its three
+headline figures were a private `Stat` component and a hand-rolled
+`grid gap-px bg-ink-200` strip - the exact fused-slab shape `StatGrid` had
+already moved away from - and its account cards ran name, balance and the
+two paid-in/paid-out figures together as one block of text.
+
+- **The three totals now use the shared `StatGrid`/`StatTile`**, with icon
+  rings like every other page: a bank for Balance now, cash for Paid in,
+  a wallet for Paid out. The page's own `Stat` function is deleted; there
+  is no longer a second implementation of a stat strip anywhere in the app,
+  which was the whole point of extracting `AdminStats` in the first place.
+  `StatGrid` gained a `columns={3}` option for this - it previously
+  understood only 2 and 4.
+- **Account cards carry the same tinted icon ring as a stat tile**, so a
+  card reads as a sibling of the figures above it rather than as an
+  unrelated block, and the account name moved up from `text-sm` to
+  `text-base` (it is the card's heading; it was the same size as the bank
+  name beneath it).
+- **Paid in and paid out became tinted panels** rather than two bare figures
+  under a hairline rule. They were 12px labels over 12px figures, with the
+  green/amber colour doing nearly all the work of telling the two apart -
+  now each has its own edge, the figure is `text-base`, and the labels sit
+  at the app's 12px floor rather than below it.
+- **The In/Out columns in the transactions table gained direction arrows**
+  (`moneyIn`/`moneyOut`, an arrow coming in and one going out). Those two
+  columns were previously identical in shape and told apart only by which
+  one had a figure in it and what colour it was - green against amber,
+  which is exactly the colour pair the icons rule in
+  `docs/UI_CONVENTIONS.md` says must never be the only cue.

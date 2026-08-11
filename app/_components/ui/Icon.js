@@ -33,6 +33,8 @@ import CreditCardOutlined from '@mui/icons-material/CreditCardOutlined';
 import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined';
 import EventOutlined from '@mui/icons-material/EventOutlined';
+import CallReceivedOutlined from '@mui/icons-material/CallReceivedOutlined';
+import CallMadeOutlined from '@mui/icons-material/CallMadeOutlined';
 
 /**
  * The app's icons, backed by Material UI (`@mui/icons-material`, Outlined
@@ -135,6 +137,12 @@ const COMPONENTS = {
   profit: TrendingUpOutlined,
   // Date: a calendar day, for "most recent" figures.
   date: EventOutlined,
+  // Money in / money out. An arrow coming toward you and one going away -
+  // the shape that tells the two directions apart when the colour alone
+  // (green against amber) cannot, in a dim office or for a colourblind
+  // reader.
+  moneyIn: CallReceivedOutlined,
+  moneyOut: CallMadeOutlined,
 };
 
 /**

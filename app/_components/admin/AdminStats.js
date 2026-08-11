@@ -114,7 +114,8 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode }
 }
 
 export function StatGrid({ children, columns = 4 }) {
-  const columnClass = columns === 2 ? '' : '@[50rem]:grid-cols-4';
+  const columnClass =
+    columns === 2 ? '' : columns === 3 ? '@[50rem]:grid-cols-3' : '@[50rem]:grid-cols-4';
 
   /*
    * The column count follows the WIDTH OF THIS GRID, not the width of the
