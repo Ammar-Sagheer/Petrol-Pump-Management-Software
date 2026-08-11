@@ -36,6 +36,15 @@
  *
  * Each filled band clears AAA on its own text: 6.1:1, 16.4:1 and 8.5:1.
  *
+ * `raw` is the owner's exact hex, untouched, for the one shape of surface that
+ * needs neither: a small filled swatch that carries its OWN ring for an edge,
+ * so it never depends on contrast against whatever it is sitting on. It was
+ * added after the darkened accent rule and heading text on the Dashboard left
+ * diesel showing as olive everywhere - correct for legibility, but nothing on
+ * the card was actually diesel's colour, and the owner noticed. Do not reach
+ * for `raw` as a fill or a flat bar background: diesel and lubricant are only
+ * 1.1:1 and 1.7:1 against the progress-bar track, next to invisible.
+ *
  * Lubricants get a third colour rather than sharing one: they appear in the
  * same purchase list as the two fuels, and a list where three things are told
  * apart only by their text is a list nobody scans. Theirs has been violet
@@ -87,8 +96,17 @@ export const FUEL_COLORS = {
     selected: 'border-[#38727F] bg-[#54A2B3]/15 text-[#2C5963]',
     /** As text on white. The raw colour fails badly there; this is 7.7:1. */
     onWhite: 'text-[#2C5963]',
-    /** Charts and progress bars - marks that sit on white or pale grey. */
+    /** Charts and progress bars - marks that sit on white or pale grey. Dark
+        relative, not the raw colour: raw petrol is 2.4:1 against the progress
+        track and would be nearly invisible there. */
     hex: '#38727F',
+    /** The owner's exact hex, unmodified. Only safe where nothing needs to sit
+        ON it and nothing needs IT to contrast against its background on its
+        own - a filled dot with its own ring, say. Diesel and lubricant are too
+        pale to read as a flat fill against white or the progress track
+        (1.1:1, 1.7:1); `raw` exists for the one context where that does not
+        matter. */
+    raw: '#54A2B3',
   },
   diesel: {
     label: 'Diesel',
@@ -105,6 +123,7 @@ export const FUEL_COLORS = {
     selected: 'border-[#5A5A02] bg-[#FCFC62]/25 text-[#5A5A02]',
     onWhite: 'text-[#5A5A02]',
     hex: '#5A5A02',
+    raw: '#FCFC62',
   },
   lubricant: {
     label: 'Lubricant',
@@ -118,6 +137,7 @@ export const FUEL_COLORS = {
     selected: 'border-[#977B20] bg-[#D4AF37]/20 text-[#655216]',
     onWhite: 'text-[#655216]',
     hex: '#977B20',
+    raw: '#D4AF37',
   },
 };
 /** Anything unrecognised falls back to neutral rather than to a fuel's colour. */
@@ -131,6 +151,7 @@ export const NEUTRAL_FUEL = {
   selected: 'border-ink-600 bg-ink-100 text-ink-900',
   onWhite: 'text-ink-900',
   hex: '#475569',
+  raw: '#475569',
 };
 
 export function fuelColor(fuelType) {

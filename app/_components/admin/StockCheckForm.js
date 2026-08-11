@@ -181,11 +181,16 @@ export default function StockCheckForm({
 
   const color = fuelColor(tank.fuel_type);
 
-  // `border-2` and `shadow-lg` override the 1px border and `shadow-sm` that
-  // `.card` applies - utilities beat the @apply'd component class - so these two
-  // lift off the page as solid objects rather than sitting flat on it.
+  /*
+   * No coloured ring any more - the header band already IS the fuel's colour,
+   * and putting a matching outline around the whole card doubled up on that
+   * (and read as a picture-frame, not a raised card). `shadow-xl` instead:
+   * `.card` gives every card `shadow-md` now, and this is the one surface in
+   * the app where a wrong figure corrupts every later day's numbers, so it
+   * gets the strongest lift on the page.
+   */
   return (
-    <section className={`card overflow-hidden border-2 shadow-lg ${color.border}`}>
+    <section className="card overflow-hidden shadow-xl">
       {/* The name is text-base, not the old text-sm: it is the thing that says
           which tank you are typing into, and it was the smallest text on the
           card. */}

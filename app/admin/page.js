@@ -14,6 +14,7 @@ import { fuelColor, byFuelOrder } from '@/app/_lib/fuel-colors';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import DateNav from '@/app/_components/admin/DateNav';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
+import FuelBadge from '@/app/_components/ui/FuelBadge';
 import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
 import CashCreditChart from '@/app/_components/admin/CashCreditChart';
 import LubricantTrendChart from '@/app/_components/admin/LubricantTrendChart';
@@ -136,9 +137,26 @@ export default async function DashboardPage({ searchParams }) {
                 {/* An accent rule, not a filled band: the fuels are only being
                     READ here. See fuel-colors.js on why the loud treatment is
                     rationed to the Stock page, where typing into the wrong card
-                    corrupts every later day's figures. */}
+                    corrupts every later day's figures.
+
+                    The accent rule and the heading text both have to use the
+                    DARK relative of the fuel's hue to stay legible - raw
+                    #FCFC62 as text is unreadable, and as a hairline it all but
+                    disappears on white. So neither one is actually showing
+                    diesel's colour, which is what the owner noticed. The dot
+                    beside the heading is: a filled swatch has no text sitting
+                    on it to protect, so it is free to be the real hue, with a
+                    hairline ring so a very pale one (diesel, lubricant) still
+                    has a visible edge against a white card. */}
                 <div className="flex items-baseline justify-between gap-2">
-                  <h3 className={`text-base font-bold ${color.onWhite}`}>{color.label}</h3>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-inset ring-black/15"
+                      style={{ backgroundColor: color.raw }}
+                      aria-hidden="true"
+                    />
+                    <h3 className={`text-base font-bold ${color.onWhite}`}>{color.label}</h3>
+                  </div>
                   <span className="tabular whitespace-nowrap text-lg font-bold text-ink-900">
                     {formatLitres(fuel.litres_sold)}
                   </span>
@@ -194,7 +212,16 @@ export default async function DashboardPage({ searchParams }) {
           return (
             <div key={tank.id} className={`card border-t-4 p-4 ${color.accent}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h3 className={`text-base font-bold ${color.onWhite}`}>{tank.name}</h3>
+                <div className="flex items-center gap-2">
+                  {/* Same true-hue swatch as the fuel-type cards above - see the
+                      comment there. */}
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-inset ring-black/15"
+                    style={{ backgroundColor: color.raw }}
+                    aria-hidden="true"
+                  />
+                  <h3 className={`text-base font-bold ${color.onWhite}`}>{tank.name}</h3>
+                </div>
                 <span
                   className={`tabular whitespace-nowrap text-lg font-bold ${
                     stock < 0 ? 'text-red-700' : 'text-ink-900'

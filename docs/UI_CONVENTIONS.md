@@ -1324,3 +1324,45 @@ them shouting.
 Confirmed it survives the row's own `hover:border-brand-300` (the interactive
 affordance already on that button) rather than being silently overridden by
 it - checked the computed `border-top-color` on hover, not just the class list.
+
+## Cards float on shadow, not on a border
+
+`.card` used to be `border border-ink-200 bg-white shadow-sm`. The border is
+gone and the shadow is `shadow-md`: a white card on the page's pale slate
+background (`--color-ink-100`, `#f1f5f9`) now reads as a raised object rather
+than a bounded region. `shadow-sm` was nearly invisible against that
+background, so the border had quietly become the thing actually defining a
+card's edge — the shadow was decorative, not structural. It is structural now.
+
+This is the shared `.card` primitive nearly 70 places read from, so the change
+is sitewide in one edit rather than a per-page pass. The Stock page's dip
+cards additionally lost the coloured ring that used to run round the whole
+card (`border-2 ${color.border}`) — redundant once the header band is already
+the fuel's colour, and it read as a picture frame rather than a raised card.
+They keep `shadow-xl`, a step above the app-wide `shadow-md`: it is the one
+surface where a wrong figure corrupts every later day's numbers, and gets the
+strongest lift on the page for it.
+
+## A dark relative is not "the colour" — carry a true-hue swatch too
+
+The Dashboard's fuel cards (by-fuel and tank stock) use the fuel's darkened
+relative for both the heading text and the accent rule, because raw diesel
+yellow fails outright as text (1.09:1) and nearly disappears as a hairline
+border on white. That is correct for legibility, but it means **nothing on
+the card was ever actually diesel's colour** — heading and rule were both a
+dark olive, and the owner noticed a card titled "Diesel" did not look yellow.
+
+The fix is a small filled dot beside the heading, using a new `raw` token —
+the owner's exact hex, unmodified — with its own `ring-1 ring-inset
+ring-black/15` for an edge. A filled shape with its own ring has no
+text-to-read and no contrast-against-its-neighbour problem to solve, so it is
+the one place `raw` is safe. It is NOT safe as a flat fill with no ring:
+diesel and lubricant are 1.1:1 and 1.7:1 against both white and the
+progress-bar track, next to invisible without something crisping the edge.
+
+**The general rule this leaves behind:** a colour token chosen for legibility
+in one context (text, a hairline rule) is not "the fuel's colour" everywhere —
+it is that colour ADAPTED for that job. Somewhere on the surface, in a spot
+that carries no legibility burden of its own, the true hex should still
+appear, or a light colour's identity quietly disappears into whatever
+darkened relative was needed to keep it readable.
