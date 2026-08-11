@@ -6,7 +6,6 @@ import { createStockCheck, deleteStockCheck } from '@/app/_lib/actions';
 import { shiftISODate, formatDate } from '@/app/_lib/date-helpers';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
-import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
 import ConfirmAction from '@/app/_components/ui/ConfirmAction';
 import Toast from '@/app/_components/ui/Toast';
@@ -26,22 +25,36 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
  * reading going into diesel's box is an easy slip and an expensive one, because
  * a dip is the baseline every later day is measured from.
  *
- * Same sky/amber pair `FuelBadge` uses everywhere else, so this reinforces an
- * association the app has already taught rather than inventing a new one.
- * Colour is NOT the only cue and must not be: the tank name, the badge and the
- * dip box's own label all name the fuel, for anyone who cannot tell the two
- * apart. The colour is on the header band and the border only - the body stays
- * white so the figures keep full contrast on a tablet in poor light.
+ * Same sky/amber families `FuelBadge` uses everywhere else, so this reinforces
+ * an association the app has already taught rather than inventing a new one.
+ * The colour is on the header band and border only - the body stays white so
+ * the figures keep full contrast on a tablet in poor light.
  *
- * WHY THE 800s AND NOT SOMETHING BRIGHTER. The band is solid and carries white
- * text, so the shade has to earn it: white on `amber-600` is 3.2:1 and fails AA
- * outright, and `amber-700` only reaches 5.0:1. `sky-800` (7.6:1) and
- * `amber-800` (7.1:1) both clear AAA, which is the floor worth holding for a
- * screen read in a forecourt office in poor light.
+ * ONE BAND IS DARK AND ONE IS LIGHT, AND THAT IS THE WHOLE TRICK.
  *
- * They are also within a whisker of each other in luminance (0.089 vs 0.098),
- * so neither card reads as heavier or more important than the other - a matched
- * pair differing in hue only, which is the entire point.
+ * This was got wrong once, so it is written down. Both headers were first made
+ * dark - sky-800 against amber-800 - on the reasoning that a matched pair
+ * differing only in hue would look like two tanks of equal standing, where a
+ * dark card beside a pale one silently ranks them. The owner's verdict was
+ * immediate: "they both look the same, both are dark."
+ *
+ * He was right and the reasoning was backwards. LIGHTNESS is the cue the eye
+ * reads first and the one that survives poor light, a cheap screen and any
+ * colour-vision deficiency; hue is the weaker, more fragile signal. Matching
+ * the luminance of two things whose entire job is to be told apart destroys the
+ * strongest difference available in order to buy a symmetry nobody asked for.
+ * sky-800 and amber-800 sit at 0.089 and 0.098 - a 1.1x gap, which is to say
+ * none. Petrol dark navy against diesel bright yellow is a 6.5x gap.
+ *
+ * Each band still carries its own text at better than AAA: white on sky-800 is
+ * 7.6:1, ink-900 on amber-400 is 10.7:1.
+ *
+ * Colour is NOT the only cue and must not be. The tank name is large and bold
+ * in the header, and the dip box's own label names the tank again - so the card
+ * still reads correctly for anyone who cannot use the colours at all. The
+ * FuelBadge that used to sit in the header is gone: on a band that is already
+ * the fuel's colour, beside a name that already says "Petrol Tank", it repeated
+ * a thing said twice and had no shade that contrasted with both bands.
  */
 const TANK_STYLES = {
   petrol: {
@@ -52,10 +65,10 @@ const TANK_STYLES = {
     onWhite: 'text-sky-900',
   },
   diesel: {
-    card: 'border-amber-800',
-    header: 'bg-amber-800',
-    headerName: 'text-white',
-    headerMuted: 'text-amber-100',
+    card: 'border-amber-500',
+    header: 'bg-amber-400',
+    headerName: 'text-ink-900',
+    headerMuted: 'text-ink-800',
     onWhite: 'text-amber-900',
   },
 };
@@ -216,10 +229,7 @@ export default function StockCheckForm({
       <header
         className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 ${style.header}`}
       >
-        <div className="flex items-center gap-2">
-          <h2 className={`text-base font-bold ${style.headerName}`}>{tank.name}</h2>
-          <FuelBadge fuelType={tank.fuel_type} />
-        </div>
+        <h2 className={`text-base font-bold ${style.headerName}`}>{tank.name}</h2>
         <span className={`text-sm font-medium ${style.headerMuted}`}>
           Capacity {litreFormat.format(tank.capacity_litres)} L
         </span>
