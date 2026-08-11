@@ -12,7 +12,7 @@
  * THE HUES ARE THE OWNER'S. THE LIGHTNESS IS THE RULE.
  * ---------------------------------------------------------------------------
  *
- * He chose these three off his own forecourt: #54A2B3 petrol, #FFFF00 diesel,
+ * He chose these three off his own forecourt: #54A2B3 petrol, #FCFC62 diesel,
  * #D4AF37 lubricant. They are used exactly as given wherever they are FILLED.
  *
  * What the code has to protect is the separation, and it was learned the hard
@@ -24,17 +24,17 @@
  * Lightness is the cue the eye reads first and the one that survives poor
  * light, a cheap tablet and any colour-vision deficiency; hue is the weaker
  * signal. This set works because petrol and diesel - the pair that actually
- * gets confused - are 3.0x apart in luminance AND on opposite sides of the
+ * gets confused - are ~2.9x apart in luminance AND on opposite sides of the
  * colour wheel, teal against yellow. Keep that. If a change would leave the two
  * fuels the same weight, it is wrong however good the hues look.
  *
- * A LIGHT COLOUR CANNOT DO EVERY JOB. Pure yellow is 16.6:1 behind dark text
- * and superb as a filled band, but 1.07:1 against a white card - invisible as a
+ * A LIGHT COLOUR CANNOT DO EVERY JOB. #FCFC62 is 16.4:1 behind dark text and
+ * superb as a filled band, but 1.09:1 against a white card - invisible as a
  * 4px rule, and hopeless as text. So each fuel carries a darker relative of the
  * SAME HUE for rules, borders, chart marks and text on white. The identity is
  * the hue; the lightness is chosen per job.
  *
- * Each filled band clears AAA on its own text: 6.1:1, 16.6:1 and 8.5:1.
+ * Each filled band clears AAA on its own text: 6.1:1, 16.4:1 and 8.5:1.
  *
  * Lubricants get a third colour rather than sharing one: they appear in the
  * same purchase list as the two fuels, and a list where three things are told
@@ -67,38 +67,51 @@
 export const FUEL_COLORS = {
   petrol: {
     label: 'Petrol',
-    /** The exact colour, filled. Dark text on it - 6.1:1. */
+    /** The exact colour, filled. Dark text on it - 6.1:1. Right for a LARGE
+        area (a card band): the eye has a lot of surface to resolve the letter
+        shapes against, even at middling contrast. */
     solid: 'bg-[#54A2B3] text-ink-900',
     /** Muted text on that band - captions, capacities. */
     solidMuted: 'text-ink-800',
+    /** A small pill is the opposite case - little surface, bold small text,
+        read at a glance down a list of nozzles. 6.1:1 read as "hard to read"
+        there even though it passes AA, so badges get the dark relative behind
+        WHITE text instead - 7.7:1, and unambiguous at a glance. */
+    badge: 'bg-[#2C5963] text-white',
     /** Outline round a filled band, and the 4px quiet rule. Same hue, dropped
         in lightness: the raw colour is only 2.9:1 against a white card, which
         is thin for a line you are meant to notice. */
     border: 'border-[#38727F]',
     accent: 'border-t-[#38727F]',
-    /** As text on white. The raw colour fails badly there; this is 7.7:1. */
     /** A chosen option inside a form on this fuel's card. */
     selected: 'border-[#38727F] bg-[#54A2B3]/15 text-[#2C5963]',
+    /** As text on white. The raw colour fails badly there; this is 7.7:1. */
     onWhite: 'text-[#2C5963]',
     /** Charts and progress bars - marks that sit on white or pale grey. */
     hex: '#38727F',
   },
   diesel: {
     label: 'Diesel',
-    /** Pure yellow, filled. 16.6:1 with dark text - the best of the three. */
-    solid: 'bg-[#FFFF00] text-ink-900',
+    /** The owner's #FCFC62, filled. 16.4:1 with dark text - the one fuel
+        where the raw colour is already the best choice for a badge too: it is
+        so light that swapping to white text (1.09:1) would be the failure,
+        not the fix. */
+    solid: 'bg-[#FCFC62] text-ink-900',
     solidMuted: 'text-ink-800',
-    border: 'border-[#B8B800]',
-    accent: 'border-t-[#B8B800]',
+    badge: 'bg-[#FCFC62] text-ink-900',
+    border: 'border-[#5A5A02]',
+    accent: 'border-t-[#5A5A02]',
     /** A chosen option inside a form on this fuel's card. */
-    selected: 'border-[#B8B800] bg-[#FFFF00]/25 text-[#5C5C00]',
-    onWhite: 'text-[#5C5C00]',
-    hex: '#B8B800',
+    selected: 'border-[#5A5A02] bg-[#FCFC62]/25 text-[#5A5A02]',
+    onWhite: 'text-[#5A5A02]',
+    hex: '#5A5A02',
   },
   lubricant: {
     label: 'Lubricant',
     solid: 'bg-[#D4AF37] text-ink-900',
     solidMuted: 'text-ink-800',
+    /** Same reasoning as petrol's badge: dark relative, white text, 7.6:1. */
+    badge: 'bg-[#655216] text-white',
     border: 'border-[#977B20]',
     accent: 'border-t-[#977B20]',
     /** A chosen option inside a form on this fuel's card. */
@@ -112,6 +125,7 @@ export const NEUTRAL_FUEL = {
   label: '',
   solid: 'bg-ink-700 text-white',
   solidMuted: 'text-ink-100',
+  badge: 'bg-ink-700 text-white',
   border: 'border-ink-300',
   accent: 'border-t-ink-400',
   selected: 'border-ink-600 bg-ink-100 text-ink-900',

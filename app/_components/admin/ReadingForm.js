@@ -12,6 +12,7 @@ import { formatRate } from '@/app/_lib/format-helpers';
 import { shiftISODate, formatDateLong } from '@/app/_lib/date-helpers';
 import Dialog from '@/app/_components/ui/Dialog';
 import Icon from '@/app/_components/ui/Icon';
+import { fuelColor } from '@/app/_lib/fuel-colors';
 
 /*
  * Formatting is done inline here rather than imported from helpers.js: that
@@ -121,14 +122,22 @@ export default function ReadingForm({
    */
   const rowTitle = showUnit ? title : `Nozzle ${row.nozzle_label}`;
 
+  // A quiet accent, not a filled band - the same rationing as the Dashboard's
+  // fuel cards. A row of six nozzles in solid colour would be louder than a
+  // list is meant to be; the rule (see fuel-colors.js) is that the loud
+  // treatment is earned only where typing into the wrong card corrupts
+  // something, which is the Stock page's dip boxes, not this list.
+  const color = fuelColor(row.fuel_type);
+
   return (
     <>
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="card block w-full px-4 py-4 text-left transition sm:px-5 sm:py-5
+        className={`card block w-full border-t-4 px-4 py-4 text-left transition sm:px-5 sm:py-5
                    hover:border-brand-300 hover:bg-brand-50/40
-                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600
+                   ${color.accent}`}
       >
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">

@@ -1288,3 +1288,39 @@ a toolbar or an error state, not as a headline.
 
 The hierarchy problem it was solving is real but is better solved by section
 order and figure size. Recorded so it is not tried a third time.
+
+## A badge is not a card band: legibility per surface, not per fuel
+
+`FuelBadge` and the card bands (Dashboard, Stock) both come from
+`app/_lib/fuel-colors.js`, but they no longer read the same token. The card
+bands use `solid` - the raw colour, exactly as the owner gave it, with dark
+text where that passes (petrol 6.1:1, lubricant similar). That is fine on a
+large area: a lot of surface makes middling contrast forgivable, and the point
+of `solid` there is to be the owner's literal colour.
+
+A badge is the opposite case - a small pill, bold small text, read at a glance
+down a column of nozzles on a tablet in poor light. The same 6.1:1 that reads
+fine as a card header read as "hard to read" at badge size, and the owner said
+so. So badges read `color.badge` instead: for petrol and lubricant, the DARK
+relative of the same hue behind white text (7.7:1 and 7.6:1) rather than the
+raw colour behind dark text. Diesel keeps the raw colour for its badge too -
+it is light enough that white text would be the failure (1.09:1), not the fix.
+
+**The rule generalises: pick the fill AND the text colour for the job the
+surface is actually doing, not once per fuel.** A colour that is right as a
+large band can be wrong as a small chip, and the fix is a second token, not a
+compromise value that is mediocre at both jobs.
+
+## Nozzle rows get the same accent as the Dashboard's cards
+
+`ReadingForm`'s per-nozzle row (the tappable card on Readings) carries a 4px
+`border-t` in the fuel's accent colour, same token and same reasoning as the
+Dashboard's fuel cards: a quiet cue on a surface where the fuel is being READ,
+not the filled band reserved for the Stock page's dip boxes. Six nozzles in
+solid colour down one screen would be the "colour-blocking" mistake again;
+a rule at the top of each card separates diesel from petrol without any of
+them shouting.
+
+Confirmed it survives the row's own `hover:border-brand-300` (the interactive
+affordance already on that button) rather than being silently overridden by
+it - checked the computed `border-top-color` on hover, not just the class list.
