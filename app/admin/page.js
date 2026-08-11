@@ -86,6 +86,7 @@ export default async function DashboardPage({ searchParams }) {
 
       <StatGrid>
         <StatTile
+          icon="fuelPump"
           label="Fuel sold"
           value={formatLitres(totals.litres_sold)}
           sub={
@@ -95,6 +96,7 @@ export default async function DashboardPage({ searchParams }) {
           }
         />
         <StatTile
+          icon="sales"
           label="Total sales"
           value={formatPKR(saleAmount)}
           sub={
@@ -104,11 +106,13 @@ export default async function DashboardPage({ searchParams }) {
           }
         />
         <StatTile
+          icon="cash"
           label="Cash"
           value={formatPKR(cashAmount)}
           sub={saleAmount > 0 ? `${100 - creditShare}% of takings` : null}
         />
         <StatTile
+          icon="credit"
           label="On credit"
           value={formatPKR(creditAmount)}
           sub={saleAmount > 0 ? `${creditShare}% of takings` : null}

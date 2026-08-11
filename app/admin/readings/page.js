@@ -163,10 +163,10 @@ export default async function ReadingsPage({ searchParams }) {
           every page. */}
       <div className="mb-6" aria-label="Progress for the day">
         <StatGrid>
-          <StatTile label="Nozzles entered" value={`${done.length} of ${sheet.length}`} />
-          <StatTile label="Litres sold" value={formatLitres(totals.litres)} />
-          <StatTile label="Cash" value={formatPKR(totals.cash)} />
-          <StatTile label="Credit" value={formatPKR(totals.credit)} />
+          <StatTile icon="readings" label="Nozzles entered" value={`${done.length} of ${sheet.length}`} />
+          <StatTile icon="fuelPump" label="Litres sold" value={formatLitres(totals.litres)} />
+          <StatTile icon="cash" label="Cash" value={formatPKR(totals.cash)} />
+          <StatTile icon="credit" label="Credit" value={formatPKR(totals.credit)} />
         </StatGrid>
       </div>
 

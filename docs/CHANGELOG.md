@@ -2130,3 +2130,67 @@ than assuming "icons only" was actually one package. No MUI theme or
 `ThemeProvider` was set up; the icon is used exactly once, styled with
 `sx={{ fontSize: 20 }}` to match the 20px the rest of the icon set already
 uses and inheriting `currentColor` from its ring the same way.
+
+## Every icon migrated to Material UI
+
+Follow-up to the single MUI icon above: the owner asked for the whole icon
+set to move to Material UI, not just the one Customers tile, plus icon
+rings added to the stat tiles across the rest of the app that didn't have
+them yet (Dashboard, Readings, Lubricants, Reports, Company Assets).
+
+**`Icon.js` kept its exact public shape.** Every one of the ~30 call sites
+across the app (`AdminSidebar`, `DateNav`, `Pager`, `GuideFlow`,
+`ReadingForm`, the Guide's bilingual content data, `CompanyAssetForm`'s
+category picker, …) still writes `<Icon name="..." className="h-5 w-5" />`
+unchanged. What changed is entirely inside `Icon.js`: the old file exported
+a `PATHS` map of name → hand-drawn `<path>` JSX rendered inside one shared
+`<svg>`; the new one exports a `COMPONENTS` map of the same names → MUI
+Outlined icon components. Every existing name kept its old meaning (the
+comments explaining *why* a name looks the way it does — the wrench for
+Machinery, the briefcase for Assets — carried over to the new file), so no
+caller had to change what name it asks for.
+
+**Sizing needed a wrapper, and this was the one real gotcha.** The old
+`<svg className="shrink-0 h-5 w-5">` sized itself directly off the passed
+Tailwind classes. MUI's `SvgIcon` sizes itself in `em` via its own
+Emotion-generated CSS class, and Emotion injects its `<style>` tags at
+runtime — which can land *after* Tailwind's build-time utilities in the
+document, and when two classes of equal specificity disagree, the later one
+in the stylesheet wins. In practice this meant `className="h-5 w-5"` on the
+icon directly was not a reliable way to size it; some icons could render at
+MUI's own default 1em/24px regardless of what was asked for. The fix:
+`Icon` now renders `<span className={className}>` (a plain sized box) with
+the MUI icon inside stretched to `style={{ width: '100%', height: '100%'
+}}` — an inline style, which always wins the cascade regardless of
+injection order. Every icon in the app is sized by its wrapper span now,
+not by the icon component itself.
+
+**Colour needed no change.** MUI's `SvgIcon` fills with `currentColor` by
+default when no `color` prop is passed, the same mechanism the hand-drawn
+set used — so every existing `text-*` class already controlling an icon's
+colour (the amber warning triangle, the brand-green check, a red delete
+icon) kept working without being touched.
+
+**Stat tile icon rings, applied to every existing stat row.** Each icon was
+picked for what the figure actually is, not decoration: a fuel pump for
+litres sold (Dashboard, Readings), a price tag for Sales, a card for On
+credit, a wallet-with-coins for Cash, a delivery truck for Stock bought, a
+trending-up arrow for Profit. Company Assets' "Biggest holding" tile reuses
+the *same* per-category icon (`vehicle`/`machinery`/`property`/…) that
+`CompanyAssetForm`'s category picker already shows, rather than a new
+generic icon, so the tile tells the reader which category actually won
+rather than just decorating the word.
+
+**`StatTile`'s icon-ring layout grew a fix while wiring this up.** The
+Reports "Profit" tile's `sub` — "sales − stock bought − expenses" — used to
+sit in the text column beside the icon ring, and wrapped to three cramped
+lines there once the ring took width away from that column. `sub` now
+renders on its own row below the icon+figure, spanning the full card width,
+so the same text wraps at most once. Caught by rendering the fixture data
+and screenshotting, not by a DOM measurement — see the project skill on why
+that check matters.
+
+**Verified** the same way as the earlier passes: a disposable devcheck route
+(deleted before commit) rendering the full sidebar icon set at 24px, the
+chevron rotations used by `Pager`/`DateNav`, and every page's stat row with
+its new icon, screenshotted at 1100px and 400px.

@@ -128,17 +128,24 @@ export default async function CompanyAssetsPage({ searchParams }) {
           <div className="mb-6">
             <StatGrid>
               <StatTile
+                icon="assets"
                 label="Total value"
                 value={formatPKR(totalValue)}
                 sub={`${summary.asset_count} asset${summary.asset_count === 1 ? '' : 's'}`}
               />
-              <StatTile label="Assets recorded" value={String(summary.asset_count ?? 0)} />
               <StatTile
+                icon="inventory"
+                label="Assets recorded"
+                value={String(summary.asset_count ?? 0)}
+              />
+              <StatTile
+                icon={summary.top_category ? CATEGORY_STYLE[summary.top_category].icon : 'assets'}
                 label="Biggest holding"
                 value={summary.top_category ? CATEGORY_LABEL[summary.top_category] : '—'}
                 sub={summary.top_category ? `${topShare}% of total value` : null}
               />
               <StatTile
+                icon="date"
                 label="Newest addition"
                 value={summary.newest_date ? formatDate(summary.newest_date) : '—'}
                 sub={summary.newest_name}
