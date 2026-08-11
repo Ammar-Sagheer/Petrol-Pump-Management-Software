@@ -221,8 +221,11 @@ export default function StockCheckForm({
     onWhite: 'text-ink-900',
   };
 
+  // `border-2` and `shadow-lg` override the 1px border and `shadow-sm` that
+  // `.card` applies - utilities beat the @apply'd component class - so these two
+  // lift off the page as solid objects rather than sitting flat on it.
   return (
-    <section className={`card overflow-hidden ${style.card}`}>
+    <section className={`card overflow-hidden border-2 shadow-lg ${style.card}`}>
       {/* The name is text-base, not the old text-sm: it is the thing that says
           which tank you are typing into, and it was the smallest text on the
           card. */}
