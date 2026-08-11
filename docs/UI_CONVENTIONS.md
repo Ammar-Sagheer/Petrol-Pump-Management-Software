@@ -1258,3 +1258,33 @@ intact. Any new surface keeps that relationship — if a change would leave both
 the reason recorded in the section above and at length in the module's own
 comment. Solid chips replaced the old pale tints for exactly this: two faint
 pastels are the same chip to anyone glancing down a column of nozzles.
+
+
+## A card that wears a colour owns the controls inside it
+
+The Stock page's dip cards carry the tank's colour on their header band. The
+morning/evening selector inside used `BalanceDirection`'s default green for its
+chosen option, and the result read as a third, unrelated hue dropped into the
+middle of a yellow card — *"it looks like random colours."*
+
+`BalanceDirection` now takes an optional `activeClass`; the ledger callers keep
+the green (there, "selected" has no other colour to belong to), and the dip
+cards pass the fuel's `selected` token. Same for the tank fill bar, which was
+still a hardcoded `bg-sky-500` / `bg-amber-500` pair left over from before the
+colours were centralised.
+
+**The rule: once a container wears a colour, everything decorative inside it
+takes that colour or stays neutral.** Two exceptions, both because they outrank
+identity — a red over-capacity bar is a warning, and the green primary button is
+the same submit button on every form in the app, so making it per-tank would
+break a stronger consistency than the one it fixed.
+
+## A dark strip across the top was tried and removed
+
+The four takings tiles were briefly a solid slate band with white figures, to
+make the day's money lead a page whose fuel cards had just been given colour.
+It was reverted: a black bar across the top of an otherwise light page reads as
+a toolbar or an error state, not as a headline.
+
+The hierarchy problem it was solving is real but is better solved by section
+order and figure size. Recorded so it is not tried a third time.

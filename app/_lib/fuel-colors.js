@@ -9,47 +9,38 @@
  * fuel was one colour in a chart and another in the table under it.
  *
  * ---------------------------------------------------------------------------
- * ONE IS DARK AND ONE IS LIGHT. That is the whole design.
+ * THE HUES ARE THE OWNER'S. THE LIGHTNESS IS THE RULE.
  * ---------------------------------------------------------------------------
  *
- * Learned by getting it wrong on the Stock page. Petrol and diesel were first
- * given two colours of the SAME weight - a dark navy and a dark amber - on the
- * reasoning that a matched pair would look like two fuels of equal standing.
- * The owner's verdict was immediate: "they both look the same, both are dark."
+ * He chose these three off his own forecourt: #54A2B3 petrol, #FFFF00 diesel,
+ * #D4AF37 lubricant. They are used exactly as given wherever they are FILLED.
  *
- * Lightness is the cue the eye reads first, and the one that survives poor
- * light, a cheap tablet and any colour-vision deficiency. Hue is the weaker,
- * more fragile signal. So one fuel is LIGHT and one is DARK.
+ * What the code has to protect is the separation, and it was learned the hard
+ * way. Petrol and diesel were once two colours of the same weight - a dark navy
+ * and a dark amber - and the owner's verdict was immediate: "they both look the
+ * same, both are dark." A later pair of his, #FFD865 and #FFBF00, sat 1.22x
+ * apart, which is no gap either.
  *
- * THE HUES ARE THE OWNER'S, THE LIGHTNESS IS THE RULE. He picked #FFD865 for
- * petrol and #FFBF00 for diesel - both his forecourt's yellows. As given, those
- * two sit 1.22x apart in luminance, which is no gap at all: the pair he had
- * already rejected as "they both look the same" was 1.10x. So diesel keeps his
- * hue (45deg, the same amber) and drops in lightness to #705400. Petrol stays
- * the light gold. That is a 7.3x gap, and both still carry text above AAA.
+ * Lightness is the cue the eye reads first and the one that survives poor
+ * light, a cheap tablet and any colour-vision deficiency; hue is the weaker
+ * signal. This set works because petrol and diesel - the pair that actually
+ * gets confused - are 3.0x apart in luminance AND on opposite sides of the
+ * colour wheel, teal against yellow. Keep that. If a change would leave the two
+ * fuels the same weight, it is wrong however good the hues look.
  *
- * The lesson for anyone changing these: take the hue the owner asks for, then
- * MAKE THE LIGHTNESS WORK. Refusing his colour is wrong; shipping two colours
- * of the same weight is also wrong. Darkening one is neither.
+ * A LIGHT COLOUR CANNOT DO EVERY JOB. Pure yellow is 16.6:1 behind dark text
+ * and superb as a filled band, but 1.07:1 against a white card - invisible as a
+ * 4px rule, and hopeless as text. So each fuel carries a darker relative of the
+ * SAME HUE for rules, borders, chart marks and text on white. The identity is
+ * the hue; the lightness is chosen per job.
  *
- * Each pairing carries its own text well above AAA:
- *
- *     ink-900 on #FFD865    (petrol)   13.0:1
- *     white   on #705400    (diesel)    7.1:1
- *     white   on sky-800    (lubricant) 7.6:1
- *     white   on orange-800 (#9a3412)   7.3:1
+ * Each filled band clears AAA on its own text: 6.1:1, 16.6:1 and 8.5:1.
  *
  * Lubricants get a third colour rather than sharing one: they appear in the
  * same purchase list as the two fuels, and a list where three things are told
- * apart only by their text is a list nobody scans. Theirs is NAVY, and the
- * reason is structural: the two fuels are now a warm pair (light gold, dark
- * amber), so the third thing should not be warm at all. Navy is the only cool
- * colour of the three, and blue against amber is the classic colour-blind-safe
- * axis - the one pairing that survives red-green deficiency intact.
- *
- * It was violet first ("girlish", says the owner - a perfectly good reason on
- * an app he uses every morning), then rust, which had to go once diesel became
- * a dark amber: two dark warm browns side by side is the same mistake again.
+ * apart only by their text is a list nobody scans. Theirs has been violet
+ * ("girlish", said the owner - a perfectly good reason on an app he uses every
+ * morning), then rust, then navy, and is now his gold.
  *
  * TWO WEIGHTS, AND THE LOUD ONE IS RATIONED.
  *
@@ -76,41 +67,46 @@
 export const FUEL_COLORS = {
   petrol: {
     label: 'Petrol',
-    /** Solid band or chip: the LIGHT half of the pair, so dark text on it. */
-    solid: 'bg-[#FFD865] text-ink-900',
-    /** Muted text on that solid band - captions, capacities. */
+    /** The exact colour, filled. Dark text on it - 6.1:1. */
+    solid: 'bg-[#54A2B3] text-ink-900',
+    /** Muted text on that band - captions, capacities. */
     solidMuted: 'text-ink-800',
-    /** The card outline that goes round a solid band. */
-    border: 'border-amber-500',
-    /** A 4px rule along the top of a card - the quiet treatment. */
-    accent: 'border-t-[#FFD865]',
-    /** The fuel's own colour used as text on a white background. The gold
-        itself is far too light to read as text, so this is its dark relative. */
-    onWhite: 'text-amber-800',
-    /** Charts, progress bars, anything that needs a raw value. */
-    hex: '#FFD865',
+    /** Outline round a filled band, and the 4px quiet rule. Same hue, dropped
+        in lightness: the raw colour is only 2.9:1 against a white card, which
+        is thin for a line you are meant to notice. */
+    border: 'border-[#38727F]',
+    accent: 'border-t-[#38727F]',
+    /** As text on white. The raw colour fails badly there; this is 7.7:1. */
+    /** A chosen option inside a form on this fuel's card. */
+    selected: 'border-[#38727F] bg-[#54A2B3]/15 text-[#2C5963]',
+    onWhite: 'text-[#2C5963]',
+    /** Charts and progress bars - marks that sit on white or pale grey. */
+    hex: '#38727F',
   },
   diesel: {
     label: 'Diesel',
-    /** The DARK half: the owner's #FFBF00 hue, dropped in lightness. */
-    solid: 'bg-[#705400] text-white',
-    solidMuted: 'text-amber-100',
-    border: 'border-[#705400]',
-    accent: 'border-t-[#705400]',
-    onWhite: 'text-[#5C4400]',
-    hex: '#705400',
+    /** Pure yellow, filled. 16.6:1 with dark text - the best of the three. */
+    solid: 'bg-[#FFFF00] text-ink-900',
+    solidMuted: 'text-ink-800',
+    border: 'border-[#B8B800]',
+    accent: 'border-t-[#B8B800]',
+    /** A chosen option inside a form on this fuel's card. */
+    selected: 'border-[#B8B800] bg-[#FFFF00]/25 text-[#5C5C00]',
+    onWhite: 'text-[#5C5C00]',
+    hex: '#B8B800',
   },
   lubricant: {
     label: 'Lubricant',
-    solid: 'bg-sky-800 text-white',
-    solidMuted: 'text-sky-100',
-    border: 'border-sky-800',
-    accent: 'border-t-sky-800',
-    onWhite: 'text-sky-900',
-    hex: '#075985',
+    solid: 'bg-[#D4AF37] text-ink-900',
+    solidMuted: 'text-ink-800',
+    border: 'border-[#977B20]',
+    accent: 'border-t-[#977B20]',
+    /** A chosen option inside a form on this fuel's card. */
+    selected: 'border-[#977B20] bg-[#D4AF37]/20 text-[#655216]',
+    onWhite: 'text-[#655216]',
+    hex: '#977B20',
   },
 };
-
 /** Anything unrecognised falls back to neutral rather than to a fuel's colour. */
 export const NEUTRAL_FUEL = {
   label: '',
@@ -118,6 +114,7 @@ export const NEUTRAL_FUEL = {
   solidMuted: 'text-ink-100',
   border: 'border-ink-300',
   accent: 'border-t-ink-400',
+  selected: 'border-ink-600 bg-ink-100 text-ink-900',
   onWhite: 'text-ink-900',
   hex: '#475569',
 };
