@@ -2032,3 +2032,32 @@ from paper on the 11th and both for the owner to check against the register:
   tanks — which reads as a copied row rather than two measurements.
 
 **Clear this dip** exists partly so these can be corrected now.
+
+### The first dip was calling a typo a gain
+
+Follow-up, once the timing fix was live: 1 Aug still showed *"Gain of 4,702 L"*
+in green on petrol and the same loss on diesel.
+
+The first dip on a tank has no earlier dip behind it, so
+`calculate_expected_stock` falls back to the tank's **opening stock** from
+Settings. That figure was *typed*, not measured — so a difference between it
+and the first rod reading is usually two numbers disagreeing, not fuel that
+moved. Rendering it in green as a gain says the opposite.
+
+The first dip per tank is now named as such and coloured amber rather than
+green/red, in the tank card and the history table: **"4,702 L away from the
+opening stock"** and **"vs opening stock"**, with a note saying the baseline was
+typed and to check it before reading the difference as fuel. Derived in the page
+from the smallest `books_date` per tank — `getStockChecks()` is already uncapped,
+so it needs no query and no column.
+
+The wording deliberately stops short of "this is not a gain". If a pump sets its
+opening stock and only dips a week later, real trading sits between the two and
+the difference *is* partly genuine. What is always true is that the baseline was
+typed rather than measured, so that is what it says.
+
+And the underlying figure was, in fact, a typo: working back from the 2 Aug dip,
+diesel really held ~5,052 L and petrol ~1,408 L at the close of 31 Jul. The
+Settings openings (5,556 / 854) are close to both. The dips as entered
+(854 / 5,556) are ~4,200 L out on each — **the two tanks' readings had been
+entered into each other's cards.**

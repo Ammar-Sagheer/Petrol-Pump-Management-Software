@@ -63,6 +63,23 @@ export default async function StockChecksPage({ searchParams }) {
   );
 
   /*
+   * The earliest day each tank has a dip closing.
+   *
+   * A dip with nothing before it is measured against the tank's OPENING STOCK
+   * from Settings, not against a previous measurement - so a difference there
+   * is the two figures disagreeing, not fuel that moved. Calling that "a gain
+   * of 4,702 L" in green, as this page did, reads as a surplus in the ground.
+   * Derived here rather than asked of the database: getStockChecks() is already
+   * uncapped, so the first dip is the one with the smallest books_date.
+   */
+  const earliestByTank = new Map();
+  for (const check of checks) {
+    const closes = check.books_date ?? check.check_date;
+    const seen = earliestByTank.get(check.tank_id);
+    if (!seen || closes < seen) earliestByTank.set(check.tank_id, closes);
+  }
+
+  /*
    * Sliced rather than paged in Postgres: the lookup above needs whichever
    * check belongs to the DATE ON SCREEN, and that row is not necessarily on
    * the page of history being shown. Paging in the database would make the
@@ -99,6 +116,8 @@ export default async function StockChecksPage({ searchParams }) {
             tank={tank}
             date={date}
             existingCheck={checksOnDate.get(tank.id) ?? null}
+            earliestBooksDate={earliestByTank.get(tank.id) ?? null}
+            openingStock={tank.opening_stock_litres}
             canManage={canManage}
           />
         ))}
@@ -209,6 +228,11 @@ export default async function StockChecksPage({ searchParams }) {
             <tbody className="divide-y divide-ink-100">
               {pageChecks.map((check) => {
                 const difference = Number(check.gain_loss);
+                // The first dip on a tank has no earlier measurement behind it,
+                // so its "gain" is really a disagreement with the opening stock
+                // in Settings. Named, and not coloured as a surplus.
+                const firstDip =
+                  (check.books_date ?? check.check_date) === earliestByTank.get(check.tank_id);
                 return (
                   <tr key={check.id}>
                     <td className="td whitespace-nowrap">
@@ -227,13 +251,20 @@ export default async function StockChecksPage({ searchParams }) {
                         'td-num font-bold',
                         difference === 0
                           ? 'text-ink-600'
-                          : difference > 0
-                            ? 'text-brand-700'
-                            : 'text-red-700',
+                          : firstDip
+                            ? 'text-amber-900'
+                            : difference > 0
+                              ? 'text-brand-700'
+                              : 'text-red-700',
                       ].join(' ')}
                     >
-                      {difference > 0 ? '+' : ''}
-                      {formatLitres(difference)}
+                      {difference > 0 && !firstDip ? '+' : ''}
+                      {firstDip ? formatLitres(Math.abs(difference)) : formatLitres(difference)}
+                      {firstDip ? (
+                        <span className="block text-xs font-normal text-ink-500">
+                          vs opening stock
+                        </span>
+                      ) : null}
                     </td>
                     <td className="td text-ink-600">{check.note ?? '—'}</td>
                   </tr>

@@ -45,7 +45,14 @@ const TIMINGS = [
   },
 ];
 
-export default function StockCheckForm({ tank, date, existingCheck, canManage = false }) {
+export default function StockCheckForm({
+  tank,
+  date,
+  existingCheck,
+  earliestBooksDate = null,
+  openingStock = null,
+  canManage = false,
+}) {
   const [state, formAction] = useActionState(createStockCheck, null);
   const [clearState, clearAction] = useActionState(deleteStockCheck, null);
   const [dip, setDip] = useState('');
@@ -67,9 +74,33 @@ export default function StockCheckForm({ tank, date, existingCheck, canManage = 
     ? Number(existingCheck.expected_stock ?? 0)
     : Number((taken === 'morning' ? tank.expected_if_morning : tank.expected_if_evening) ?? 0);
 
+  /*
+   * A dip with no dip behind it is measured against the tank's OPENING STOCK
+   * from Settings, because there is nothing else to measure it against. That
+   * makes any difference a disagreement between two typed figures, not fuel
+   * that appeared or vanished - so it must not be dressed up as a gain.
+   *
+   * This is not hypothetical: the pump's first dip read 5,556 L against an
+   * opening of 854 L and the page announced "Gain of 4,702 L" in green. The two
+   * tanks' figures had been entered into each other's cards.
+   */
+  const isFirstDip = existingCheck
+    ? !earliestBooksDate || (existingCheck.books_date ?? '') <= earliestBooksDate
+    : !earliestBooksDate || closesDate <= earliestBooksDate;
+
   const dipValue = dip === '' ? null : Number(dip);
   const hasDip = dipValue !== null && Number.isFinite(dipValue);
   const difference = hasDip ? round2(dipValue - expected) : null;
+
+  const openingNote = isFirstDip ? (
+    <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+      This is the first dip for this tank, so there is no earlier measurement behind it — it is
+      worked out from the <strong>opening stock</strong> of{' '}
+      {showLitres(openingStock ?? expected)} set under Settings → Tanks. That figure was typed,
+      not measured, so if it is wrong (or on the wrong tank) the difference below is not fuel.
+      Check it before reading this as a gain or a loss.
+    </p>
+  ) : null;
 
   const capacity = Number(tank.capacity_litres ?? 0);
   const fillPercent = capacity ? Math.min(100, Math.max(0, (expected / capacity) * 100)) : 0;
@@ -124,6 +155,8 @@ export default function StockCheckForm({ tank, date, existingCheck, canManage = 
           />
         </div>
 
+        {openingNote}
+
         {overCapacity ? (
           <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
             The books show {showLitres(expected)} in a tank that only holds{' '}
@@ -159,16 +192,22 @@ export default function StockCheckForm({ tank, date, existingCheck, canManage = 
                   'tabular mt-1 font-bold',
                   Number(existingCheck.gain_loss) === 0
                     ? 'text-ink-700'
-                    : Number(existingCheck.gain_loss) > 0
-                      ? 'text-brand-700'
-                      : 'text-red-700',
+                    : isFirstDip
+                      ? 'text-amber-900'
+                      : Number(existingCheck.gain_loss) > 0
+                        ? 'text-brand-700'
+                        : 'text-red-700',
                 ].join(' ')}
               >
                 {Number(existingCheck.gain_loss) === 0
-                  ? 'Matches the books exactly'
-                  : Number(existingCheck.gain_loss) > 0
-                    ? `Gain of ${showLitres(existingCheck.gain_loss)}`
-                    : `Loss of ${showLitres(Math.abs(Number(existingCheck.gain_loss)))}`}
+                  ? isFirstDip
+                    ? 'Matches the opening stock exactly'
+                    : 'Matches the books exactly'
+                  : isFirstDip
+                    ? `${showLitres(Math.abs(Number(existingCheck.gain_loss)))} away from the opening stock`
+                    : Number(existingCheck.gain_loss) > 0
+                      ? `Gain of ${showLitres(existingCheck.gain_loss)}`
+                      : `Loss of ${showLitres(Math.abs(Number(existingCheck.gain_loss)))}`}
               </p>
             </div>
 
@@ -254,10 +293,14 @@ export default function StockCheckForm({ tank, date, existingCheck, canManage = 
               ].join(' ')}
             >
               {difference === 0
-                ? 'Matches the books exactly.'
-                : difference > 0
-                  ? `Gain of ${showLitres(difference)} against the books.`
-                  : `Loss of ${showLitres(Math.abs(difference))} against the books.`}
+                ? isFirstDip
+                  ? 'Matches the opening stock exactly.'
+                  : 'Matches the books exactly.'
+                : isFirstDip
+                  ? `${showLitres(Math.abs(difference))} away from the opening stock.`
+                  : difference > 0
+                    ? `Gain of ${showLitres(difference)} against the books.`
+                    : `Loss of ${showLitres(Math.abs(difference))} against the books.`}
               <span className="mt-0.5 block text-xs font-normal">
                 For {formatDate(closesDate)}.
               </span>
