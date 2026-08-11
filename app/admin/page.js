@@ -50,6 +50,7 @@ export default async function DashboardPage({ searchParams }) {
   const lubricants = summary.lubricants ?? {};
   const lubricantsSold = summary.lubricants_by_product ?? [];
   const lubricantStock = summary.lubricant_stock ?? [];
+  const lubColor = fuelColor('lubricant');
 
   // The tiles at the top are the whole day's takings, fuel and oil together -
   // that is what was in the drawer at closing time. The sections below are
@@ -299,66 +300,73 @@ export default async function DashboardPage({ searchParams }) {
         </p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="card p-4">
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-base font-bold text-ink-900">Sold on this day</h3>
-              <span className="tabular text-lg font-bold text-ink-900">
+          {/* Lubricants wear violet here for the same reason the tanks wear
+              navy and yellow: it is the colour this product already has on its
+              badge, from app/_lib/fuel-colors.js. Semantic, not decoration -
+              which is also why the strip of takings above stays uncoloured. */}
+          <div className={`card overflow-hidden border-2 shadow-lg ${lubColor.border}`}>
+            <div
+              className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 ${lubColor.solid}`}
+            >
+              <h3 className="text-base font-bold">Sold on this day</h3>
+              <span className="tabular whitespace-nowrap text-lg font-bold">
                 {formatPKR(lubricants.amount)}
               </span>
             </div>
+            <div className="p-4">
+              {Number(lubricants.sales_count ?? 0) === 0 ? (
+                <p className="text-sm text-ink-600">
+                  Nothing sold over the counter on this date.{' '}
+                  <Link
+                    href={`/admin/lubricants?date=${date}`}
+                    className="font-semibold text-brand-700 hover:underline"
+                  >
+                    Record a sale
+                  </Link>
+                </p>
+              ) : (
+                <>
+                  <dl className="grid grid-cols-3 gap-2">
+                    <div>
+                      <dt className="figure-label">Litres</dt>
+                      <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                        {formatLitres(lubricants.litres)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="figure-label">Cash</dt>
+                      <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                        {formatPKR(lubricants.cash_amount)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="figure-label">Credit</dt>
+                      <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                        {formatPKR(lubricants.credit_amount)}
+                      </dd>
+                    </div>
+                  </dl>
 
-            {Number(lubricants.sales_count ?? 0) === 0 ? (
-              <p className="mt-3 border-t border-ink-200/60 pt-3 text-sm text-ink-600">
-                Nothing sold over the counter on this date.{' '}
-                <Link
-                  href={`/admin/lubricants?date=${date}`}
-                  className="font-semibold text-brand-700 hover:underline"
-                >
-                  Record a sale
-                </Link>
-              </p>
-            ) : (
-              <>
-                <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-ink-200/60 pt-3">
-                  <div>
-                    <dt className="figure-label">Litres</dt>
-                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
-                      {formatLitres(lubricants.litres)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="figure-label">Cash</dt>
-                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
-                      {formatPKR(lubricants.cash_amount)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="figure-label">Credit</dt>
-                    <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
-                      {formatPKR(lubricants.credit_amount)}
-                    </dd>
-                  </div>
-                </dl>
-
-                <ul className="mt-3 space-y-2 border-t border-ink-200/60 pt-3 text-sm">
-                  {lubricantsSold.map((product) => (
-                    <li key={product.name} className="flex items-baseline justify-between gap-3">
-                      <span className="truncate text-ink-800">{product.name}</span>
-                      <span className="tabular shrink-0 font-semibold text-ink-900">
-                        {formatLitres(product.litres)} · {formatPKR(product.amount)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+                  <ul className="mt-3 space-y-2 border-t border-ink-200/60 pt-3 text-sm">
+                    {lubricantsSold.map((product) => (
+                      <li key={product.name} className="flex items-baseline justify-between gap-3">
+                        <span className="truncate text-ink-800">{product.name}</span>
+                        <span className="tabular shrink-0 font-semibold text-ink-900">
+                          {formatLitres(product.litres)} · {formatPKR(product.amount)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           </div>
 
           {/* The shelf, so a product about to run out is noticed from the
               dashboard rather than when a customer asks for it. */}
-          <div className="card p-4">
-            <h3 className="text-base font-bold text-ink-900">On the shelf</h3>
-            <ul className="mt-3 space-y-2 border-t border-ink-200/60 pt-3 text-sm">
+          <div className={`card overflow-hidden border-2 shadow-lg ${lubColor.border}`}>
+            <h3 className={`px-4 py-3 text-base font-bold ${lubColor.solid}`}>On the shelf</h3>
+            <ul className="space-y-2 p-4 text-sm">
               {lubricantStock.map((product) => {
                 const left = Number(product.stock_litres ?? 0);
                 return (
