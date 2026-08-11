@@ -171,7 +171,18 @@ export default async function DashboardPage({ searchParams }) {
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {tanks.map((tank) => {
-          const stock = Number(tank.current_stock_litres ?? 0);
+          /*
+           * The books AT THE CLOSE OF THE DAY ON SCREEN, not the tank's cached
+           * "right now" figure.
+           *
+           * `current_stock_litres` is a single cached number meaning today, so
+           * stepping back through the dates left every past day showing today's
+           * stock - the tanks were the one block on this page that ignored the
+           * date banner above them. `get_daily_summary` has always returned a
+           * per-date `expected_stock` beside it; the card was reading the wrong
+           * one of the two.
+           */
+          const stock = Number(tank.expected_stock ?? tank.current_stock_litres ?? 0);
           const capacity = Number(tank.capacity_litres ?? 0);
           const fill = capacity > 0 ? Math.min(100, Math.max(0, (stock / capacity) * 100)) : 0;
           const gainLoss = tank.gain_loss === null ? null : Number(tank.gain_loss);
@@ -218,9 +229,11 @@ export default async function DashboardPage({ searchParams }) {
 
               {gainLoss === null ? (
                 <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-600">
-                  No dip recorded for this date.{' '}
+                  No dip has closed this day yet.{' '}
+                  {/* The dip that closes this day is the one taken the NEXT
+                      morning, so that is the Stock page to open. */}
                   <Link
-                    href={`/admin/stock-checks?date=${date}`}
+                    href={`/admin/stock-checks?date=${shiftISODate(date, 1)}`}
                     className="font-semibold text-brand-700 hover:underline"
                   >
                     Record one

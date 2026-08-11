@@ -1079,3 +1079,40 @@ Two things this pattern always needs:
   verdict — a fix can make that boolean false while a screenshot shows text
   now wrapping somewhere it never used to. Always look at the rendered
   result with real-length data before calling a layout fix done.
+
+## `BalanceDirection` is the general two-choice-in-a-sentence control
+
+It was written for the customer ledger and is named for it, but nothing in it
+knows about money: it takes `options` of `{value, title, detail}` and renders
+two cards with a hidden input carrying the value. Migration 039's dip timing
+(**Morning — before the pumps opened** / **Evening — after the pumps closed**,
+in `StockCheckForm`) is its second caller, and reusing it was the right call
+over forty lines of near-identical markup.
+
+Reach for it whenever a choice is **two options, both legal, told apart by
+reading a sentence** — and follow the rule the section above states: *show the
+consequence*. The dip card names the day the choice closes ("at the close of
+10 Aug 2026") and the book figure that produces, then the gain or loss once a
+reading is typed. That is what makes the choice checkable rather than merely
+labelled, and it is the whole reason this control exists.
+
+Use `CategoryPicker`'s icon tiles instead when the options are *kinds of
+thing* recognised on sight. Use a `<select>` when the list is long.
+
+## A figure and its unit must not be able to break apart
+
+The dip card originally put the day inside the label — "Books at the close of
+10 Aug 2026" — beside the figure on one row. At a phone's width the label
+wrapped to two lines, squeezed the figure, and left **`L` alone on its own
+line** under `2,392.88`. The DOM was fine; `scrollWidth` matched `clientWidth`;
+it only showed up in the screenshot. (See the note at the top of this file, and
+the Purchases-table entries — this is the third time.)
+
+Two things fix it, and both are worth copying:
+
+- **`whitespace-nowrap` on any figure rendered as "number + unit"** — the pair
+  is one token to a reader and must be one to the layout.
+- **A qualifying date goes on its own line, not into the label.** The label
+  stays short and fixed ("Expected in tank"); "at the close of 10 Aug 2026"
+  sits underneath. A date grows when the month name is longer, and a label
+  sharing a row with a number is the wrong place for anything that grows.
