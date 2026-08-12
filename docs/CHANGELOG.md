@@ -2330,3 +2330,45 @@ real route, checking the browser console was clean at each step. The `+`
 glyph in "+ Add an asset" rendering flush against its label — MUI only
 spaces its own `startIcon`, not ordinary children — was found this way and
 fixed with a `gap` in the wrapper.
+
+## Readings: the card became the unit
+
+The owner's verdict on the entry screen was that it looked "stacked and
+boring", which it did, and the screenshot made the reason plain: six
+identically-shaped full-width cards down the page, each the same height and
+the same weight, with the unit heading a small caption floating above every
+pair.
+
+**One card per unit, nozzles as rows inside it.** A unit is a physical pump
+standing on the forecourt with two nozzles bolted to it. The flat list gave
+that nothing to be — an earlier pass had already tried to carry the grouping
+with spacing alone (32px between units, 12px inside one), and spacing turned
+out not to be enough against six identical slabs. Making the card *be* the
+unit gives the page three objects to work through instead of six, and lets
+the rows get shorter, since they no longer each need their own card edge and
+shadow.
+
+**The unit header carries a progress bar** beside the existing "1 of 2
+entered" chip, green once the pump is finished, so a completed unit is
+skipped without reading its rows. The bar and the words say the same thing —
+the bar is the glanceable half, not the only carrier, which is the same rule
+the tank-fill bars on the Dashboard already follow. It is hand-rolled to
+match those rather than pulled from MUI: the visual result is identical and
+the app already had the pattern.
+
+**The unentered row is now the tinted one, and this is the real fix.** The
+page is opened every evening to answer one question — what is left to enter —
+and a finished nozzle looked exactly as loud as one still waiting: same
+white, same size, same weight. Rows still to do wear a soft amber wash, the
+same amber the Enter chip already wears, so no new colour language was
+invented and the remaining work is what the eye lands on.
+
+### The fuel colour nearly disappeared silently
+
+Moving the fuel accent from a rule across the top to one down the left edge
+looked correct in the code and rendered as a plain grey edge. `color.accent`
+is `border-t-[#38727F]` — a top border *colour*, so pairing it with
+`border-l-4` sets a 4px left border in the default grey and paints the fuel
+colour on an edge that has no width. The fix is `color.border`, which is the
+same hue with no side bound to it. Worth knowing because nothing errors and
+the class name reads as if it should work; it only showed up in a screenshot.

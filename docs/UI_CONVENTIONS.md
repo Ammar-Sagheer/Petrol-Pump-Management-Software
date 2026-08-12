@@ -461,23 +461,41 @@ the wrong question.
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
 
-## Let spacing do the grouping
+## The container is the group — Readings
 
 Readings lists six nozzles that belong to three physical units. Flat and
 evenly spaced they read as six unrelated pumps, and the only thing saying
 otherwise was the words "Unit 1 ·" repeated on two cards — a relationship the
 reader had to compare character by character to see.
 
-- **The gap carries the grouping**: 32px between units against 12px between
-  the nozzles inside one. The heading only names what the spacing already
-  showed.
+Spacing was the first fix (32px between units against 12px inside one) and it
+was not enough on its own: six identically-shaped full-width cards down the
+page still had no rhythm, and "Unit 1" was a caption floating above two slabs
+rather than the pump those nozzles are bolted to.
+
+- **One card per unit, nozzles as rows inside it.** The card is the physical
+  pump; the rows are its nozzles. Three objects to work through instead of
+  six, and the rows get shorter because they no longer each carry their own
+  card edge and shadow.
+- **A group carries its own progress** — "1 of 2 entered" plus a bar, green
+  once done — so a finished pump is skipped without reading its rows. The bar
+  and the words say the same thing; the bar is the glanceable half, never the
+  only carrier.
+- **The unentered row is the tinted one.** This page is opened every evening
+  to answer "what is left to do", and a finished nozzle used to look exactly
+  as loud as one still waiting. The amber wash is the same amber the Enter
+  chip already wears, so it adds no new colour language — it just puts the
+  remaining work where the eye lands first.
 - **Drop the repetition the grouping makes redundant.** With a "Unit 1"
-  heading above them, the cards say "Nozzle A" and "Nozzle B". The *dialog*
+  heading above them, the rows say "Nozzle A" and "Nozzle B". The *dialog*
   keeps the full "Unit 1 · Nozzle A", because it opens over the whole page
   with the heading out of sight — shorten a label only where the context that
   replaces it is on screen.
-- **A group can carry its own progress** — "1 of 2 entered", green once done —
-  so a finished group is skipped without reading its rows.
+- **A left edge, not a top rule, for the fuel colour on a row inside a
+  card.** Use `color.border` (the plain border colour) for this, not
+  `color.accent` — `accent` is `border-t-*` and only ever paints a top rule,
+  so pairing it with `border-l-4` silently gives a grey edge and no fuel
+  colour at all.
 
 ## The day on screen is stated once, and loudly
 
