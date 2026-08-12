@@ -257,4 +257,111 @@ input[type='number']::-webkit-inner-spin-button {
     /* A real border does not travel with a sticky cell; an inset shadow does. */
     box-shadow: inset 0 -1px 0 var(--color-ink-200);
   }
+
+  /*
+   * A COLUMN PINNED SIDEWAYS, in a table that already pins its heading.
+   *
+   * The Sale & Stock Register is the first table here too wide to read
+   * straight through - ten numeric columns against roughly 750px once the
+   * sidebar has taken its share - and the columns that matter most sit at
+   * either END of it: which day a row is, and where the running totals stand.
+   * Pinning those and letting the working in between slide is what makes it
+   * readable. The horizontal equivalent of the sticky heading above, and it
+   * relies on the same thing: `.table-scroll` is the scrolling element, so a
+   * sticky child has something to stick to.
+   *
+   * THE Z-INDEX IS THE WHOLE REASON THIS IS A CLASS rather than three lines of
+   * `sx` at the call site, and it cost a screenshot to find. The rule above
+   * gives EVERY header cell `z-index: 10`, and it outranks anything Material
+   * UI's `sx` emits - `.table-scroll thead th` is a class plus two elements,
+   * an `sx` class is one class. So a pinned header carrying `z-index: 2` from
+   * `sx` was painted OVER by the ordinary headers it was supposed to cover:
+   * the register's cumulative block slid underneath the daily columns and the
+   * heading read "Litres, %, %" above three figures that were nothing of the
+   * kind. The numbers were right and the header above them was wrong, which is
+   * the worst way for a table to fail.
+   *
+   * So: `.pinned` sets the stacking here, where it can outrank that rule, and
+   * the call site keeps only what genuinely varies - `left` or `right`, and
+   * the column's width. A pinned cell must also be OPAQUE, for the same reason
+   * the sticky heading is.
+   */
+  .table-scroll .pinned {
+    position: sticky;
+    z-index: 2;
+  }
+
+  .table-scroll thead th.pinned {
+    /* Above the ordinary headers (10) as well as the pinned body cells (2):
+       the top-left and top-right corners belong to the heading. */
+    z-index: 12;
+  }
+
+  /*
+   * DELIBERATELY NO background-color HERE, only the stacking. A pinned cell
+   * MUST be opaque - a transparent one lets the row sliding under it show
+   * through - but which opaque colour is the table's business, not the
+   * pattern's: the register's date column is white and its cumulative block is
+   * tinted. Declaring a background here would outrank the `sx` that sets it
+   * and flatten both to one colour, which is the same specificity trap the
+   * z-index note above describes, sprung from the other end. Header cells
+   * already get theirs from `.table-scroll thead th`.
+   */
+
+  /*
+   * The edge that says "the table continues underneath this", rather than
+   * "this number has been cut in half".
+   *
+   * Without it the first screenshot of the register showed a dip reading as
+   * "5,2" against the pinned block and it read as a rendering fault. A border
+   * alone does not do the job - the eye needs the depth cue to know which
+   * layer is on top. Direction matters: the shadow falls AWAY from the pinned
+   * column, over the content sliding past it.
+   */
+  .table-scroll .pinned-left {
+    box-shadow: 6px 0 6px -6px rgb(15 23 42 / 0.25);
+  }
+
+  .table-scroll .pinned-right {
+    box-shadow: -6px 0 6px -6px rgb(15 23 42 / 0.25);
+  }
+
+  /* A pinned HEADER needs both: its own edge shadow and the hairline under the
+     heading row, which the rule above supplies as an inset. One box-shadow
+     property, so they have to be written together or the second wins. */
+  .table-scroll thead th.pinned-left {
+    box-shadow:
+      inset 0 -1px 0 var(--color-ink-200),
+      6px 0 6px -6px rgb(15 23 42 / 0.25);
+  }
+
+  .table-scroll thead th.pinned-right {
+    box-shadow:
+      inset 0 -1px 0 var(--color-ink-200),
+      -6px 0 6px -6px rgb(15 23 42 / 0.25);
+  }
+
+  /*
+   * THE GUTTER PAST A PINNED COLUMN, and why the padding has to go rather than
+   * be painted over.
+   *
+   * `.table-scroll` is `-mx-4 px-4` below `sm`, so a table bleeds to the screen
+   * edges instead of sitting in a 16px margin. But a sticky offset is measured
+   * against the SCROLLPORT'S PADDING BOX, so `left: 0` stops 16px short of the
+   * card's edge and leaves a strip of ordinary, scrolling table showing past
+   * the pinned column. On the register's phone screenshot that was a sliver of
+   * the daily percentage column peeping out beyond the cumulative block, and a
+   * few characters of the variance column to the left of the date - both of
+   * which read as a rendering seam rather than as a column.
+   *
+   * Painting over it with an offset box-shadow was tried first and did not
+   * work; the padding simply should not be there on a table with pinned
+   * columns. The bleed still happens - the negative margin is what does that,
+   * and it stays - and the cells' own padding gives the first and last columns
+   * their breathing room. Add this alongside `.table-scroll` on any table that
+   * pins a column.
+   */
+  .table-scroll.has-pinned-columns {
+    @apply px-0;
+  }
 }

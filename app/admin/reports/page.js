@@ -96,6 +96,13 @@ export default async function ReportsPage({ searchParams }) {
             export landed in Downloads as a junk file instead of showing why.
             The route's Content-Disposition header downloads the workbook on
             its own, and lets a failure navigate back here normally. */}
+        {/* The month box beside it is this page's; the register takes a run of
+            days within a month, so it carries the month across and picks its
+            own days from there. */}
+        <Button variant="secondary" href={`/admin/reports/register?month=${monthParam}`} pending>
+          Sale &amp; stock register
+        </Button>
+
         <Button component="a" variant="primary" href={`/admin/reports/export?month=${monthParam}`}>
           Download Excel
         </Button>

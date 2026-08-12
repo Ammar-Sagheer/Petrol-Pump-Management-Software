@@ -491,6 +491,39 @@ export async function getFirstTradingDay() {
   return days.sort()[0];
 }
 
+/**
+ * The Daily Sale & Stock Register: one row per tank per day over a range.
+ *
+ * Rows come back ordered by fuel then day, which is the order they are read -
+ * a register is read down a column, and the cumulative figures on it only mean
+ * anything in date order. The page groups by tank without re-sorting.
+ *
+ * See migration 041 for what each column is and why the variance is derived
+ * from the four columns beside it rather than read off `stock_checks`.
+ */
+export async function getStockRegister(from, to) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_stock_register', { p_from: from, p_to: to }),
+    'the stock register',
+  );
+}
+
+/**
+ * Sales, stock bought, expenses and profit over an arbitrary run of days.
+ *
+ * getMonthlyReport answers the same question for a whole calendar month and
+ * cannot answer it for any other span - it takes a year and a month, not two
+ * dates. Same arithmetic in both; if one changes, both change.
+ */
+export async function getRangeSummary(from, to) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase.rpc('get_range_summary', { p_from: from, p_to: to }),
+    'the summary for those days',
+  );
+}
+
 export async function getMonthlyReport(year, month) {
   const supabase = await createClient();
   return unwrap(

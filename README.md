@@ -474,6 +474,7 @@ Applied in order:
 | `038_drop_reading_completion.sql` | Drops 037 again — the day strip it fed was removed; the gap warning that replaced it needs no new query |
 | `039_dip_belongs_to_the_day_it_closes.sql` | A dip is a moment, not a day: `taken` + generated `books_date`, so a morning dip closes yesterday. And `expected_stock` recalculated from history by trigger instead of frozen at insert |
 | `040_company_assets_in_the_export.sql` | Company Assets reach the monthly workbook: the whole register plus the month's own purchases |
+| `041_stock_register.sql` | The Daily Sale & Stock Register — a day-by-day row per tank with sales and gain/loss accumulated across a chosen run of days — and profit over an arbitrary run of days rather than a whole month |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

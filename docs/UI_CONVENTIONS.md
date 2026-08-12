@@ -1642,3 +1642,106 @@ it is that colour ADAPTED for that job. Somewhere on the surface, in a spot
 that carries no legibility burden of its own, the true hex should still
 appear, or a light colour's identity quietly disappears into whatever
 darkened relative was needed to keep it readable.
+
+## A table too wide to read: pin the ends, scroll the middle
+
+`RegisterTable` (`app/_components/admin/RegisterTable.js`, the Sale & Stock
+Register) is the first table here that could not be read straight through, and
+the pattern it establishes is worth copying before the next one is invented.
+
+Every other list in the app scrolls sideways inside its card and that is fine
+— Purchases, the ledger, the readings — because the columns off to the right
+are the *less* important ones. The register inverts that: it is the running
+totals at the far right that anybody opens the page for. Scrolled to its
+natural start, the reader saw opening stock and receipts, and the block the
+owner had circled on his own spreadsheet was off the edge at every width
+including a phone.
+
+- **Pin the ends, let the middle slide.** The date column is
+  `.pinned .pinned-left`, the cumulative block `.pinned .pinned-right`. The
+  reader can always see which row this is and what it adds up to; the working
+  in between is what scrolls. It is the horizontal counterpart of
+  `.table-scroll thead th`, and it depends on the same thing — `.table-scroll`
+  must be the scrolling element for a sticky child to have anything to stick
+  to.
+- **The stacking belongs in `globals.css`, not in `sx`.**
+  `.table-scroll thead th` sets `z-index: 10` and outranks anything MUI's `sx`
+  emits (a class plus two elements against a single class), so pinned headers
+  given `z-index: 2` at the call site were painted *over* by the ordinary
+  headers they were meant to cover — the register's cumulative figures under a
+  heading reading "Litres, %, %". `.pinned` carries the stacking; the call site
+  keeps only `left`/`right` and the width.
+- **…but the background belongs at the call site**, which is the same trap from
+  the other end. A pinned cell must be opaque or the row slides through it, but
+  *which* opaque colour is the table's business — the register's date column is
+  white and its cumulative block is tinted. A `background-color` in `.pinned`
+  would outrank the `sx` that sets it and flatten both.
+- **Pinned columns need fixed widths, sized by the phone.** A sticky offset is
+  a number, so `right` on the middle of three pinned columns is the sum of the
+  widths to its right. And at 400px the pinned columns are very nearly the
+  whole table: at laptop-derived widths they overlapped, rendering a date as
+  `01 Aug 202` — a truncated year, which reads as corrupt data rather than as a
+  layout bug.
+- **Add `.has-pinned-columns` beside `.table-scroll`.** The bleed
+  (`-mx-4 px-4` below `sm`) puts 16px of padding inside the scrollport, and a
+  sticky offset is measured against the padding box — so `left: 0` stops short
+  of the card edge and leaks a strip of scrolling table past the pinned column.
+  This zeroes the padding; the negative margin still gives the bleed.
+- **An edge shadow, not a border.** A scrollable region clips at its edge, and
+  the first render cut through a dip reading (`5,219.(`) which reads as broken
+  data. The shadow falls away from the pinned column, over the content sliding
+  under it, so the clip reads as depth. It is not a substitute for **cutting
+  columns until the clip lands in a gutter rather than through a number** —
+  two derived columns came out of the register for exactly that.
+
+## Units in the header when every column shares one
+
+The register's ten columns are all litres, and `formatLitres` on each would
+have spent about a third more width restating a fact the heading gives once.
+The rule that a figure and its unit must not break apart (above) is not
+weakened by this — it is satisfied by there being no unit in the cell to break
+away from. This applies only when the whole table shares one unit; a mixed
+table keeps its units in the cells.
+
+And **fix the decimals across the column**. Left to `formatNumber`, one column
+read "5,556", "332.46", "1,033.8" — three shapes in a column of tabular
+numerals, which is precisely what tabular numerals exist to prevent. Two
+decimals everywhere, including on whole numbers.
+
+## A range of days, when a fixed window will not do
+
+`<TrendRange>` (above) is the rule: chart filters are fixed windows, not a
+from/to pair. `RegisterRange` is the documented exception, and the test is
+**whether the end of the range is already known.**
+
+The Dashboard's charts end on the day the page is showing, so "how far back"
+is the only open question and one tap answers it. The register does not have
+that: the owner reconciles a run of days he chooses — the month so far, the ten
+days since a delivery, one week he is suspicious about — and no fixed window
+expresses any of them. The cumulative columns only mean anything over a period
+somebody picked on purpose.
+
+Everything else `<TrendRange>` does still applies, and this does all of it:
+
+- **The invalid state is unreachable, not validated.** Days are two
+  `<select>`s of 1..(days in the month), so the range cannot be free text and
+  cannot be empty; moving either end past the other **drags the other with
+  it**, rather than refusing the input.
+- **Changing the month resets the days to the whole month**, so day 31 cannot
+  be left selected in February.
+- **The server clamps it again.** A query string is not a control: `?from=0`
+  would ask Postgres for `2026-08-00` and `?from=400` for four hundred days of
+  rows. Same lesson as `trendDaysFrom()`.
+- **A plain `method="GET"` form.** No Server Action and no router push — the
+  URL carries the range, so a particular run of days can be linked or
+  bookmarked.
+
+## A `<section>` around a heading silently removes its margin
+
+`.section-heading` carries `first:mt-0`, which is what lets one class cover
+both "opens a container" and "follows content". Wrapping each block of a page
+in its own `<section>` makes every heading its container's first child, and all
+of them quietly lose the gap — on the register, "Diesel tank" sat flush against
+the paragraph above it. Use a `<Fragment>` when the grouping is decorative. If
+a `<section>` is genuinely wanted for semantics, the heading needs its top
+margin putting back explicitly.

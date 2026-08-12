@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **039**.
+logins, one pump. Migrations run to **041**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -2673,3 +2673,143 @@ It is also a server component with no `'use client'` - nothing in it is
 interactive, and that is what lets it use `formatPKR` from `helpers.js`, which
 reads request cookies and cannot enter a browser bundle. Importing MUI's own
 client component from a server one is fine; only the props have to serialise.
+
+## The Sale & Stock Register
+
+The owner's own spreadsheet, brought into the app. He keeps a sheet called
+*"Fuel - Daily Sale & Stock Register"*: one row per trading day per tank, with
+opening stock, receipts, meter sales, the book stock those imply, the dip that
+actually measured the tank, and the difference — and then, circled in yellow on
+the screenshot he sent, **the sales and the variance accumulated down the
+month, and both as a percentage.**
+
+Those cumulative columns are the point of the sheet, and nothing in the app
+could produce them. The Stock page answers "how did the tank do yesterday" and
+Reports answers "how did the month total up"; neither answers the question in
+between, which is the one that catches a problem. A single day's variance is
+noise — a rod reading is a person squinting at a wet stick, and ±30 L on a
+5,000 L tank is the measurement, not the fuel. A leak or a theft looks like a
+**cumulative** variance that walks in one direction and a percentage that will
+not come back towards zero.
+
+Live at `/admin/reports/register`, reached from a button on Reports rather than
+from the sidebar, with a banner saying it is a preview — it is deliberately not
+a fixed part of the app yet. Everything on it is real data through the same RLS
+and the same `requirePageRole` as every other page; "for testing" describes the
+design, not the numbers.
+
+### Migration 041, and the one thing that had to be checked
+
+Two RPCs, both `super_admin`-gated the same way every other reporting function
+is:
+
+- **`get_stock_register(from, to)`** — one row per tank per day, cumulative
+  columns included, computed with a window function. Cumulative means
+  cumulative *within the range asked for*, which is what the spreadsheet does
+  and what makes the figure answerable: "we are 213 L up over these eleven
+  days" is a sentence about a period somebody chose.
+- **`get_range_summary(from, to)`** — profit over an arbitrary run of days.
+  `get_monthly_report` already answers this and *cannot* be reused: it takes a
+  year and a month, not two dates, so it can only ever describe a whole
+  calendar month. The arithmetic is copied deliberately, and if one changes
+  both change or the two pages start disagreeing about the same days.
+
+**The variance is recomputed rather than read off `stock_checks.gain_loss`**,
+and that needed proving before it could be trusted. A register is read across,
+so a variance column that did not equal the arithmetic of the columns beside it
+would be unreadable however right it was — but the app reports gain/loss from
+`gain_loss` everywhere else, and two sources for one number is how books start
+disagreeing with themselves. So the derivation was run against every dip the
+pump has recorded, 1–11 Aug 2026, petrol and diesel: **all 22 rows exact.** If
+they ever stop agreeing, `gain_loss` is the one to trust.
+
+**Opening stock is yesterday's dip, falling back to the books.** A measured
+number beats a calculated one — the same rule `calculate_expected_stock` uses
+to pick its baseline. After a day nobody dipped there is nothing measured to
+use, so it falls back to the book value carried forward. And `books_date`
+throughout, never `check_date`: this pump dips in the morning, so the rod that
+went in on the 11th measures the close of the 10th. Migration 039 is the story
+of what getting that wrong costs.
+
+### What the screenshots changed, which was most of the layout
+
+Four rounds, and every one of them found something a DOM measurement had
+already called fine.
+
+**The point of the page was off-screen.** With the sidebar, a 1152px window
+leaves the table about 880px and a 1024px one about 750px. Ten numeric columns
+fit in neither, so it scrolled inside its card — the app's normal answer — and
+scrolled to its natural start the columns on screen were *opening stock* and
+*receipts*, with the cumulative block off the right-hand edge at every width
+including a phone. A table whose point is invisible until you scroll is a table
+that will be read wrong.
+
+The fix is **the date column pinned left and the cumulative block pinned
+right**, so whichever way it is scrolled the reader can see which day a row is
+and where the running totals stand; the working in between is what slides. New
+`.pinned` / `.pinned-left` / `.pinned-right` classes in `globals.css` — the
+horizontal counterpart of the sticky heading that was already there, and the
+first table in the app to need it.
+
+**The z-index had to live in the stylesheet, and that cost a screenshot to
+find.** `.table-scroll thead th` gives every header cell `z-index: 10`, and it
+outranks anything MUI's `sx` emits — a class plus two elements against one
+class. So the pinned headers, carrying `z-index: 2` from `sx`, were painted
+*over* by the ordinary headers they were meant to cover: the cumulative block's
+figures appeared under a heading reading "Litres, %, %". The numbers were right
+and the heading above them was wrong, which is the worst way for a table to
+fail, and no measurement would ever have caught it.
+
+**Two columns came out, because a scrollable region clips at its edge.** The
+first render clipped straight through a dip reading — `5,219.(` — which reads
+as broken data rather than as more table. The day's sale in rupees went (not
+part of the stock reconciliation; the fuel cards above carry the same days'
+takings) and so did Total Stock (it is opening plus received, the two columns
+to its left, and with deliveries a handful a week it was a verbatim copy of
+Opening on most rows). At 1152 the clip now lands in the gutter and only whole
+columns hide.
+
+**The pinned columns are sized by the phone, not the laptop.** At 400px they
+are very nearly the whole table, and at their first widths they overlapped:
+the date rendered as `01 Aug 202`, a truncated year, which reads as corrupt
+data rather than as a layout problem. 7 + 6 + 5.5 + 4.25 rem fits 400px.
+
+**`.table-scroll`'s phone bleed had to go on a pinned table.** It is
+`-mx-4 px-4` below `sm`, and a sticky offset is measured against the
+scrollport's *padding* box — so `left: 0` stopped 16px short of the card edge
+and left a strip of ordinary scrolling table showing past the pinned column.
+Painting over it with an offset box-shadow was tried and did not work;
+`.has-pinned-columns` zeroes the padding instead. The bleed still happens — the
+negative margin is what does that — and the cells' own padding gives the end
+columns their room.
+
+**And the fuel headings were flush against the paragraph above them**, because
+each table had been wrapped in a `<section>` and `.section-heading` carries
+`first:mt-0`. Every heading had become its container's first child and lost its
+margin. A `<Fragment>` instead: the grouping was decorative, the spacing was
+not.
+
+### Material UI, at the owner's request, and what that settled
+
+The page is MUI throughout — `Table`, `Paper`, `TextField`, `Alert`, `Chip` —
+and almost none of it is a Client Component. MUI's own components carry their
+`'use client'`, so a server component may render them freely; only
+`RegisterRange` is `'use client'`, because it genuinely has state. That is the
+same lesson `CategoryBreakdown` already recorded, applied to a whole page.
+
+`MoneyTile` duplicates `StatTile`'s shape and type sizes on a `Paper` rather
+than mixing the app's `.card` into an MUI page. That is a deliberate temporary
+state, and it is noted in the file: if the register graduates from a preview,
+the right move is to pick one of the two and delete the other, not to keep
+both.
+
+**The range picker is a from/to pair, which `<TrendRange>` deliberately is
+not**, and the difference is worth stating rather than looking like a lapse.
+The Dashboard's charts answer "how are we doing lately" — the end of the window
+is always today and "last 30 days" is the whole question. This page answers
+"reconcile these particular days": the month so far, the ten days since a
+delivery, one week somebody is suspicious about. A fixed window cannot express
+any of those. What it does borrow is everything else — the range cannot be
+entered backwards (each end drags the other), cannot be empty, is two
+`<select>`s of real days rather than free text, is validated again on the
+server, and rides in a plain `method="GET"` form so the URL carries it.
