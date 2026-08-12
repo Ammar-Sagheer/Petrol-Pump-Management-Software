@@ -22,32 +22,33 @@ export const metadata = { title: 'Company Assets' };
 const PER_PAGE = 9;
 
 /*
- * Colour and icon per category, kept beside the page rather than in
- * CompanyAssetForm.js - the form only needs the five values and labels for its
- * picker, this page is the only place a category becomes a tinted badge.
- * Reusing the app's own families (sky for a vehicle, amber for machinery,
- * brand green for property, violet for electronics - the same violet
- * CashCreditChart already uses for credit) rather than inventing a new
- * palette for one page.
+ * Icon per category. NOT a colour per category, any more.
+ *
+ * Each of the five used to carry its own hue - sky for a vehicle, amber for
+ * machinery, brand green for property, violet for electronics - which put five
+ * more hues into an app that was trying to read as one palette, and spent two
+ * of them (sky, violet) on colours the fuels use as identity elsewhere.
+ *
+ * They did not need it. Every category already has a distinct SHAPE: a car, a
+ * wrench, a building, a monitor, a tag. Shape is the stronger cue anyway - it
+ * survives poor light and colour blindness, which is the argument Icon.js makes
+ * for having icons at all - so the colour was a second, weaker copy of
+ * something the icon already said. Neutral chips, distinct icons.
  */
 const CATEGORY_STYLE = {
-  vehicle: { icon: 'vehicle', tile: 'bg-sky-100 text-sky-700', badge: 'bg-sky-50 text-sky-800' },
+  vehicle: { icon: 'vehicle', tile: 'bg-ink-200 text-ink-700', badge: 'bg-ink-100 text-ink-700' },
   machinery: {
     icon: 'machinery',
-    tile: 'bg-amber-100 text-amber-700',
-    badge: 'bg-amber-50 text-amber-900',
+    tile: 'bg-ink-200 text-ink-700',
+    badge: 'bg-ink-100 text-ink-700',
   },
-  property: {
-    icon: 'property',
-    tile: 'bg-brand-100 text-brand-700',
-    badge: 'bg-brand-50 text-brand-800',
-  },
+  property: { icon: 'property', tile: 'bg-ink-200 text-ink-700', badge: 'bg-ink-100 text-ink-700' },
   electronics: {
     icon: 'electronics',
-    tile: 'bg-violet-100 text-violet-700',
-    badge: 'bg-violet-50 text-violet-800',
+    tile: 'bg-ink-200 text-ink-700',
+    badge: 'bg-ink-100 text-ink-700',
   },
-  other: { icon: 'other', tile: 'bg-ink-200 text-ink-600', badge: 'bg-ink-100 text-ink-700' },
+  other: { icon: 'other', tile: 'bg-ink-200 text-ink-700', badge: 'bg-ink-100 text-ink-700' },
 };
 
 const CATEGORY_LABEL = Object.fromEntries(

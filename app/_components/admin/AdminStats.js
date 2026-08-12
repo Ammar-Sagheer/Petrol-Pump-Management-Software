@@ -3,51 +3,43 @@ import Icon from '@/app/_components/ui/Icon';
 /**
  * What colour an icon ring wears, keyed by the icon's own name.
  *
- * The colour follows WHAT THE FIGURE IS, not whether it is good news -
- * cash and money-in are green because that is money arriving, credit and
- * money-out amber because it is money owed or gone, fuel blue, oil violet
- * (the colour lubricants already wear on their badge, see fuel-colors.js).
- * `tone` is a separate axis and still colours the figure itself and its
- * pill: a bad month's profit is a red number in a green ring, because the
- * ring is saying "this tile is about profit" and the number is saying "and
- * it is negative". Colouring both by tone would say the same thing twice
- * and leave the reader nothing to tell one tile from another at a glance,
- * which is the whole job of the ring.
+ * FOUR COLOURS, AND EACH ONE MEANS SOMETHING. Green is money arriving,
+ * amber is money owed or gone, red is something to look at, slate is
+ * everything else. That is the whole vocabulary.
  *
- * Anything not listed falls back to the neutral slate, so a new icon is
- * never accidentally loud.
+ * It used to be seven hues - sky, cyan, violet, teal, indigo on top of these -
+ * one per KIND of thing rather than per meaning: fuel blue, oil violet, stock
+ * teal, banking indigo. It read as a rainbow rather than a palette, and the
+ * colours were carrying nothing the icon and the label did not already say.
+ * Worse, two of those hues were the fuels' own: a blue ring on "Litres sold"
+ * and a violet one on "Oil sold" are exactly the colours petrol and lubricant
+ * wear as identity elsewhere, so the ring quietly competed with the one cue
+ * that has to stay unmistakable.
+ *
+ * The rule now: **colour a ring only when the colour adds meaning the icon
+ * cannot.** A wallet icon already says "expenses"; the amber says "and this is
+ * money leaving". A pump icon already says "fuel"; there is nothing left for a
+ * colour to add, so it stays slate.
+ *
+ * `tone` remains a separate axis and still colours the figure itself and its
+ * pill, so a bad month's profit is a red number in a green ring: the ring says
+ * "this tile is about money coming in", the number says "and it went the wrong
+ * way".
  */
 const RING_COLORS = {
-  // money in
-  cash: 'bg-brand-50 text-brand-600',
-  moneyIn: 'bg-brand-50 text-brand-600',
-  profit: 'bg-brand-50 text-brand-600',
-  // money owed, or gone
-  credit: 'bg-amber-50 text-amber-600',
-  moneyOut: 'bg-amber-50 text-amber-600',
-  expenses: 'bg-amber-50 text-amber-600',
-  // the trades themselves
-  fuelPump: 'bg-sky-50 text-sky-600',
-  readings: 'bg-sky-50 text-sky-600',
-  lubricants: 'bg-violet-50 text-violet-600',
-  stock: 'bg-teal-50 text-teal-600',
-  inventory: 'bg-teal-50 text-teal-600',
-  purchases: 'bg-indigo-50 text-indigo-600',
-  sales: 'bg-cyan-50 text-cyan-600',
-  // people and places
-  customers: 'bg-sky-50 text-sky-600',
-  list: 'bg-cyan-50 text-cyan-600',
-  banking: 'bg-indigo-50 text-indigo-600',
-  assets: 'bg-violet-50 text-violet-600',
-  // asset categories, matching the tinted badges on that page
-  vehicle: 'bg-sky-50 text-sky-600',
-  machinery: 'bg-amber-50 text-amber-600',
-  property: 'bg-brand-50 text-brand-600',
-  electronics: 'bg-violet-50 text-violet-600',
-  other: 'bg-ink-100 text-ink-600',
-  // alerts
-  warning: 'bg-red-50 text-red-600',
-  date: 'bg-ink-100 text-ink-600',
+  // Money arriving.
+  cash: 'bg-brand-50 text-brand-700',
+  moneyIn: 'bg-brand-50 text-brand-700',
+  profit: 'bg-brand-50 text-brand-700',
+  sales: 'bg-brand-50 text-brand-700',
+  // Money owed, or already gone.
+  credit: 'bg-amber-50 text-amber-700',
+  moneyOut: 'bg-amber-50 text-amber-700',
+  expenses: 'bg-amber-50 text-amber-700',
+  purchases: 'bg-amber-50 text-amber-700',
+  list: 'bg-amber-50 text-amber-700',
+  // Something to look at.
+  warning: 'bg-red-50 text-red-700',
 };
 
 const RING_FALLBACK = 'bg-ink-100 text-ink-600';

@@ -144,9 +144,9 @@ export default async function DashboardPage({ searchParams }) {
                     corrupts every later day's figures.
 
                     The accent rule and the heading text both have to use the
-                    DARK relative of the fuel's hue to stay legible - raw
-                    #FCFC62 as text is unreadable, and as a hairline it all but
-                    disappears on white. So neither one is actually showing
+                    DARK relative of the fuel's hue to stay legible - diesel's
+                    raw #FDBA74 as text is unreadable, and as a hairline it all
+                    but disappears on white. So neither one is actually showing
                     diesel's colour, which is what the owner noticed. The dot
                     beside the heading is: a filled swatch has no text sitting
                     on it to protect, so it is free to be the real hue, with a

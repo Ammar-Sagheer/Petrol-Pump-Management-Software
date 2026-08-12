@@ -2506,3 +2506,68 @@ show.**
 The gap between unit cards also went from 20px to 32px, so the three pumps
 read as three separate things to work through rather than one continuous
 stack.
+
+## Colour audit: eleven hues down to two palettes
+
+The app had drifted to roughly eleven hues. Counting the Tailwind colour
+classes across `app/` found ink 672, brand 144, red 120, amber 104 - a
+coherent core - and then sky 17, violet 12, indigo 8, teal 6, cyan 4, rose 2,
+orange 1, plus MUI's own blue on every button. The stragglers were the app
+looking home-made.
+
+It now has **two vocabularies that never overlap**: chrome (green, amber, red,
+slate) for what the app is doing, and the fuels (blue, orange, gold) for which
+fuel something is.
+
+### MUI's stock palette could not be used
+
+Its primary is a blue and its warning an orange - exactly the two colours the
+fuels had just been given so the owner's father cannot mix up a nozzle. Using
+them would have put a blue button beside a blue Petrol badge on the Readings
+screen and spent the cue on chrome. So `AppTheme.js` themes MUI to the app's
+own palette instead: green primary, red error, amber warning.
+
+That also closed a split the app already had. Buttons were MUI blue while
+links, success messages, "Entered" chips and every positive figure were brand
+green - two primaries, and the blue one belonged to neither the app nor the
+fuels.
+
+**Primary is brand-700, not brand-600.** MUI puts white text on a contained
+button, and white on brand-600 (#059669) is 3.77:1, under AA - which the old
+`.btn-primary` had been shipping unnoticed since it used the same fill.
+brand-700 is 5.48:1. Confirmed against the rendered button rather than the
+source: computed style reported `rgb(4, 120, 87)` on white.
+
+### What the decorative hues were actually doing: nothing
+
+Three places used colour only to tell items apart, and all three already had a
+stronger cue:
+
+- **Asset categories** had five hues and five distinct icons - a car, a
+  wrench, a building, a monitor, a tag. Shape survives poor light and colour
+  blindness, which is the argument `Icon.js` already makes for having icons at
+  all, so the hue was a weaker copy of what the icon said. Neutral chips now.
+- **Customer avatars** had seven hues; the initial is what identifies the
+  customer. Four tints of slate and green now, enough to keep a list from
+  looking uniform.
+- **Stat tile rings** had seven hues, one per KIND of thing - fuel blue, oil
+  violet, stock teal, banking indigo. Two of those were the fuels' own colours,
+  so a ring on "Litres sold" quietly competed with the badge. They now carry
+  meaning only: green money arriving, amber money owed, red look at this,
+  slate otherwise.
+
+The rule that came out of it: **colour a thing only when the colour adds
+meaning its shape does not.**
+
+### One colour was left alone on purpose
+
+`CashCreditChart` uses green and violet, which looks like exactly the kind of
+stray hue this audit was removing, and the obvious fix was to make credit
+amber to match the "money owed" ring. The file says not to: that pair was
+chosen with a palette validator because green/violet separates for red-green
+colour blindness (deutan dE 25.2) where green/amber does not. Consistency does
+not outrank being readable. It is now marked as a deliberate exception so the
+next audit does not spend the same half hour rediscovering it.
+
+Two stale references also went: a Dashboard comment still describing diesel as
+`#FCFC62` yellow, and a chart comment calling the fuel pair "navy/yellow".

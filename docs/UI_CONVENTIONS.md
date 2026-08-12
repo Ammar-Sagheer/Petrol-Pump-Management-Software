@@ -1415,6 +1415,42 @@ a toolbar or an error state, not as a headline.
 The hierarchy problem it was solving is real but is better solved by section
 order and figure size. Recorded so it is not tried a third time.
 
+## Two palettes, and they never overlap
+
+The app uses **two** colour vocabularies, deliberately kept apart:
+
+- **Chrome** — what the app is doing. Green (primary, positive, done), amber
+  (money owed or gone), red (danger, alert), slate (everything else).
+- **Data** — which fuel this is. Blue petrol, orange diesel, gold lubricant,
+  from `app/_lib/fuel-colors.js` only.
+
+**Nothing in the chrome may use blue, orange or gold**, and nothing outside
+`fuel-colors.js` may use them either. That is the whole rule, and it exists
+because the fuel colours do a safety job — the owner's father reads them to
+know which nozzle he is entering — and a colour spent twice is a colour that
+has stopped meaning anything.
+
+- **The MUI theme is the chrome palette** (`app/_components/ui/AppTheme.js`).
+  MUI's own defaults could not be used: its primary is a blue and its warning
+  an orange, which are exactly the two the fuels own. Its stock palette would
+  have put a blue button next to a blue Petrol badge on the Readings screen.
+- **Primary is `brand-700` (#047857), not `brand-600`.** MUI puts white text
+  on a contained button, and white on brand-600 is 3.77:1 — under AA. The old
+  `.btn-primary` used brand-600 and had been shipping that unnoticed.
+  brand-700 is 5.48:1.
+- **Colour a thing only when the colour adds meaning its shape does not.** The
+  audit that produced this removed five hues that were decorating rather than
+  saying anything: asset categories that already had five distinct icons,
+  customer avatars that already had initials, stat rings on tiles whose icon
+  already named them. Where a ring stayed coloured, the colour says something
+  the icon cannot — a wallet says "expenses", the amber says "money leaving".
+- **The one documented exception is `CashCreditChart`'s violet**, and it must
+  stay. Making credit amber would have matched the stat tiles, but that pair
+  was chosen with a palette validator: green/violet separates for red-green
+  colour blindness where green/amber does not. **Consistency does not outrank
+  being readable by the person using the app.** Check for a written reason
+  before unifying a colour that looks out of place.
+
 ## Petrol is blue and dark; diesel is orange and light
 
 The pair exists to stop one specific mistake: a reading typed against the
