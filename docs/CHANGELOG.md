@@ -2415,3 +2415,94 @@ What actually caught it was a devcheck page deliberately written **without**
 URL, reproducing the client-navigation path. The fix was then confirmed the
 only way worth trusting: by reintroducing the bug and checking the test went
 red (it did, with the owner's exact error), then removing it again.
+
+## Petrol went blue, diesel went orange
+
+The owner asked for a pair his father cannot mix up. The mistake being
+designed out is concrete: a closing reading typed against the wrong nozzle,
+which poisons every later day because each opening comes from the day before.
+
+**Blue against orange, dark against light.** The old pair — the owner's own
+teal `#54A2B3` and yellow `#FCFC62` — worked, but only just. They sat 2.67x
+apart in luminance, and the yellow was near enough to lubricant's gold to blur
+a purchase list. The new pair is 4.48x apart, on opposite sides of the colour
+wheel, and differs in a third way as well: petrol's fill is dark and carries
+WHITE letters, diesel's is light and carries DARK ones. Three independent
+cues, so the pair survives a dim office, a failing screen, and colour-vision
+deficiency — blue against orange does, where red against green would not.
+
+The module's own rule was the thing to respect here, and it nearly got broken:
+the first candidate was a mid blue against a mid orange, which is a fine-
+looking pair and 8.3:1 against 7.9:1 — i.e. the same weight, exactly what the
+owner rejected once before as "they both look the same, both are dark". The
+lightness gap is checked now rather than assumed, and the numbers are written
+into `fuel-colors.js`.
+
+**`border` is a step lighter than `onWhite`.** At text-grade darkness the 8px
+nozzle rail read as near-black for petrol and as brown — close enough to the
+app's red to look like a warning — for diesel. A rule only has to be seen; text
+has to be read, so the two jobs take different values of the same hue.
+
+**Two things had to move out of amber**, because diesel now owns orange and two
+warm colours competing on one row is exactly the confusion this was meant to
+end: the readings "Enter" chip (now neutral slate) and the unit progress bar
+(now green whether part-done or complete). The nozzle row's state tint
+inverted as a result — a finished row settles into a faint green matching the
+check in its unit header, and a row still to enter stays plain white and stands
+out against them. The colour budget on that row belongs to the fuel.
+
+**A corner of the app was still on the old colours and nearly stayed there.**
+The customer detail page's "Fuel taken in total" tiles hard-coded `bg-sky-50`
+and `bg-amber-50` instead of calling `fuelColor()`, so they were invisible to
+a change made in the module — the exact drift that caused the module to be
+written in the first place. Found by grepping for fuel names next to colour
+classes rather than by looking, which is the only reliable way to find this.
+
+**Verified** by rendering all three badges together, the filled bands, the
+Stock dip boxes (the other surface where typing into the wrong one costs
+something) and the full readings sheet with both fuels interleaved, at 1100px
+and 400px.
+
+## The Readings unit header wears its fuel
+
+The header strip had a wide empty middle and said nothing the rows below did
+not already say. It now carries the unit's fuel as a filled band - pale while
+there is still a nozzle to enter, filled dark once the pump is finished.
+
+**Hue says which fuel, lightness says whether there is work left.** Two
+questions on two channels, so neither has to borrow the other's. That needed a
+new pair of tokens in `fuel-colors.js` - `soft` (pale tint, own dark text) and
+`strong` (dark relative, white text) - because `solid` could not do the job
+alone: for diesel `solid` IS the light band, so an emphasised header built
+from it would have come out paler than the quiet one.
+
+Everything inside the band takes its colour from the band rather than being
+coloured itself - `currentColor` for the icon, white-alpha for the chip and
+the progress track - which is what lets one pair of classes serve both a pale
+band with dark text and a dark band with white text. The progress fill is the
+only exception: green on a pale band, white on a filled one, because green on
+dark rust is a third hue fighting for a 6px strip.
+
+**A unit with two different fuels falls back to neutral.** A dispenser is
+normally plumbed to one tank and every unit at this pump is single-fuel, but
+the schema does not require it, and a unit selling both would be mislabelled
+by either colour. Rendered that case deliberately in the check rather than
+assuming the real data would never produce it.
+
+## The finished unit's progress bar was reading as a stray white rule
+
+Reported as "the progress bar looks white even when filled". It was: on a
+filled dark header a 100% bar is entirely fill, with no empty track left to
+contrast against, so it stopped looking like a bar and started looking like a
+white line left behind by mistake.
+
+The bar is now only rendered while a unit is unfinished. A finished one is at
+100% by definition, so the bar was carrying no information there - the filled
+band, the check icon and "2 of 2 entered" already say it three times over. The
+general rule, which is worth remembering the next time a progress indicator
+goes on a coloured surface: **show a bar only while there is progress left to
+show.**
+
+The gap between unit cards also went from 20px to 32px, so the three pumps
+read as three separate things to work through rather than one continuous
+stack.

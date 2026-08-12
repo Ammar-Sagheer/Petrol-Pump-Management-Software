@@ -1415,27 +1415,104 @@ a toolbar or an error state, not as a headline.
 The hierarchy problem it was solving is real but is better solved by section
 order and figure size. Recorded so it is not tried a third time.
 
+## Petrol is blue and dark; diesel is orange and light
+
+The pair exists to stop one specific mistake: a reading typed against the
+wrong nozzle. The owner asked for two colours his father cannot mix up, so
+they now differ on **three** axes at once, and all three are load-bearing.
+
+| | Petrol | Diesel |
+|---|---|---|
+| Hue | blue | orange (opposite on the wheel) |
+| Weight | dark `#075985` | light `#FDBA74` (4.48x apart in luminance) |
+| Letters on the fill | white | dark |
+
+- **Hue alone is not enough, and lightness is the cue that survives.** Petrol
+  and diesel were once a dark navy and a dark amber, and the owner's verdict
+  was immediate: "they both look the same, both are dark." A later pair of his
+  sat 1.22x apart, which is no gap either. The teal/yellow pair this replaced
+  worked, but at 2.67x; blue against orange is 4.48x. **If a change would leave
+  the two fuels the same weight, it is wrong however good the hues look.**
+- **Blue against orange also survives colour blindness**, which red against
+  green would not. That is not incidental — it is why this pair and not a more
+  obvious one.
+- **A light colour cannot do every job.** Diesel's `#FDBA74` is 10.6:1 behind
+  dark text and excellent as a filled band, but 1.6:1 as a rule on a white
+  card — invisible. So each fuel carries a darker relative of the same hue for
+  rules, rails, chart marks and text on white. The identity is the hue; the
+  lightness is chosen per job. Never reach for `solid` to draw a line.
+- **`border` is a step lighter than `onWhite` on purpose.** A rule only has to
+  be seen; text has to be read. At the text-grade darkness an 8px rail read as
+  near-black for petrol and as brown — close to the app's red — for diesel, so
+  both rules use the middle value and both texts use the dark one.
+- **Lubricant keeps its gold** and is deliberately not part of this. Nobody
+  enters a lubricant reading into a nozzle, so it is not in the pair that gets
+  confused; and the owner settled on gold after rejecting violet ("girlish",
+  his word), rust and navy. Diesel moving from yellow to orange takes it
+  *further* from the gold than it was.
+
+## `soft` and `strong`: one hue, two weights, so lightness is free
+
+Each fuel carries a **pair** of filled-band tokens beyond `solid`:
+
+- `soft` — the pale tint of the hue behind its own dark relative (~6.5:1)
+- `strong` — the dark relative filled, behind white text (~7.5:1)
+
+They exist so a surface can use **hue to say which fuel and lightness to say
+something else entirely**. The Readings unit header does exactly that: it wears
+its unit's fuel, `soft` while there is still a nozzle to enter and `strong`
+once the pump is finished. Two questions, two channels, neither borrowing the
+other's.
+
+- **`strong` is not `solid`.** For diesel they are opposites — `solid` is the
+  light orange band, so an "emphasised" header built from it would be *paler*
+  than the quiet one. `strong` always comes from the dark relative.
+- **Everything inside such a band takes its colour from the band**:
+  `currentColor` for icons, white-alpha for chips and progress tracks. That is
+  what lets one pair of classes serve both a pale band with dark text and a
+  dark band with white text — nothing inside has to know which it is on.
+- **A progress bar disappears at 100%, it does not sit there full.** A full
+  bar has no empty track left to contrast against, so it stops reading as a
+  bar and starts reading as a rule someone left behind - which is exactly how
+  the owner reported it ("the progress bar looks white even when filled"). A
+  finished unit is by definition at 100%, so the bar is dropped and the filled
+  band, the check and "2 of 2 entered" carry it instead. Show a bar only while
+  there is progress left to show.
+- **A container whose contents disagree gets `NEUTRAL_FUEL`.** A unit is
+  normally plumbed to one tank, but the schema does not require it, and a unit
+  selling both fuels would be mislabelled by either colour. Falling back to
+  neutral is the honest answer; picking the first nozzle's fuel and calling the
+  whole pump diesel is not.
+
 ## A badge is not a card band: legibility per surface, not per fuel
 
 `FuelBadge` and the card bands (Dashboard, Stock) both come from
-`app/_lib/fuel-colors.js`, but they no longer read the same token. The card
-bands use `solid` - the raw colour, exactly as the owner gave it, with dark
-text where that passes (petrol 6.1:1, lubricant similar). That is fine on a
-large area: a lot of surface makes middling contrast forgivable, and the point
-of `solid` there is to be the owner's literal colour.
+`app/_lib/fuel-colors.js`, but they do not always read the same token. The
+card bands use `solid`; badges read `color.badge`.
 
-A badge is the opposite case - a small pill, bold small text, read at a glance
-down a column of nozzles on a tablet in poor light. The same 6.1:1 that reads
-fine as a card header read as "hard to read" at badge size, and the owner said
-so. So badges read `color.badge` instead: for petrol and lubricant, the DARK
-relative of the same hue behind white text (7.7:1 and 7.6:1) rather than the
-raw colour behind dark text. Diesel keeps the raw colour for its badge too -
-it is light enough that white text would be the failure (1.09:1), not the fix.
+They happen to agree for petrol and diesel now — both fills are already at the
+right weight for white and dark letters respectively — but they diverge for
+lubricant, whose badge is the dark relative of its gold behind white text
+(7.6:1) rather than the raw gold behind dark text (which passes AA but reads
+as "hard to see" at chip size, and the owner said so).
 
 **The rule generalises: pick the fill AND the text colour for the job the
 surface is actually doing, not once per fuel.** A colour that is right as a
 large band can be wrong as a small chip, and the fix is a second token, not a
 compromise value that is mediocre at both jobs.
+
+## Never hard-code a fuel's colour at the call site
+
+`app/_lib/fuel-colors.js` is the only place a fuel gets a colour. This is not
+tidiness — it is the failure that created the module. The colours had been
+retyped in six files and drifted, so the same fuel was one colour in a chart
+and another in the table beneath it.
+
+It happened again during the blue/orange change: the customer detail page's
+"Fuel taken in total" tiles carried their own `bg-sky-50` / `bg-amber-50`,
+were invisible to the change, and were left as the only corner of the app
+still wearing the old pair. **If a surface needs a fuel's colour, call
+`fuelColor()`.** If the token it needs does not exist, add one to the module.
 
 ## Nozzle rows get the same accent as the Dashboard's cards
 

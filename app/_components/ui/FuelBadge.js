@@ -17,12 +17,15 @@ import { fuelColor, FUEL_COLORS } from '@/app/_lib/fuel-colors';
  * This reads `color.badge`, NOT `color.solid`. A badge is a small pill with
  * bold small text, read at a glance down a column of nozzles - a harder job
  * than the big card bands `solid` was tuned for, where a lot of surface makes
- * middling contrast forgivable. Petrol and lubricant sit in the middle of the
- * lightness range, so their badge is the dark relative of the same hue behind
- * WHITE text (7.7:1 and 7.6:1) rather than the raw colour behind dark text
- * (6.1:1 and passes AA, but read as "hard to see" at this size in poor light).
- * Diesel keeps the raw colour - it is light enough that white text would be
- * the failure (1.09:1), not the fix.
+ * middling contrast forgivable.
+ *
+ * Petrol's chip is DARK BLUE WITH WHITE TEXT and diesel's is LIGHT ORANGE
+ * WITH DARK TEXT, which is three cues apart rather than one: opposite hue,
+ * opposite weight, and opposite letter colour. That last one is what still
+ * works when the screen is failing or the light is bad, and it is the reason
+ * the two are not simply the same treatment in two hues. Lubricant's chip is
+ * the dark relative of its gold behind white text (7.6:1) - the raw gold
+ * behind dark text passes AA but reads as "hard to see" at this size.
  *
  * The word is always there beside the colour. This badge is never the only
  * thing saying which fuel something is.

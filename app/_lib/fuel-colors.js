@@ -9,61 +9,52 @@
  * fuel was one colour in a chart and another in the table under it.
  *
  * ---------------------------------------------------------------------------
- * THE HUES ARE THE OWNER'S. THE LIGHTNESS IS THE RULE.
+ * BLUE AGAINST ORANGE, AND DARK AGAINST LIGHT.
  * ---------------------------------------------------------------------------
  *
- * He chose these three off his own forecourt: #54A2B3 petrol, #FCFC62 diesel,
- * #D4AF37 lubricant. They are used exactly as given wherever they are FILLED.
+ * The owner asked for a pair his father cannot mix up, because the mistake
+ * this prevents is a real one: a reading typed into the wrong nozzle's box.
+ * So petrol is BLUE AND DARK, diesel is ORANGE AND LIGHT, and they differ on
+ * both axes at once.
  *
- * What the code has to protect is the separation, and it was learned the hard
- * way. Petrol and diesel were once two colours of the same weight - a dark navy
- * and a dark amber - and the owner's verdict was immediate: "they both look the
- * same, both are dark." A later pair of his, #FFD865 and #FFBF00, sat 1.22x
- * apart, which is no gap either.
+ * The hues were his originally - #54A2B3 petrol, #FCFC62 diesel - and the
+ * pair worked, but only just: teal and yellow sit 2.67x apart in luminance,
+ * and the yellow was close enough to lubricant's gold to blur a purchase
+ * list. Blue against orange is the strongest pair available here. They are
+ * opposite on the colour wheel, and - unlike red against green - the
+ * difference survives the common colour-vision deficiencies, which red-green
+ * would not.
+ *
+ * WHAT THE CODE HAS TO PROTECT IS THE SEPARATION, and it was learned the hard
+ * way. Petrol and diesel were once two colours of the same weight - a dark
+ * navy and a dark amber - and the owner's verdict was immediate: "they both
+ * look the same, both are dark." A later pair of his, #FFD865 and #FFBF00,
+ * sat 1.22x apart, which is no gap either.
  *
  * Lightness is the cue the eye reads first and the one that survives poor
  * light, a cheap tablet and any colour-vision deficiency; hue is the weaker
- * signal. This set works because petrol and diesel - the pair that actually
- * gets confused - are ~2.9x apart in luminance AND on opposite sides of the
- * colour wheel, teal against yellow. Keep that. If a change would leave the two
- * fuels the same weight, it is wrong however good the hues look.
+ * signal. This set is 4.48x apart in luminance - a wider gap than the 2.67x
+ * of the pair it replaced - AND on opposite sides of the wheel. Keep both. If
+ * a change would leave the two fuels the same weight, it is wrong however
+ * good the hues look.
  *
- * A LIGHT COLOUR CANNOT DO EVERY JOB. #FCFC62 is 16.4:1 behind dark text and
- * superb as a filled band, but 1.09:1 against a white card - invisible as a
- * 4px rule, and hopeless as text. So each fuel carries a darker relative of the
- * SAME HUE for rules, borders, chart marks and text on white. The identity is
- * the hue; the lightness is chosen per job.
+ * WHICH ONE IS DARK IS NOT ARBITRARY EITHER. Petrol takes the dark blue and
+ * wears WHITE text; diesel takes the light orange and wears DARK text. So the
+ * two badges differ in the colour of their letters as well as their fill,
+ * which is a third cue on top of hue and weight, and the one that still works
+ * in a photocopy or a failing screen.
  *
- * Each filled band clears AAA on its own text: 6.1:1, 16.4:1 and 8.5:1.
+ * A LIGHT COLOUR CANNOT DO EVERY JOB. Diesel's #FDBA74 is 10.6:1 behind dark
+ * text and excellent as a filled band, but far too pale to be a 4px rule on a
+ * white card or to be read as text. So each fuel also carries a darker
+ * relative of the SAME HUE for rules, borders, chart marks and text on white.
+ * The identity is the hue; the lightness is chosen per job.
  *
- * `raw` is the owner's exact hex, untouched, for the one shape of surface that
- * needs neither: a small filled swatch that carries its OWN ring for an edge,
- * so it never depends on contrast against whatever it is sitting on. It was
- * added after the darkened accent rule and heading text on the Dashboard left
- * diesel showing as olive everywhere - correct for legibility, but nothing on
- * the card was actually diesel's colour, and the owner noticed. Do not reach
- * for `raw` as a fill or a flat bar background: diesel and lubricant are only
- * 1.1:1 and 1.7:1 against the progress-bar track, next to invisible.
- *
- * Lubricants get a third colour rather than sharing one: they appear in the
- * same purchase list as the two fuels, and a list where three things are told
- * apart only by their text is a list nobody scans. Theirs has been violet
- * ("girlish", said the owner - a perfectly good reason on an app he uses every
- * morning), then rust, then navy, and is now his gold.
- *
- * TWO WEIGHTS, AND THE LOUD ONE IS RATIONED.
- *
- * `solid` fills a header band; `accent` is a 4px rule along the top of an
- * otherwise plain card. The filled band is reserved for surfaces where TYPING
- * INTO THE WRONG ONE COSTS SOMETHING - the Stock page's dip boxes, where a
- * petrol reading in the diesel card corrupts the baseline every later day is
- * measured from. Everywhere the fuels are only being READ, the accent does the
- * job: it separates them just as reliably and leaves the page calm.
- *
- * The first version banded everything. Six saturated blocks down one dashboard
- * is colour-blocking rather than design, and the owner said so. Loud
- * everywhere is the same as loud nowhere - nothing stands out because
- * everything does.
+ * Lubricant keeps its gold. It is not part of the pair that gets confused -
+ * nobody enters a lubricant reading into a nozzle - and the owner settled on
+ * that colour after violet ("girlish", his word), rust and navy. Diesel
+ * moving from yellow to orange takes it further from the gold than it was,
+ * not closer.
  *
  * COLOUR IS NEVER THE ONLY CUE. Every surface that uses these also names the
  * fuel in words - the badge carries its label, the cards carry a heading, the
@@ -76,60 +67,85 @@
 export const FUEL_COLORS = {
   petrol: {
     label: 'Petrol',
-    /** The exact colour, filled. Dark text on it - 6.1:1. Right for a LARGE
-        area (a card band): the eye has a lot of surface to resolve the letter
-        shapes against, even at middling contrast. */
-    solid: 'bg-[#54A2B3] text-ink-900',
+    /** THE DARK ONE, filled, with WHITE text - 7.6:1. Petrol being the dark
+        half of the pair is the point: see the header. */
+    solid: 'bg-[#075985] text-white',
     /** Muted text on that band - captions, capacities. */
-    solidMuted: 'text-ink-800',
-    /** A small pill is the opposite case - little surface, bold small text,
-        read at a glance down a list of nozzles. 6.1:1 read as "hard to read"
-        there even though it passes AA, so badges get the dark relative behind
-        WHITE text instead - 7.7:1, and unambiguous at a glance. */
-    badge: 'bg-[#2C5963] text-white',
-    /** Outline round a filled band, and the 4px quiet rule. Same hue, dropped
-        in lightness: the raw colour is only 2.9:1 against a white card, which
-        is thin for a line you are meant to notice. */
-    border: 'border-[#38727F]',
-    accent: 'border-t-[#38727F]',
+    solidMuted: 'text-sky-100',
+    /** A QUIET filled band - the pale tint of the hue behind its own dark
+        relative, 6.6:1. For a header that should say which fuel without
+        shouting. */
+    soft: 'bg-sky-100 text-[#075985]',
+    /** THE SAME BAND, EMPHASISED - the dark relative filled, white text,
+        7.6:1. `soft` and `strong` are a pair: same hue, one quiet and one
+        loud, so a surface can use lightness to say something of its own
+        (done/not done, say) while hue keeps saying which fuel. */
+    strong: 'bg-[#075985] text-white',
+    /** Same fill and the same white text as the band. The badge does not need
+        a different treatment here the way it did when petrol was a mid teal:
+        the fill is already dark enough for white letters. */
+    badge: 'bg-[#075985] text-white',
+    /** Outline round a filled band, and the rules and rails on white. A step
+        LIGHTER than the band on purpose: at #075985 an 8px rail reads as
+        near-black before it reads as blue, and the rail's whole job is hue.
+        Still 5.9:1 on white, which is far more than a rule needs. Text uses
+        `onWhite` instead, where the extra darkness earns its keep. */
+    border: 'border-[#0369A1]',
+    accent: 'border-t-[#0369A1]',
     /** A chosen option inside a form on this fuel's card. */
-    selected: 'border-[#38727F] bg-[#54A2B3]/15 text-[#2C5963]',
-    /** As text on white. The raw colour fails badly there; this is 7.7:1. */
-    onWhite: 'text-[#2C5963]',
-    /** Charts and progress bars - marks that sit on white or pale grey. Dark
-        relative, not the raw colour: raw petrol is 2.4:1 against the progress
-        track and would be nearly invisible there. */
-    hex: '#38727F',
-    /** The owner's exact hex, unmodified. Only safe where nothing needs to sit
-        ON it and nothing needs IT to contrast against its background on its
-        own - a filled dot with its own ring, say. Diesel and lubricant are too
-        pale to read as a flat fill against white or the progress track
-        (1.1:1, 1.7:1); `raw` exists for the one context where that does not
-        matter. */
-    raw: '#54A2B3',
+    selected: 'border-[#075985] bg-[#0EA5E9]/15 text-[#075985]',
+    /** As text on white - 7.6:1. */
+    onWhite: 'text-[#075985]',
+    /** Charts and progress bars - marks that sit on white or pale grey. A step
+        lighter than the band so a 2px chart line still reads as blue rather
+        than as near-black, and still 5.9:1 on white. */
+    hex: '#0369A1',
+    /** A filled swatch that carries its own ring for an edge, so it can be the
+        vivid hue without needing contrast of its own. */
+    raw: '#0EA5E9',
   },
   diesel: {
     label: 'Diesel',
-    /** The owner's #FCFC62, filled. 16.4:1 with dark text - the one fuel
-        where the raw colour is already the best choice for a badge too: it is
-        so light that swapping to white text (1.09:1) would be the failure,
-        not the fix. */
-    solid: 'bg-[#FCFC62] text-ink-900',
+    /** THE LIGHT ONE, filled, with DARK text - 10.6:1. The mirror of petrol on
+        every axis: lighter fill, darker letters. */
+    solid: 'bg-[#FDBA74] text-ink-900',
     solidMuted: 'text-ink-800',
-    badge: 'bg-[#FCFC62] text-ink-900',
-    border: 'border-[#5A5A02]',
-    accent: 'border-t-[#5A5A02]',
+    /** 6.4:1. */
+    soft: 'bg-orange-100 text-[#9A3412]',
+    /** 7.3:1. NOT `solid` - diesel's band is the light one, so the emphasised
+        version has to come from the dark relative instead, or a "loud" header
+        would be paler than the quiet one. */
+    strong: 'bg-[#9A3412] text-white',
+    /** The light fill and dark text again, so the two fuels' badges differ in
+        the colour of their letters as well as their fill. */
+    badge: 'bg-[#FDBA74] text-ink-900',
+    /** The dark relative, because #FDBA74 as a rule on a white card is 1.6:1
+        and all but invisible. #C2410C rather than the darker #9A3412 for the
+        same reason petrol's rule is lighter than its band: at #9A3412 an 8px
+        rail reads brown, close enough to the app's red to look like a
+        warning, where this reads unmistakably orange. 5.2:1 on white. */
+    border: 'border-[#C2410C]',
+    accent: 'border-t-[#C2410C]',
     /** A chosen option inside a form on this fuel's card. */
-    selected: 'border-[#5A5A02] bg-[#FCFC62]/25 text-[#5A5A02]',
-    onWhite: 'text-[#5A5A02]',
-    hex: '#5A5A02',
-    raw: '#FCFC62',
+    selected: 'border-[#9A3412] bg-[#FB923C]/20 text-[#9A3412]',
+    /** As text on white - 7.3:1. */
+    onWhite: 'text-[#9A3412]',
+    /** Charts and progress bars - 5.2:1 on white, and unmistakably orange
+        against petrol's blue in a two-line chart. */
+    hex: '#C2410C',
+    /** The vivid hue, for a swatch with its own ring. */
+    raw: '#FB923C',
   },
   lubricant: {
     label: 'Lubricant',
     solid: 'bg-[#D4AF37] text-ink-900',
     solidMuted: 'text-ink-800',
-    /** Same reasoning as petrol's badge: dark relative, white text, 7.6:1. */
+    /** 6.5:1. */
+    soft: 'bg-[#D4AF37]/20 text-[#655216]',
+    /** 7.6:1. */
+    strong: 'bg-[#655216] text-white',
+    /** Dark relative behind white text, 7.6:1 - a badge is small and bold and
+        wants the unambiguous version. */
     badge: 'bg-[#655216] text-white',
     border: 'border-[#977B20]',
     accent: 'border-t-[#977B20]',
@@ -145,6 +161,11 @@ export const NEUTRAL_FUEL = {
   label: '',
   solid: 'bg-ink-700 text-white',
   solidMuted: 'text-ink-100',
+  /** What a MIXED unit wears - one dispenser plumbed to two different tanks.
+      Neutral rather than either fuel's colour, because picking one would
+      label the whole unit as a fuel only half of it sells. */
+  soft: 'bg-ink-100 text-ink-700',
+  strong: 'bg-ink-700 text-white',
   badge: 'bg-ink-700 text-white',
   border: 'border-ink-300',
   accent: 'border-t-ink-400',

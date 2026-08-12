@@ -11,6 +11,7 @@ import {
 import { getReadingSheet, getCustomers, getCreditSalesForReadings } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import Icon from '@/app/_components/ui/Icon';
+import { fuelColor, NEUTRAL_FUEL } from '@/app/_lib/fuel-colors';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
 import ClearDayButton from '@/app/_components/admin/ClearDayButton';
@@ -182,11 +183,27 @@ export default async function ReadingsPage({ searchParams }) {
           the page reads as three pumps to work through rather than six
           unrelated forms, and the rows inside it get shorter because they
           no longer each need to carry their own edge. */}
-      <div className="space-y-5">
+      <div className="space-y-8">
         {units.map((unit) => {
           const entered = unit.rows.filter((row) => row.reading_id).length;
           const allDone = entered === unit.rows.length;
           const percent = Math.round((entered / unit.rows.length) * 100);
+
+          /*
+           * THE HEADER WEARS THE UNIT'S FUEL, quietly until the pump is
+           * finished and then filled. Hue says which fuel, lightness says
+           * whether there is anything left to do - two questions, two cues,
+           * neither borrowing the other's channel.
+           *
+           * A unit is normally plumbed to one tank, so its nozzles share a
+           * fuel. The schema does not require that, though, and a unit
+           * selling both would be mislabelled by either colour - so a mixed
+           * one falls back to neutral rather than picking the first nozzle's
+           * fuel and calling the whole pump diesel.
+           */
+          const fuels = new Set(unit.rows.map((row) => row.fuel_type));
+          const unitColor = fuels.size === 1 ? fuelColor([...fuels][0]) : NEUTRAL_FUEL;
+          const headerClass = allDone ? unitColor.strong : unitColor.soft;
 
           return (
             <section
@@ -194,21 +211,25 @@ export default async function ReadingsPage({ searchParams }) {
               aria-label={`Unit ${unit.unitNumber}`}
               className="card overflow-hidden"
             >
+              {/* Everything inside the header takes its colour from the band
+                  rather than being coloured on its own - `currentColor` for
+                  the icon, white-alpha for the chip and the track. That is
+                  what lets one pair of classes serve both a pale band with
+                  dark text and a dark band with white text: nothing in here
+                  has to know which it is sitting on. */}
               <div
-                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${
-                  allDone ? 'bg-brand-50' : 'bg-ink-50'
-                }`}
+                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${headerClass}`}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                    allDone ? 'bg-brand-100 text-brand-700' : 'bg-white text-ink-500'
+                    allDone ? 'bg-white/20' : 'bg-white/70'
                   }`}
                   aria-hidden="true"
                 >
                   <Icon name={allDone ? 'check' : 'readings'} className="h-5 w-5" />
                 </span>
 
-                <h2 className="text-base font-bold uppercase tracking-wide text-ink-800">
+                <h2 className="text-base font-bold uppercase tracking-wide">
                   Unit {unit.unitNumber}
                 </h2>
 
@@ -217,27 +238,34 @@ export default async function ReadingsPage({ searchParams }) {
                     same thing as the words beside it - it is the glanceable
                     half of the pair, not the only carrier. */}
                 <span
-                  className={`badge ${
-                    allDone ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-700'
-                  }`}
+                  className={`badge ${allDone ? 'bg-white/20' : 'bg-white/70'}`}
                 >
                   {entered} of {unit.rows.length} entered
                 </span>
 
-                <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
-                  <div
-                    className="h-1.5 overflow-hidden rounded-full bg-ink-200"
-                    role="img"
-                    aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
-                  >
+                {/*
+                 * ONLY WHILE THERE IS PROGRESS TO SHOW. A finished unit is by
+                 * definition at 100%, and a full bar has no empty track left
+                 * to contrast against - on the filled header it stopped
+                 * reading as a bar at all and just looked like a white rule
+                 * someone had left there. Nothing was lost by removing it:
+                 * the filled band, the check and "2 of 2 entered" already say
+                 * the pump is done, three times over.
+                 */}
+                {allDone ? null : (
+                  <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
                     <div
-                      className={`h-full rounded-full transition-all ${
-                        allDone ? 'bg-brand-500' : 'bg-amber-400'
-                      }`}
-                      style={{ width: `${percent}%` }}
-                    />
+                      className="h-1.5 overflow-hidden rounded-full bg-white/70"
+                      role="img"
+                      aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-brand-500 transition-all"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="divide-y divide-ink-100 border-t border-ink-200">
