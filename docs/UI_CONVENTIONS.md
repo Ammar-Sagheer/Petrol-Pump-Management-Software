@@ -11,29 +11,29 @@ Everything in `app/_components/ui/` is generic and has no idea what a pump is.
 Reach for one of these before writing markup; each has its own section below or
 a comment at the top of the file saying why it exists.
 
-| Component | What it is for |
-|---|---|
-| `<Dialog>` | Native `<dialog>` + `showModal()`. Full-screen sheet on a phone, centred panel above `sm`. No click-outside-to-close, deliberately. |
-| `<ConfirmAction>` | Every "are you sure?": trash icon → dialog. Replaced seven inline confirms that shifted the page. |
-| `<Pager>` | The row under a paged table — "Showing 1 to 8 of 26" plus Previous/Next. `pageFrom(searchParams)` reads and clamps `?page=`. |
-| `<Button>` | Every button in the app. Material UI, with the three intents as `variant` (`primary` / `secondary` / `danger`). |
-| `<SubmitButton>` | A submit that disables itself and shows a pending label. Renders a `<Button>`. Mandatory on anything destructive. |
-| `<PendingLink>` | A link that shows a spinner while the navigation is in flight. Every server-rendered page needs one round trip. |
-| `<IconButton>` | Square 44px icon-only row action. The one place an icon may stand without a word. |
-| `<NumberInput>` | Blocks scroll-wheel and arrow-key changes that silently corrupt a typed figure. Use instead of bare `type="number"`. |
-| `<FormMessage>` | Renders the `{ ok, message }` shape every Server Action returns. |
-| `<EmptyState>` / `<PageHeader>` / `<FuelBadge>` / `<Icon>` / `<Spinner>` / `<BrandMark>` / `<Toast>` | Small, self-explanatory; see the files. |
+| Component                                                                                            | What it is for                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `<Dialog>`                                                                                           | Native `<dialog>` + `showModal()`. Full-screen sheet on a phone, centred panel above `sm`. No click-outside-to-close, deliberately. |
+| `<ConfirmAction>`                                                                                    | Every "are you sure?": trash icon → dialog. Replaced seven inline confirms that shifted the page.                                   |
+| `<Pager>`                                                                                            | The row under a paged table — "Showing 1 to 8 of 26" plus Previous/Next. `pageFrom(searchParams)` reads and clamps `?page=`.        |
+| `<Button>`                                                                                           | Every button in the app. Material UI, with the three intents as `variant` (`primary` / `secondary` / `danger`).                     |
+| `<SubmitButton>`                                                                                     | A submit that disables itself and shows a pending label. Renders a `<Button>`. Mandatory on anything destructive.                   |
+| `<PendingLink>`                                                                                      | A link that shows a spinner while the navigation is in flight. Every server-rendered page needs one round trip.                     |
+| `<IconButton>`                                                                                       | Square 44px icon-only row action. The one place an icon may stand without a word.                                                   |
+| `<NumberInput>`                                                                                      | Blocks scroll-wheel and arrow-key changes that silently corrupt a typed figure. Use instead of bare `type="number"`.                |
+| `<FormMessage>`                                                                                      | Renders the `{ ok, message }` shape every Server Action returns.                                                                    |
+| `<EmptyState>` / `<PageHeader>` / `<FuelBadge>` / `<Icon>` / `<Spinner>` / `<BrandMark>` / `<Toast>` | Small, self-explanatory; see the files.                                                                                             |
 
 Pump-specific ones worth knowing about in `app/_components/admin/`:
 
-| Component | What it is for |
-|---|---|
-| `<DateNav>` | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change. |
+| Component                   | What it is for                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<DateNav>`                 | The day banner, arrows and date box on every dated page. `extraParams` carries a page's other filters through a day change.                                                                                                                                                                                                                                                                                                                                      |
 | `<StatGrid>` / `<StatTile>` | The headline-figures strip, on every page that has one — **never hand-roll a second copy**, which is how three pages ended up with the same latent bug once already. Container queries, not viewport breakpoints. `columns` takes 2, 3 or 4. Each tile is its own raised `.card`; `sub` renders as a tinted pill when `tone` is `positive`/`negative`, on its own full-width row below the figure. Pass `icon` (a name from `Icon.js`) for the icon-ring layout. |
-| `<TrendRange>` | The Dashboard's 7 / 14 / 30 / 90-day chart window. |
-| `<BalanceDirection>` | Which way a customer's balance moves, in register words: بنام / جمع. |
-| `<ActivityTable>` | The audit trail. The one list that is a grid rather than a table — see why below. |
-| `<GuideFlow>` | The bilingual guide's stages, steps, section map and roles table. |
+| `<TrendRange>`              | The Dashboard's 7 / 14 / 30 / 90-day chart window.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `<BalanceDirection>`        | Which way a customer's balance moves, in register words: بنام / جمع.                                                                                                                                                                                                                                                                                                                                                                                             |
+| `<ActivityTable>`           | The audit trail. The one list that is a grid rather than a table — see why below.                                                                                                                                                                                                                                                                                                                                                                                |
+| `<GuideFlow>`               | The bilingual guide's stages, steps, section map and roles table.                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## Design tokens (`app/_styles/globals.css`)
 
@@ -58,21 +58,21 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 or the app has two button systems again. `<Button>` takes the app's own
 intent name and maps it onto MUI:
 
-| `variant` | What it is for | MUI |
-|---|---|---|
-| `primary` | the one confirming action per view | `contained` |
-| `secondary` | everything else (the default) | `outlined` |
-| `danger` | destructive, or sign-out | `outlined` + `color="error"` |
+| `variant`   | What it is for                     | MUI                          |
+| ----------- | ---------------------------------- | ---------------------------- |
+| `primary`   | the one confirming action per view | `contained`                  |
+| `secondary` | everything else (the default)      | `outlined`                   |
+| `danger`    | destructive, or sign-out           | `outlined` + `color="error"` |
 
-- **One `primary` per view.** *One exception, deliberate*: the Lubricants
-  header carries *Record a lubricant sale* and *Record a loose oil sale* side
+- **One `primary` per view.** _One exception, deliberate_: the Lubricants
+  header carries _Record a lubricant sale_ and _Record a loose oil sale_ side
   by side, both primary. They are peers — two kinds of the same job, and the
   drum is the more frequent — so demoting either would point the reader at
   the wrong one. Two primaries are only right when neither action is
   subordinate; if one is, it is `secondary`.
 - **`danger` rather than hand-rolled red styles.** Two places used to write
   their own: the Sign out button, and Clear this day — the latter because it
-  wanted a *grey* disabled state rather than a faded red, which MUI's own
+  wanted a _grey_ disabled state rather than a faded red, which MUI's own
   disabled state gives for free.
 - **MUI's default look, at the owner's request** — its sizing, its uppercase
   labels, its palette. That means a tap target around 36px where the old
@@ -103,7 +103,7 @@ intent name and maps it onto MUI:
   nothing visible until the row disappeared. The owner reported it as the UI
   freezing, which is exactly what it looks like. A button that runs a Server
   Action and does not change is indistinguishable from a button that did not
-  register the tap.
+  register the tap..
 
   The exception is a plain GET form that navigates — the month pickers on
   Expenses and Reports — where the route change brings its own `loading.js`.
@@ -111,14 +111,14 @@ intent name and maps it onto MUI:
 - `<IconButton>` (`app/_components/ui/IconButton.js`) — a square icon-only
   button for a row action, currently the trash on every delete. It is the one
   deliberate exception to "icons never carry meaning alone": that rule is
-  about icons carrying *information*, and this is a control whose word was
+  about icons carrying _information_, and this is a control whose word was
   being repeated down every row of a table. `label` is mandatory and becomes
   both `aria-label` and the hover `title`, and the action behind it must
   confirm **in words** before anything happens — nothing here destroys on the
   first click.
 
-  Text stays where the words are the distinction: *Bring back* and *Delete
-  for good* sit side by side on the removed-customers row, and two icons
+  Text stays where the words are the distinction: _Bring back_ and _Delete
+  for good_ sit side by side on the removed-customers row, and two icons
   there would be a guess.
 
 ## Confirming a destructive action: a dialog, never inline
@@ -130,7 +130,7 @@ inline instead and all seven had the same fault. (`DeleteBankAccountButton`
 was already a dialog and is the precedent the rest now follow.)
 
 **Why inline was wrong.** Each one replaced its own 44px icon with a question,
-two buttons and sometimes a paragraph - *inside a table cell*. The row grew,
+two buttons and sometimes a paragraph - _inside a table cell_. The row grew,
 its column widened, and every row beneath it jumped down the page. On the
 Customers list the row you were aiming at moved while you were reading the
 question, which is the worst possible instant for a page to shift.
@@ -145,14 +145,14 @@ question, which is the worst possible instant for a page to shift.
   Closing on failure throws it away. `state.ok` closes it; `state.ok === false`
   renders the message in place.
 - **Room for the sentence that matters.** The fuel-rate confirm can now say
-  *"readings already entered keep the rate they were sold at"* as a full
+  _"readings already entered keep the rate they were sold at"_ as a full
   warning rather than six words crushed into a cell. If a delete has a
   consequence people assume wrongly, the dialog is where it goes.
 - **The trigger stays an icon**, per the `IconButton` rule - the row already
   names what the action applies to, and the dialog repeats it in words.
 - **The exception is `PurgeCustomerButton`**, which keeps its own `<Dialog>`:
-  its trigger has to be the words *Delete for good* because it sits beside
-  *Bring back*, and its body owns a text field whose value gates the submit.
+  its trigger has to be the words _Delete for good_ because it sits beside
+  _Bring back_, and its body owns a text field whose value gates the submit.
   When a confirmation needs more than a yes, write the dialog out.
 
 ## Forms and Server Actions
@@ -181,7 +181,7 @@ question, which is the worst possible instant for a page to shift.
   0.28s make a rupee, and the running balance drifts away from the rows above
   it.
 
-  Anything that *tests* a balance has to round the same way, or the screen and
+  Anything that _tests_ a balance has to round the same way, or the screen and
   the rule disagree — see `delete_customer`, which refuses removal on a
   non-zero balance and had to round too, otherwise an account reading "Rs 0"
   could not be removed and the reason quoted a figure nobody can pay.
@@ -201,6 +201,7 @@ question, which is the worst possible instant for a page to shift.
   **And watch for negative zero in output.** `Intl` formats −0.28 as the string
   `"-0"`, so a customer a few paisa the wrong side of zero had an Owes column
   reading "Rs -0". `formatPKR` collapses it.
+
 - **`format-helpers.js` exists for the same reason `date-helpers.js` does**:
   `helpers.js` reads request cookies and so cannot enter a client bundle, which
   previously left client components formatting inline and drifting. Server code
@@ -238,7 +239,7 @@ deliberate ones: Escape, the header `✕`, and the form's own Cancel. Give
 every dialog form a Cancel button; it is the visible way out.
 
 The one intentional exception is the nav drawer in `AdminSidebar.js`, which
-*does* close on its backdrop — it holds no input, and tap-outside-to-dismiss
+_does_ close on its backdrop — it holds no input, and tap-outside-to-dismiss
 is what people expect of a menu.
 
 **A form that arrives already scrolled hides its own Save button**, so a
@@ -300,21 +301,37 @@ useEffect(() => {
 
 return (
   <>
-    <Button variant="primary" type="button" onClick={() => { setShowResult(false); setIsOpen(true); }}>
+    <Button
+      variant="primary"
+      type="button"
+      onClick={() => {
+        setShowResult(false);
+        setIsOpen(true);
+      }}
+    >
       <span aria-hidden="true">+</span> Add whatever
     </Button>
 
     <Dialog open={isOpen} onClose={() => setIsOpen(false)} title="Add whatever">
       <form
         ref={formRef}
-        action={(formData) => { setShowResult(true); formAction(formData); }}
+        action={(formData) => {
+          setShowResult(true);
+          formAction(formData);
+        }}
         className="space-y-4 p-4"
       >
         {/* fields */}
         <FormMessage state={showResult ? state : null} />
         <div className="flex gap-2 border-t border-ink-200 pt-4">
           <SubmitButton className="flex-1">Save</SubmitButton>
-          <Button variant="secondary" type="button" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </Button>
         </div>
       </form>
     </Dialog>
@@ -348,9 +365,9 @@ field/form that caused them, not as a toast.
 
 - `.table-scroll` (`-mx-4 max-h-[70vh] overflow-auto px-4 sm:mx-0 sm:px-0`)
   wraps every `<table>` on a `.card`. It lets a wide table scroll
-  *inside its own card* rather than push the whole page sideways, caps
+  _inside its own card_ rather than push the whole page sideways, caps
   height so long lists don't run forever, and is what makes `.table-scroll
-  thead th`'s `position: sticky` headers work — the wrapper has to be the
+thead th`'s `position: sticky` headers work — the wrapper has to be the
   scrolling element for a sticky child to have something to stick to.
 - `.th` / `.td` — standard cell padding. `.td-num` additionally bakes in
   `whitespace-nowrap` and right-alignment, because a wrapped number
@@ -455,7 +472,7 @@ the wrong question.
 
 - `<StatGrid>` uses `@container` and `@[24rem]`/`@[50rem]` variants so its
   column count follows its own width. Asked for four columns at the `lg`
-  *viewport* breakpoint it gave each tile 192px, and "Rs 4,386,211" at 24px
+  _viewport_ breakpoint it gave each tile 192px, and "Rs 4,386,211" at 24px
   does not fit that — the figures ran into their own dividers.
 - Use the shared `<StatGrid>`/`<StatTile>` rather than hand-rolling a stat
   strip. Three pages had their own copy and all three had the same latent
@@ -472,7 +489,7 @@ reader had to compare character by character to see.
   the nozzles inside one. The heading only names what the spacing already
   showed.
 - **Drop the repetition the grouping makes redundant.** With a "Unit 1"
-  heading above them, the cards say "Nozzle A" and "Nozzle B". The *dialog*
+  heading above them, the cards say "Nozzle A" and "Nozzle B". The _dialog_
   keeps the full "Unit 1 · Nozzle A", because it opens over the whole page
   with the heading out of sight — shorten a label only where the context that
   replaces it is on screen.
@@ -486,7 +503,7 @@ weekday and the written date — "Yesterday · Thursday, 06 Aug 2026" — above
 the arrows and the date box.
 
 - **The weekday is the point.** A row of digits is easy to skim past, and the
-  native date box is drawn in the *browser's* locale, so it may not even be in
+  native date box is drawn in the _browser's_ locale, so it may not even be in
   the order the reader expects. "Thursday" is checkable against the day
   someone has actually lived.
 - **Tinted whenever it is not today** — grey for a past day, amber for a
@@ -515,11 +532,11 @@ built three ways and all three were removed:
    weight.
 3. **Seven small circles** centred between the date banner and the Clear
    button, one number each, with a pulse on a day nobody had entered. Lighter
-   again, and still the wrong thing on the page: *"I just needed a visual
-   indication… things did not work out."*
+   again, and still the wrong thing on the page: _"I just needed a visual
+   indication… things did not work out."_
 
 **The lesson is about weight, not about tiles.** Every version was a
-*secondary* signal — nice to have, not the reason anyone opens the screen —
+_secondary_ signal — nice to have, not the reason anyone opens the screen —
 and each one competed with the primary controls for the same glance. Making it
 smaller each round narrowed the gap without closing it. If something like this
 is wanted again, it has to cost visibly less than the date navigation beside
@@ -528,10 +545,8 @@ it, and it should probably not be interactive at all.
 **What actually prevents the mistake is still there, and is not this.** The
 red banner naming the missing day, and the confirm checkbox inside the entry
 dialog — see "A gap the database allows on purpose still wants a checkbox"
-below. Both work off `previous_date`, which `get_reading_sheet` (migration
-009) has always returned; neither needed the strip or the RPC that fed it
+below. Both work off `previous_date`, which `get_reading_sheet` (migration 009) has always returned; neither needed the strip or the RPC that fed it
 (`get_reading_completion`, added in 037 and dropped in 038).
-
 
 ## Meter readings carry two decimals
 
@@ -586,8 +601,8 @@ keep it scannable; copy these before adding prose to it.
 - **A location chip instead of a sentence about where to go.** A step that
   happens somewhere carries `where: { icon, path }` in `guide-content.js`, and
   `GuideSteps` renders it under the heading as a brand-tinted pill with the
-  nav icon: `⛽ Lubricants → Record a lubricant sale`. It uses the *same icon
-  as the sidebar tab*, so it points at something the reader can already see.
+  nav icon: `⛽ Lubricants → Record a lubricant sale`. It uses the _same icon
+  as the sidebar tab_, so it points at something the reader can already see.
   This is not the icons-carry-no-meaning-alone exception — the path is written
   out in words beside it.
 - **A rule leads with its claim, in bold, then explains.** `rules.items` is
@@ -598,7 +613,7 @@ keep it scannable; copy these before adding prose to it.
   page height for a reader who will never do it. It is a native `<details>`
   with a `<summary>` styled as a card row: no JavaScript, no state, still
   found by the browser's own Ctrl-F, and the chevron rotates with
-  `group-open:-rotate-90`. Fold anything the *usual* reader does not need,
+  `group-open:-rotate-90`. Fold anything the _usual_ reader does not need,
   not anything that is merely long.
 - **Cards are split by how often they are used, not by subject.** "Customers"
   became "Customers" (pay, add — routine) and "Fixing a customer" (edit,
@@ -619,8 +634,8 @@ justified the split is the reasoning that now argues against it.
 Oil · 0.034 L" — buried the four carton sales that need reading. True, and
 still true.
 
-**Why it came back.** A route split makes the reader decide *where a thing
-lives* before they can look for it, and it means a figure that is one number in
+**Why it came back.** A route split makes the reader decide _where a thing
+lives_ before they can look for it, and it means a figure that is one number in
 the owner's head — "what did we take on oil today" — is never on one screen.
 Two pages of totals also have to be reconciled by eye every time.
 
@@ -685,7 +700,7 @@ dozens of rows and pushes the stock table below them out of reach.
 one silently corrupts a figure:
 
 - **Page in the database** (`range()` + `count: 'exact'`) when the list is
-  *only* a list. The customer ledger is the clean case: the balance and the
+  _only_ a list. The customer ledger is the clean case: the balance and the
   fuel breakdown come from `get_customer_statement`, which sums in Postgres
   over everything, so paging the rows changes only what is displayed.
 - **Fetch it all and `slice()`** when the page derives anything from the whole
@@ -710,7 +725,7 @@ third should copy it rather than invent another:
   on Settings, the chosen month of daily sales on Reports — and links to the
   full history.
 - **A preview is a glance, so size it to fit without scrolling.** The Settings
-  slice was seven whole *days* of rates, chosen so a day's petrol and diesel
+  slice was seven whole _days_ of rates, chosen so a day's petrol and diesel
   could not be split; at two fuels a day that is fourteen rows, and the panel
   came back with its own scrollbar — a small scrolling table inside a page you
   scroll, which is the worst of both. The cap is now five rows, extended
@@ -748,7 +763,7 @@ litres with a small pair of buttons above the chart, not a filter chip in the
 URL.
 
 **Why this one is different from `<TrendRange>` beside it.** That control
-changes the *window*, which means a different set of rows and a new query.
+changes the _window_, which means a different set of rows and a new query.
 This one changes only how the rows already on the page are drawn — both series
 come back from `get_sales_trend` in the same call. Round-tripping to the
 server for a view the client can already produce would be a spinner in
@@ -815,7 +830,7 @@ what is off to the right.
 first: at 400px it measured perfectly — nothing clipped, no page scroll — and
 looked broken, two narrow columns of timestamps beside acres of white, because
 the row heights were being set by a 700px description sitting off-screen.
-Scrolling right to find out *what happened* defeats the page.
+Scrolling right to find out _what happened_ defeats the page.
 
 The replacement is one piece of markup that is a grid of columns above
 `@[54rem]` and a stack below it:
@@ -847,9 +862,9 @@ The replacement is one piece of markup that is a grid of columns above
 ## Picking one of a handful of categories: icon tiles, not a dropdown
 
 `BalanceDirection` (below) is the pattern for choosing between two named
-*directions*, read as sentences. `CategoryPicker`
+_directions_, read as sentences. `CategoryPicker`
 (`app/_components/admin/CompanyAssetForm.js`, used by Company Assets) is the
-pattern for choosing one of a small fixed set of *kinds of thing* — vehicle,
+pattern for choosing one of a small fixed set of _kinds of thing_ — vehicle,
 machinery, property, electronics, other — and it is deliberately a different
 shape: a `role="radiogroup"` of icon tiles, not a `<select>`.
 
@@ -868,7 +883,7 @@ Shape of it:
   are buttons, not a native input, so the value has to be smuggled in
   separately for the `<form action>` to see it.
 - **`@container` on the wrapper, not a viewport breakpoint** — `grid-cols-3
-  @[26rem]:grid-cols-5`. This picker lives inside a `Dialog`, whose width has
+@[26rem]:grid-cols-5`. This picker lives inside a `Dialog`, whose width has
   nothing to do with the window; three columns on a phone's full-screen sheet,
   five once the dialog itself has room. Same reasoning as "Responsive: measure
   the container" above.
@@ -901,7 +916,7 @@ same two ideas are never described in two vocabularies:
     owes       they owe the pump MORE   (a debit)
     in_credit  they owe the pump LESS   (a credit)
 
-Each card carries a second line saying *when* to use it, because the situation
+Each card carries a second line saying _when_ to use it, because the situation
 is easier to recognise than the arithmetic.
 
 **Then show the balance the choice would produce.** This is the part that
@@ -944,7 +959,7 @@ they differ, the form does two things, not one:
 **Why a checkbox and not a second dialog.** `ConfirmAction` is for a
 destructive action reached by its own trigger — the dialog IS the confirmation
 and nothing else is happening on the page underneath it. Here the confirmation
-has to appear *inside* a dialog that is already open and already mid-form, so
+has to appear _inside_ a dialog that is already open and already mid-form, so
 a second stacked dialog would be confirming a click already several steps into
 a task, over content that would have to move out of the way for it. A checkbox
 that must be ticked before the button will do anything asks the same question
@@ -968,7 +983,7 @@ outcomes is actually a delete:
 - **Never traded** — a typo, or an account opened and never used. Nothing to
   preserve, so the row goes.
 - **Has history** — deleting would tear a hole in months already reported and
-  exported. The row is *retired*: `is_active = false`, out of the working list
+  exported. The row is _retired_: `is_active = false`, out of the working list
   and out of every dropdown, with its history left intact.
 
 The caller cannot tell which applies from the row in front of them, so the RPC
@@ -979,7 +994,7 @@ be lying half the time.
 Two things this pattern always needs:
 
 - **A way back.** A retired row must stay findable and restorable, or "removed"
-  is indistinguishable from "lost" — a *Removed* section under the main table
+  is indistinguishable from "lost" — a _Removed_ section under the main table
   with a **Bring back** button. `LubricantManager` and the Customers page are
   the two examples.
 - **A third state, when retiring is not enough.** A name added by mistake that
@@ -1122,7 +1137,7 @@ picking one deterministic scheme is that it only needs auditing once.
   `<DateNav>` normally rides in `<PageHeader>`'s children, which is right for
   a date row plus at most one action. Lubricants carries two actions on top
   of the arrows and the date box, and `<DateNav>`'s "Back to today" appears
-  only when the date is *not* today — enough extra width to tip the whole
+  only when the date is _not_ today — enough extra width to tip the whole
   group over `PageHeader`'s wrap threshold, so the header jumped between one
   row and two as you stepped from today to yesterday and back. The fix is a
   `flex flex-wrap items-start justify-between` row of its own beneath the
@@ -1170,14 +1185,14 @@ in `StockCheckForm`) is its second caller, and reusing it was the right call
 over forty lines of near-identical markup.
 
 Reach for it whenever a choice is **two options, both legal, told apart by
-reading a sentence** — and follow the rule the section above states: *show the
-consequence*. The dip card names the day the choice closes ("at the close of
+reading a sentence** — and follow the rule the section above states: _show the
+consequence_. The dip card names the day the choice closes ("at the close of
 10 Aug 2026") and the book figure that produces, then the gain or loss once a
 reading is typed. That is what makes the choice checkable rather than merely
 labelled, and it is the whole reason this control exists.
 
-Use `CategoryPicker`'s icon tiles instead when the options are *kinds of
-thing* recognised on sight. Use a `<select>` when the list is long.
+Use `CategoryPicker`'s icon tiles instead when the options are _kinds of
+thing_ recognised on sight. Use a `<select>` when the list is long.
 
 ## A figure and its unit must not be able to break apart
 
@@ -1215,8 +1230,8 @@ name in `text-sm`. Now:
   it was learned by getting it wrong. Both bands were first made dark —
   `sky-800` against `amber-800` — reasoning that a pair matched in luminance
   would read as two tanks of equal standing, where a dark card beside a pale one
-  silently ranks them. The owner's verdict, immediately: *"they both look the
-  same, both are dark."*
+  silently ranks them. The owner's verdict, immediately: _"they both look the
+  same, both are dark."_
 
   He was right and the reasoning was backwards. **Lightness is the cue the eye
   reads first**, and the one that survives poor light, a cheap screen and any
@@ -1225,6 +1240,7 @@ name in `text-sm`. Now:
   strongest difference available to buy a symmetry nobody asked for. sky-800 vs
   amber-800 is a **1.1× lightness gap** — which is to say none. Navy vs bright
   yellow is **6.5×**.
+
 - **Then check each band carries its own text.** `ink-900` on the petrol gold is
   13.0:1; white on the diesel bronze is 7.1:1. Both clear AAA, the floor worth
   holding for a screen read in a forecourt office. (Watch the middle of the
@@ -1260,7 +1276,7 @@ with new props, but a form component in the same tree position **keeps all of
 its `useState`** — it is the same component instance.
 
 `StockCheckForm` learned this the hard way. Stepping from one day to the next
-carried both the typed dip reading *and* the green "Saved…" line across with
+carried both the typed dip reading _and_ the green "Saved…" line across with
 it, so the next morning's card opened with **yesterday's reading already in the
 box**, one tap from being saved again as today's measurement, under a message
 describing a different day.
@@ -1268,8 +1284,8 @@ describing a different day.
 Two rules, and they are cheap:
 
 - **Success goes to `<Toast>`, never inline.** `Toast`'s own comment has said
-  this since it was written — *"a success message left sitting in a form is
-  still there when the next entry is being typed"*. Failures stay inline in
+  this since it was written — _"a success message left sitting in a form is
+  still there when the next entry is being typed"_. Failures stay inline in
   `<FormMessage>`, because an error has to survive long enough to act on. Guard
   the inline one with `state?.ok === false` rather than rendering both.
 - **Clear the controlled state on success AND on date change.** `form.reset()`
@@ -1277,11 +1293,10 @@ Two rules, and they are cheap:
   set back too. The date-change effect is the belt to the save-effect's braces:
   if a save is ever missed, the box still empties when the day does.
 
-
 ## A figure that is a moment in time should say which moment
 
 The dashboard's tank card showed a bare litre figure under a list of that day's
-sales, and the owner had to ask whether it was the level *before* or *after*
+sales, and the owner had to ask whether it was the level _before_ or _after_
 those sales. It is after — `get_daily_summary` returns the books at the close of
 the day on screen — but nothing on the card said so.
 
@@ -1289,10 +1304,10 @@ It now carries the same line the Stock page card already used: **"at the close o
 07 Aug 2026"**, directly under the figure. Cheap, and it removes a question that
 had to be asked out loud once already.
 
-The general rule: a number that means *"as at some moment"* and sits on a page
+The general rule: a number that means _"as at some moment"_ and sits on a page
 that can be scrolled through time must name its moment. Every other card on a
 dated page describes the day in the banner; a figure that describes the day's
-*end* looks identical to one describing its start.
+_end_ looks identical to one describing its start.
 
 ## Fuel colours live in one file
 
@@ -1309,13 +1324,13 @@ way the pump's two fuels stay recognisable across nine screens.
 
 Each entry carries what the surfaces actually need:
 
-| key | for |
-|---|---|
-| `solid` / `solidMuted` | a filled band or chip, and quieter text on it |
-| `border` | the card outline that goes round a solid band |
-| `onWhite` | the fuel's colour as text on a white background |
-| `accent` | a 4px top rule — the quiet treatment |
-| `hex` | charts and progress bars, which need a raw value |
+| key                    | for                                              |
+| ---------------------- | ------------------------------------------------ |
+| `solid` / `solidMuted` | a filled band or chip, and quieter text on it    |
+| `border`               | the card outline that goes round a solid band    |
+| `onWhite`              | the fuel's colour as text on a white background  |
+| `accent`               | a 4px top rule — the quiet treatment             |
+| `hex`                  | charts and progress bars, which need a raw value |
 
 `fuelColor(type)` falls back to a neutral rather than to one of the fuels, so an
 unrecognised value never silently paints itself petrol.
@@ -1325,7 +1340,7 @@ unrecognised value never silently paints itself petrol.
 for surfaces where **typing into the wrong one costs something** — the Stock
 page's dip boxes, where a petrol reading in the diesel card corrupts the
 baseline every later day is measured from. Where the fuels are only being
-*read*, the accent separates them just as reliably and leaves the page calm.
+_read_, the accent separates them just as reliably and leaves the page calm.
 The first version banded everything, and six saturated blocks down one dashboard
 is colour-blocking rather than design: loud everywhere is the same as loud
 nowhere.
@@ -1339,13 +1354,12 @@ the reason recorded in the section above and at length in the module's own
 comment. Solid chips replaced the old pale tints for exactly this: two faint
 pastels are the same chip to anyone glancing down a column of nozzles.
 
-
 ## A card that wears a colour owns the controls inside it
 
 The Stock page's dip cards carry the tank's colour on their header band. The
 morning/evening selector inside used `BalanceDirection`'s default green for its
 chosen option, and the result read as a third, unrelated hue dropped into the
-middle of a yellow card — *"it looks like random colours."*
+middle of a yellow card — _"it looks like random colours."_
 
 `BalanceDirection` now takes an optional `activeClass`; the ledger callers keep
 the green (there, "selected" has no other colour to belong to), and the dip
