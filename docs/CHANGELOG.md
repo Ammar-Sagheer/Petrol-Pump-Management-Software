@@ -2852,7 +2852,7 @@ day" wrapped to two lines and then clipped at the pinned block's edge, showing
 as "GAIN / LOSS T" over "DAY". It is just "Gain / loss" - paired against
 "Running total" beside it, the contrast already says which is which.
 
-## Readings, redesigned: type on the page
+## Readings: inline entry built and reverted, and the cash-up bar that stayed
 
 The owner asked for a complete redesign of the daily entry screen. It is the
 most-used page in the app, and `docs/UI_CONVENTIONS.md` already records three
@@ -2860,19 +2860,33 @@ separate designs that were built here and reverted — so this started by readin
 that history rather than by drawing. Nothing reverted was reintroduced: no
 day-completion strip, the unit-as-card grouping kept, the day banner untouched.
 
-**What was actually wrong was the flow, not the paint.** Each nozzle opened a
-dialog, so an evening's work — six numbers — cost six open / type / save /
-close round trips, the page covered over each time by the thing it had just
-launched. The giveaway was that the dialog had grown its own running total
-panel: the page's own figures were unreachable from inside the task.
+**The diagnosis was the flow, not the paint** — and half of it was right.
+Each nozzle opened a dialog, so an evening's work — six numbers — cost six open
+/ type / save / close round trips, the page covered over each time by the thing
+it had just launched. The giveaway was that the dialog had grown its own running
+total panel: the page's own figures were unreachable from inside the task.
 
-Dialogs are still right for what the conventions recommended them for — set up
-once, then not read. The evening's meter readings are the opposite of that, and
-were the one daily task wearing the pattern.
+**The inline rebuild was then reverted at the owner's request** — *"model window
+was better"* — and the reasoning is written up in `docs/UI_CONVENTIONS.md` so it
+is not attempted a second time. Short version: the round-trip count was a real
+cost, but what the dialog buys this particular task is **one nozzle on screen
+and nothing else**. A reading typed against the wrong nozzle is the mistake the
+entire screen is designed around; expanded in place, the row being typed into
+sits in a column of five near-identical siblings. The dialog's cost is
+navigation, and its value is that there is nothing else to type into by
+mistake.
 
-### The row opens where it stands
+**The cash-up bar survives the revert and is the part that stayed.** It solves
+the same complaint — the page's totals being unreachable from the bottom of a
+six-row page — without touching where the entry happens.
 
-Tapping a nozzle now expands it in place. Type the closing reading and the
+What follows describes the inline version as built, in the past tense, kept
+because it is the record of what was tried. **None of it is in the app**; the
+cash-up bar section after it is.
+
+### The row opened where it stood
+
+Tapping a nozzle expanded it in place. Type the closing reading and the
 litres and the value compute under it as you type, exactly as the dialog did,
 because it is the same `EntryForm` — none of the hard-won validation moved. All
 of it still applies: the overlap check that stops a day being counted twice
@@ -2881,24 +2895,26 @@ credit slips exceed what the nozzle sold.
 
 Around it:
 
-- **The chip becomes the way out** — an open row reads "Close" — and the form
+- **The chip became the way out** — an open row read "Close" — and the form
   grew a Close beside Save, since in a tall panel the chip has scrolled off.
-- **The panel is unmounted when closed, not hidden.** That is what discards a
+- **The panel was unmounted when closed, not hidden.** That is what discarded a
   half-typed closing reading rather than letting it reappear against a day the
-  reader has since navigated away from.
-- **The collapsed row is one line instead of a four-column grid.** It had spent
+  reader had since navigated away from.
+- **The collapsed row was one line instead of a four-column grid.** It had spent
   two labelled columns on the opening meter and the rate and a third of its
   width on the sentence *"Tap to enter the closing meter reading."* — printed
   six times down a page where every row already carried an Enter chip and a
   chevron saying the same thing. The instruction is gone because the input it
-  described is now in the row. The labels are not: "Meter starts at
-  1,988,061.61" is still a labelled figure.
-- **And that line disappears when the row opens**, because the form beneath
-  states both figures again with proper labels — left up, the open row said the
-  opening meter twice and the rate twice, three lines apart.
+  described was in the row. The labels were not: "Meter starts at
+  1,988,061.61" is still a labelled figure. **This came back with the revert** —
+  the sentence is defensible again now that tapping really does open something
+  else.
+- **And that line disappeared when the row opened**, because the form beneath
+  stated both figures again with proper labels.
 
-The result: all six nozzles now fit on one screen at a laptop width, where
-three and a half did before.
+All six nozzles fitted on one screen at a laptop width, where three and a half
+do behind the dialog. That was the gain, and it did not outweigh having five
+near-identical siblings around the row being typed into.
 
 ### A cash-up bar that only appears when it is needed
 

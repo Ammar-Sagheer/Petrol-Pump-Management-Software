@@ -1791,38 +1791,34 @@ And keep any explanatory note in step with the headings — the register's note
 still said "Books" and "variance" after the columns had been renamed, which is
 how a legend stops being read.
 
-## A daily task opens in place; a dialog is for setting something up
+## Entry on Readings is a dialog, and inline was tried and reverted
 
-The dialog rules above still hold for what they were written about — adding a
-bank account, recording a delivery, nozzle settings. Those are *set up once and
-then not read*, which is exactly what a dialog is good at.
+Recorded so it is not rebuilt from scratch, the way the day-completion strip
+above had to be recorded after three attempts.
 
-Daily readings was wearing that pattern and should not have been. It is the one
-screen someone opens every single evening, and the job is six numbers; behind a
-dialog that cost **six open / type / save / close round trips**, with the page
-covered over each time by the thing it had just launched. The tell was that the
-dialog had grown its own little running total, because the page's own figures
-were unreachable from inside the task.
+The argument for inline entry was real and is still real: the job is six
+numbers, and behind a dialog it costs six open / type / save / close round
+trips, with the page covered over each time by the thing it had just launched.
+The dialog had even grown its own running-total panel, because the page's own
+figures were unreachable from inside the task.
 
-The test: **is this a thing done once, or the reason the screen exists?** If it
-is the reason the screen exists, open it in place.
+It was built — each row a disclosure expanding in place, the live litres and
+value computing under the closing field, Save and Close at the foot of the
+panel — and the owner's verdict on seeing it was that **the modal window was
+better**. It went back.
 
-- **The row is a disclosure, not a link.** `aria-expanded` and `aria-controls`
-  on the trigger, and the chevron turns to point down at what it opened —
-  a chevron pointing right promises another screen.
-- **The chip becomes the way out too.** An open row's chip reads "Close", so
-  the control that opened it closes it; and the form grows its own Close beside
-  Save, because in a tall panel the chip has often scrolled off the top.
-- **Unmount the panel when closed, do not hide it.** The entry form keeps the
-  typed closing reading in component state, so unmounting is what discards a
-  half-typed number — hidden, it would come back later against a day the reader
-  has since navigated away from.
-- **Inline is more room, not less.** The panel gets the page's full width where
-  the dialog was capped.
-- **Drop the summary line while the panel is open.** The collapsed row states
-  the opening meter and the rate; the form beneath states both again, better
-  and with real labels. Left up, the open row said each of them twice, three
-  lines apart. A summary is for something you cannot currently see.
+Worth understanding why, because the round-trip count was not wrong: what the
+dialog gives this task is **one nozzle on screen and nothing else**. A reading
+typed against the wrong nozzle is the mistake this whole screen is designed
+around — it is why the fuels carry two independent colour cues and why the
+dialog repeats the full "Unit 1 · Nozzle A" that the row shortens. Expanded in
+place, the row being typed into sits in a column of five others that look very
+much like it. The dialog's cost is navigation; its value is that there is
+nothing else on the screen to type into by mistake.
+
+So: **the dialog convention above is not only for set-up forms.** It also
+covers a task where picking the wrong target is the failure being designed out,
+however often that task is performed.
 
 ## A figure that must be checkable from the far end of a long page
 
@@ -1854,3 +1850,9 @@ constraint that keeps it from being clutter.
 - **`lg:pl-60` on a fixed element under the admin layout**, to match the
   sidebar offset. That number now appears in three places and they have to
   agree.
+- **It does not need to dodge a dialog.** `<Dialog>` is a native `<dialog>`
+  opened with `showModal()`, which renders in the browser's TOP LAYER — above
+  every z-index on the page, whatever the numbers say. A `z-30` bar is
+  correctly covered by it, backdrop and all. Verified rather than assumed, by
+  asking `document.elementFromPoint` what is actually painted at the bar's
+  position while a dialog is open: the answer is the dialog.
