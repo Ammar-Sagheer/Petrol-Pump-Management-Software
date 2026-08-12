@@ -79,7 +79,7 @@ intent name and maps it onto MUI:
   classes gave about 50px, which was itself a deliberate number for a tablet
   pressed with a thumb (see the type-and-target floor below). If that ever
   bites in the yard, `size="large"` inside `Button.js` is the one-line fix
-  and is worth trying before anything more elaborate.
+  and is worth trying before anything more elaborate..
 - **Sizing and layout overrides** still go through `className`
   (`className="flex-1"` in a dialog footer) or MUI's own props — `fullWidth`
   for a full-width form submit, `size="small"` for the compact buttons inside
@@ -92,8 +92,8 @@ intent name and maps it onto MUI:
   working, which they do not on a button with an onClick router push.
 - **Never pass `component={Link}` from a server component.** `<Button>` is a
   client component, and a function cannot cross the server/client boundary -
-  doing it throws *"Functions cannot be passed directly to Client
-  Components"* at render time. That is why the API is `href` (a string) and
+  doing it throws _"Functions cannot be passed directly to Client
+  Components"_ at render time. That is why the API is `href` (a string) and
   `pending` (a boolean): both serialise, and `Button` picks the component on
   the client side of the boundary. `component="a"` is fine, being a string -
   it is what the Excel download uses so the browser handles it rather than
