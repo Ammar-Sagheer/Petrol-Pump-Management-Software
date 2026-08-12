@@ -2813,3 +2813,41 @@ any of those. What it does borrow is everything else — the range cannot be
 entered backwards (each end drags the other), cannot be empty, is two
 `<select>`s of real days rather than free text, is validated again on the
 server, and rides in a plain `method="GET"` form so the URL carries it.
+
+### And then the naming, which one question settled
+
+The owner looked at the finished table and asked, of the totals row, **"what is
+these days"**. Four words, and the whole verdict on a label: he did not know
+whether it was another day, a total, or something else.
+
+That prompted a pass over every word on the table, and it found more than the
+one label:
+
+- **The totals row is now two lines - "Summary" over "01–07 Aug"** - because
+  one line cannot do both jobs the reader needs: that this is not another day,
+  and which days it covers. "Summary" rather than "Total", because two of the
+  row's own cells are not totals: opening stock and the closing dip are the two
+  ENDS of the range, and summing every day's opening stock would be a figure
+  with no meaning. Calling it a total would promise arithmetic it deliberately
+  does not do. The dates sit underneath in ordinary case so the pair does not
+  read as one shouted phrase, and the month is stated once because the range
+  picker cannot span two.
+- **"Variance" became "Gain / loss" everywhere**, which is the real fix. That
+  word came in from the owner's spreadsheet, but the app's own vocabulary is
+  gain/loss and always has been - `stock_checks.gain_loss`, the Stock page's
+  own column heading, and the fuel cards at the top of this very page, which
+  already read "Stock gain / loss over these days". The register was the only
+  surface in the app using a different word for the same number.
+- **"Books" became "Should be".** "Books" is bookkeeping's word for it, not the
+  owner's, and the column beside it is "Dip" - so the pair now reads "should
+  be 5,223.54, dip 5,219.00" and the gain/loss between them explains itself.
+- **"Cumulative" became "Running total"**, which says the same thing without
+  the Latin.
+- The explanatory note under the tables was updated to name the columns exactly
+  as the headings now do. It had said "Books" and "variance" while the table
+  said something else, which is how a legend stops being read.
+
+One heading also had to be shortened after rendering it: "Gain / loss that
+day" wrapped to two lines and then clipped at the pinned block's edge, showing
+as "GAIN / LOSS T" over "DAY". It is just "Gain / loss" - paired against
+"Running total" beside it, the contrast already says which is which.

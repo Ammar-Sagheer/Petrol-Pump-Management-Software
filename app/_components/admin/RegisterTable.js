@@ -155,6 +155,26 @@ function signed(value) {
   return `${sign}${litres(Math.abs(n))}`;
 }
 
+/**
+ * The totals row's label: "01–07 Aug" for a range, "01 Aug" for a single day.
+ *
+ * Built by hand rather than from `formatDate` twice, because "01 Aug 2026 –
+ * 07 Aug 2026" is more than three times the width of the column it has to sit
+ * in and repeats the month and the year for nothing. The year is already on
+ * every date above it and in the heading over the whole page.
+ *
+ * An EN DASH between the two, not a hyphen - it is a range, and the same dash
+ * the page's own heading uses.
+ */
+function rangeLabel(fromDay, toDay) {
+  const [, month, day] = String(fromDay).slice(0, 10).split('-');
+  const lastDay = String(toDay).slice(0, 10).split('-')[2];
+  const monthName = MONTHS[Number(month) - 1] ?? '';
+  return day === lastDay ? `${day} ${monthName}` : `${day}–${lastDay} ${monthName}`;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function pct(value) {
   if (value === null || value === undefined) return '—';
   const n = Number(value);
@@ -279,8 +299,13 @@ export default function RegisterTable({ rows = [] }) {
             <TableCell sx={groupHead} colSpan={2}>
               At the close
             </TableCell>
+            {/* "Gain / loss", not "Gain / loss that day". The longer version
+                wrapped to two lines and then clipped at the pinned block's
+                edge, rendering as "GAIN / LOSS T" over "DAY". The pairing with
+                "Running total" beside it already says which is which, and the
+                running-total group names its own gain/loss column again. */}
             <TableCell sx={groupHead} colSpan={2}>
-              Variance
+              Gain / loss
             </TableCell>
             <TableCell
               className={PIN_RIGHT}
@@ -291,7 +316,7 @@ export default function RegisterTable({ rows = [] }) {
               })}
               colSpan={3}
             >
-              Cumulative
+              Running total
             </TableCell>
           </TableRow>
           <TableRow>
@@ -303,8 +328,8 @@ export default function RegisterTable({ rows = [] }) {
             </TableCell>
             <TableCell sx={colHead}>Opening</TableCell>
             <TableCell sx={colHead}>Received</TableCell>
-            <TableCell sx={colHead}>Litres sold</TableCell>
-            <TableCell sx={colHead}>Books</TableCell>
+            <TableCell sx={colHead}>Litres</TableCell>
+            <TableCell sx={colHead}>Should be</TableCell>
             <TableCell sx={colHead}>Dip</TableCell>
             <TableCell sx={colHead}>Litres</TableCell>
             <TableCell sx={colHead}>%</TableCell>
@@ -326,7 +351,7 @@ export default function RegisterTable({ rows = [] }) {
                 extra: colHead,
               })}
             >
-              Variance
+              Gain / loss
             </TableCell>
             <TableCell
               className={PIN_RIGHT}
@@ -394,7 +419,24 @@ export default function RegisterTable({ rows = [] }) {
           {/* The footer repeats the last row's cumulative figures on purpose.
               Over a long range the reader is at the bottom of a scrolled table
               and the answer IS the last row - but only if they know that. A
-              labelled total row says it outright. */}
+              labelled total row says it outright.
+
+              IT SAYS WHAT THE ROW IS, AND THEN WHICH DAYS. It said "These
+              days" first, and the owner's response to that was "what is these
+              days" - the whole verdict on it in four words. One line cannot
+              do this job: the reader needs to know both that this is not
+              another day, and which days it covers.
+
+              "Summary" rather than "Total", because two of its own cells are
+              not totals - opening stock and the dip are the two ENDS of the
+              range, and a sum of every day's opening stock would be a figure
+              with no meaning. Calling the row a total would promise arithmetic
+              it deliberately does not do.
+
+              The dates go underneath in ordinary case, so the two lines do not
+              read as one shouted phrase. Both always fall in the same month,
+              because the range picker cannot span two, so the month is stated
+              once. */}
           <TableRow>
             <TableCell
               className={PIN_LEFT}
@@ -406,7 +448,10 @@ export default function RegisterTable({ rows = [] }) {
                 letterSpacing: '0.03em',
               })}
             >
-              These days
+              <span className="block">Summary</span>
+              <span className="block font-semibold normal-case tracking-normal text-ink-600">
+                {rangeLabel(first.day, last.day)}
+              </span>
             </TableCell>
             <TableCell sx={{ ...numCell, ...topRule }}>{litres(totals.opening)}</TableCell>
             <TableCell sx={{ ...numCell, ...topRule, fontWeight: 700 }}>

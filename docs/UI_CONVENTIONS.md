@@ -1745,3 +1745,48 @@ of them quietly lose the gap — on the register, "Diesel tank" sat flush agains
 the paragraph above it. Use a `<Fragment>` when the grouping is decorative. If
 a `<section>` is genuinely wanted for semantics, the heading needs its top
 margin putting back explicitly.
+
+## A totals row needs two lines, and "Summary" is usually the honest word
+
+The register's totals row was labelled "These days", and the owner's response
+on first seeing it was *"what is these days"*. A label that has to be explained
+is a defect, and the fix generalises.
+
+- **Two lines, not one: what the row is, then which records it covers.**
+  "Summary" over "01–07 Aug". One line cannot carry both, and the reader needs
+  both - that this is not another data row, and what it spans.
+- **"Summary", not "Total", unless every cell really is a total.** On this row
+  opening stock and the closing dip are the two ENDS of the range while litres
+  sold is a sum; calling the row a total promises arithmetic two of its own
+  cells do not do. Where every cell genuinely is a sum, "Total" is right.
+- **The qualifying dates go on the second line in ordinary case**, not
+  uppercase - two shouted lines read as one phrase. Same instinct as "a
+  qualifying date goes on its own line, not into the label" above.
+
+## Use the app's own word for a figure, not the source document's
+
+The register was built from a spreadsheet the owner keeps, and it arrived
+carrying that spreadsheet's vocabulary: "Variance" for the difference between
+the books and the dip, "Books" for the expected figure, "Cumulative" for the
+running total. Every one of those was wrong for this app.
+
+`stock_checks.gain_loss` is the column, "Gain / loss" is the Stock page's
+heading, and the cards at the top of the register itself already read "Stock
+gain / loss over these days". The register was the only surface using a
+different word for a number the app names everywhere else - so the same figure
+had two names depending on which page you were on.
+
+**When a new screen is modelled on an outside document, translate its labels
+into the app's existing vocabulary before shipping it.** The source document is
+where the *columns* come from, not where the *words* do. What the register
+ended up with:
+
+| Came in as   | Ships as        | Why                                              |
+| ------------ | --------------- | ------------------------------------------------ |
+| Variance     | Gain / loss     | the app's own word, in the schema and on Stock    |
+| Books        | Should be       | reads against "Dip" beside it, in plain language  |
+| Cumulative   | Running total   | says the same thing without the Latin             |
+
+And keep any explanatory note in step with the headings — the register's note
+still said "Books" and "variance" after the columns had been renamed, which is
+how a legend stops being read.

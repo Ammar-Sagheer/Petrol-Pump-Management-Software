@@ -211,11 +211,17 @@ export default async function RegisterPage({ searchParams }) {
             </Fragment>
           ))}
 
+          {/* The note names the columns exactly as the heading does - "Should
+              be", "Dip", "Gain / loss" - so the reader can match a sentence to
+              a column without translating. It said "Books" and "variance"
+              while the table said something else, which is how a legend stops
+              being read. */}
           <p className="mt-4 text-sm text-ink-600">
-            <span className="font-semibold">Books</span> is the opening stock plus what was
+            <span className="font-semibold">Should be</span> is the opening stock plus what was
             delivered, less what the meters sold. <span className="font-semibold">Dip</span> is what
-            the rod actually measured at the close of that day, and the variance is the difference.
-            A dip taken in the morning closes the day before — see the Stock page.
+            the rod actually measured at the close of that day, and the{' '}
+            <span className="font-semibold">gain / loss</span> is the difference between the two. A
+            dip taken in the morning closes the day before — see the Stock page.
           </p>
         </>
       )}
