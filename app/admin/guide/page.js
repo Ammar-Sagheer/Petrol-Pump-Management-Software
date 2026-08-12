@@ -1,6 +1,5 @@
 import { requirePageRole, ROLES } from '@/app/_lib/helpers';
 import { GUIDE, LANGUAGES } from '@/app/_lib/guide-content';
-import PendingLink from '@/app/_components/ui/PendingLink';
 import Icon from '@/app/_components/ui/Icon';
 import Button from '@/app/_components/ui/Button';
 import {
@@ -47,8 +46,8 @@ export default async function GuidePage({ searchParams }) {
 
         <Button
           variant="secondary"
-          component={PendingLink}
           href={`/admin/guide?lang=${other}`}
+          pending
           aria-label={t.switchAria}
           hrefLang={other}
         >

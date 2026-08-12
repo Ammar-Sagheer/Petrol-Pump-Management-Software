@@ -86,11 +86,25 @@ intent name and maps it onto MUI:
   a table row. The only style added on top of MUI's defaults is a `gap`, so a
   glyph or `<Icon>` passed as an ordinary child does not sit flush against
   the label.
-- **A button that navigates should still be a link**: pass
-  `component={Link}` (or `component={PendingLink}` where a spinner is
-  wanted) with `href`. MUI renders a real `<a>`, so middle-click and
-  open-in-new-tab keep working, which they do not on a button with an
-  onClick router push.
+- **A button that navigates should still be a link**: pass `href`, and add
+  `pending` where a spinner during the navigation is wanted. MUI renders a
+  real `<a>` through Next's `Link`, so middle-click and open-in-new-tab keep
+  working, which they do not on a button with an onClick router push.
+- **Never pass `component={Link}` from a server component.** `<Button>` is a
+  client component, and a function cannot cross the server/client boundary -
+  doing it throws *"Functions cannot be passed directly to Client
+  Components"* at render time. That is why the API is `href` (a string) and
+  `pending` (a boolean): both serialise, and `Button` picks the component on
+  the client side of the boundary. `component="a"` is fine, being a string -
+  it is what the Excel download uses so the browser handles it rather than
+  the client router.
+- **This class of bug does not show up in `npm run build`.** It is a render-
+  time error on an auth-gated page, so the build is green and the page is
+  broken. Worse, it surfaced to the owner as *"page not found"* rather than
+  as an error: clicking a row is a client-side navigation, which fetches that
+  route's RSC payload, and a payload that fails to generate lands on
+  not-found. If a page 404s only when navigated to by clicking, suspect a
+  serialisation error in that route before suspecting the data.
 - `<SubmitButton>` (`app/_components/ui/SubmitButton.js`) wraps a submit
   button in `useFormStatus()` so it disables itself and shows a
   `pendingLabel` while a Server Action is in flight — use it for every form

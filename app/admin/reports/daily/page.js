@@ -137,7 +137,7 @@ function PagerLink({ href, disabled, label, children }) {
   }
 
   return (
-    <Button variant="secondary" component={PendingLink} href={href} aria-label={label}>
+    <Button variant="secondary" href={href} pending aria-label={label}>
       {children}
     </Button>
   );

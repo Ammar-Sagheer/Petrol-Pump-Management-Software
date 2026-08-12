@@ -2372,3 +2372,46 @@ is `border-t-[#38727F]` — a top border *colour*, so pairing it with
 colour on an edge that has no width. The fix is `color.border`, which is the
 same hue with no side bound to it. Worth knowing because nothing errors and
 the class name reads as if it should work; it only showed up in a screenshot.
+
+## The button migration broke six pages, and the build said nothing
+
+The owner hit *"Functions cannot be passed directly to Client Components"* on
+the customer page, and then, separately, *"page not found"* when clicking a
+customer from the list. Both were the same bug.
+
+**The cause.** The Material UI button migration rendered a
+button-that-navigates as `<Button component={Link} href=...>`. `Button` is a
+client component, `Link` is a function, and a function cannot cross the
+server/client boundary — so every *server* component doing this throws at
+render time. Six did: the customer detail page, the guide, daily sales,
+`DateNav`, `Pager`, and the customers list by way of `Pager`. The customer
+detail page managed to contain the bug twice, once itself and once through
+the `Pager` at the bottom of its ledger.
+
+**Why it presented as a 404.** Clicking a row is a client-side navigation,
+which fetches the RSC payload for the target route. That payload failed to
+generate, and a failed payload lands on not-found — so the visible symptom
+was "page not found" rather than the actual error, and it only happened when
+*clicking* rather than loading the URL directly.
+
+**The fix** is to stop passing the component at all. `<Button>` now takes
+`href` (a string) and `pending` (a boolean), both of which serialise, and
+resolves `Link` or `PendingLink` on the client side of the boundary itself.
+`component` is still accepted for the few client-side callers and for
+`component="a"` — a string, so it crosses fine — which the Excel download
+needs so the browser handles it rather than the client router.
+
+### The verification lesson, for the third time this branch
+
+`npm run build` passed with all six pages broken. The build compiles and
+prerenders; it does not execute an auth-gated dynamic route, so the whole
+class of "server component hands something unserialisable to a client
+component" is invisible to it. The same branch had already shipped a
+`Button is not defined` this way.
+
+What actually caught it was a devcheck page deliberately written **without**
+`'use client'` — a real server component rendering `Button`, `DateNav` and
+`Pager` — and a Playwright run that *clicked* a link rather than loading the
+URL, reproducing the client-navigation path. The fix was then confirmed the
+only way worth trusting: by reintroducing the bug and checking the test went
+red (it did, with the owner's exact error), then removing it again.

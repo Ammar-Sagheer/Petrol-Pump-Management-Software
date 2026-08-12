@@ -1,4 +1,3 @@
-import PendingLink from '@/app/_components/ui/PendingLink';
 import DateJump from '@/app/_components/admin/DateJump';
 import Icon from '@/app/_components/ui/Icon';
 
@@ -97,8 +96,8 @@ export default function DateNav({
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
-          component={PendingLink}
           href={dateHref(previousDate)}
+          pending
           aria-label={`Go to ${formatDate(previousDate)}`}
           spinnerOnly
         >
@@ -109,8 +108,8 @@ export default function DateNav({
 
         <Button
           variant="secondary"
-          component={PendingLink}
           href={dateHref(nextDate)}
+          pending
           aria-label={`Go to ${formatDate(nextDate)}`}
           spinnerOnly
         >
@@ -119,7 +118,7 @@ export default function DateNav({
 
         {/* Only worth showing when it would actually do something. */}
         {!isToday ? (
-          <Button variant="primary" component={PendingLink} href={todayHref}>
+          <Button variant="primary" href={todayHref} pending>
             Back to today
           </Button>
         ) : null}

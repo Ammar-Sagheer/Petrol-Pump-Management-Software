@@ -1,6 +1,9 @@
 'use client';
 
+import NextLink from 'next/link';
 import MuiButton from '@mui/material/Button';
+
+import PendingLink from '@/app/_components/ui/PendingLink';
 
 /**
  * The app's buttons, rendered by Material UI at the owner's request.
@@ -26,11 +29,23 @@ import MuiButton from '@mui/material/Button';
  * docs/UI_CONVENTIONS.md - one primary per view, `danger` for anything
  * destructive rather than a hand-rolled red.
  *
- * RENDERING AS A LINK. Several of these are navigation, not actions
- * ("Back to customers", "See all rates"). Pass `component={Link} href=...`
- * and MUI renders an `<a>` with the same styling, so a link that looks like
- * a button is still a real link - middle-click and open-in-new-tab keep
- * working, which they do not on a button with an onClick router push.
+ * RENDERING AS A LINK. Several of these are navigation, not actions ("Back
+ * to customers", the date arrows, the pager). Pass `href` and this renders a
+ * real `<a>` through Next's `Link`, so middle-click and open-in-new-tab keep
+ * working - which they do not on a button with an onClick router push. Pass
+ * `pending` as well to route it through `<PendingLink>`, which swaps the
+ * label for a spinner while the navigation is in flight.
+ *
+ * WHY `href` AND `pending` RATHER THAN `component={Link}`. Most callers here
+ * are SERVER components, and a function cannot cross the server/client
+ * boundary - passing the Link component itself as a prop throws
+ * *"Functions cannot be passed directly to Client Components"* at runtime.
+ * `href` is a string and `pending` is a boolean, so both serialise; the
+ * component they resolve to is chosen in here, on the client side of the
+ * boundary. `component` is still accepted and wins when given, for the few
+ * client-side callers and for `component="a"` (a string, so it serialises)
+ * where a plain anchor is wanted - the Excel download, which must not be
+ * client-routed.
  */
 const VARIANTS = {
   primary: { variant: 'contained', color: 'primary' },
@@ -38,8 +53,13 @@ const VARIANTS = {
   danger: { variant: 'outlined', color: 'error' },
 };
 
-export default function Button({ variant = 'secondary', sx, ...props }) {
+export default function Button({ variant = 'secondary', sx, component, href, pending, ...props }) {
   const mui = VARIANTS[variant] ?? VARIANTS.secondary;
+
+  const linkComponent =
+    component ?? (href === undefined ? undefined : pending ? PendingLink : NextLink);
+
+  const linkProps = linkComponent ? { component: linkComponent, href } : {};
 
   /*
    * The gap is the one thing added on top of MUI's defaults, and it is
@@ -50,5 +70,5 @@ export default function Button({ variant = 'secondary', sx, ...props }) {
    * "+Add an asset". The old `.btn` class carried `gap-2`; this is that,
    * and a caller passing `sx` can still override it.
    */
-  return <MuiButton {...mui} sx={{ gap: 1, ...sx }} {...props} />;
+  return <MuiButton {...mui} {...linkProps} sx={{ gap: 1, ...sx }} {...props} />;
 }
