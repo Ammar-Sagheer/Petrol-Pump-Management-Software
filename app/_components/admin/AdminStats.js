@@ -1,6 +1,58 @@
 import Icon from '@/app/_components/ui/Icon';
 
 /**
+ * What colour an icon ring wears, keyed by the icon's own name.
+ *
+ * The colour follows WHAT THE FIGURE IS, not whether it is good news -
+ * cash and money-in are green because that is money arriving, credit and
+ * money-out amber because it is money owed or gone, fuel blue, oil violet
+ * (the colour lubricants already wear on their badge, see fuel-colors.js).
+ * `tone` is a separate axis and still colours the figure itself and its
+ * pill: a bad month's profit is a red number in a green ring, because the
+ * ring is saying "this tile is about profit" and the number is saying "and
+ * it is negative". Colouring both by tone would say the same thing twice
+ * and leave the reader nothing to tell one tile from another at a glance,
+ * which is the whole job of the ring.
+ *
+ * Anything not listed falls back to the neutral slate, so a new icon is
+ * never accidentally loud.
+ */
+const RING_COLORS = {
+  // money in
+  cash: 'bg-brand-50 text-brand-600',
+  moneyIn: 'bg-brand-50 text-brand-600',
+  profit: 'bg-brand-50 text-brand-600',
+  // money owed, or gone
+  credit: 'bg-amber-50 text-amber-600',
+  moneyOut: 'bg-amber-50 text-amber-600',
+  expenses: 'bg-amber-50 text-amber-600',
+  // the trades themselves
+  fuelPump: 'bg-sky-50 text-sky-600',
+  readings: 'bg-sky-50 text-sky-600',
+  lubricants: 'bg-violet-50 text-violet-600',
+  stock: 'bg-teal-50 text-teal-600',
+  inventory: 'bg-teal-50 text-teal-600',
+  purchases: 'bg-indigo-50 text-indigo-600',
+  sales: 'bg-cyan-50 text-cyan-600',
+  // people and places
+  customers: 'bg-sky-50 text-sky-600',
+  list: 'bg-cyan-50 text-cyan-600',
+  banking: 'bg-indigo-50 text-indigo-600',
+  assets: 'bg-violet-50 text-violet-600',
+  // asset categories, matching the tinted badges on that page
+  vehicle: 'bg-sky-50 text-sky-600',
+  machinery: 'bg-amber-50 text-amber-600',
+  property: 'bg-brand-50 text-brand-600',
+  electronics: 'bg-violet-50 text-violet-600',
+  other: 'bg-ink-100 text-ink-600',
+  // alerts
+  warning: 'bg-red-50 text-red-600',
+  date: 'bg-ink-100 text-ink-600',
+};
+
+const RING_FALLBACK = 'bg-ink-100 text-ink-600';
+
+/**
  * The headline figures at the top of a page.
  *
  * These are stat tiles rather than a chart on purpose: four single numbers with
@@ -25,7 +77,9 @@ import Icon from '@/app/_components/ui/Icon';
  * in a tinted ring beside the label and figure, the shape used on the
  * Customers stat row. Left off (the default), the tile stays the plain
  * label-over-figure stack every other page uses; not every stat has an icon
- * that means anything, so this is opt-in rather than automatic.
+ * that means anything, so this is opt-in rather than automatic. The ring's
+ * colour comes from the icon's own meaning (see RING_COLORS), not from
+ * `tone`; pass `ringTone` to override it.
  *
  * `iconNode` is the escape hatch for a one-off icon that isn't in the app's
  * own hand-drawn set (`Icon.js`) - currently only the Customers "Total
@@ -35,7 +89,7 @@ import Icon from '@/app/_components/ui/Icon';
  * differ without teaching the whole set about a package the rest of the app
  * does not use.
  */
-export function StatTile({ label, value, sub, tone = 'default', icon, iconNode }) {
+export function StatTile({ label, value, sub, tone = 'default', icon, iconNode, ringTone }) {
   const valueTone =
     tone === 'positive' ? 'text-brand-700' : tone === 'negative' ? 'text-red-700' : 'text-ink-900';
 
@@ -64,12 +118,10 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode }
   ) : null;
 
   if (icon || iconNode) {
-    const ringClass =
-      tone === 'positive'
-        ? 'bg-brand-50 text-brand-600'
-        : tone === 'negative'
-          ? 'bg-red-50 text-red-600'
-          : 'bg-ink-100 text-ink-600';
+    // Keyed by the icon, not by `tone` - see RING_COLORS above for why the
+    // two are deliberately different axes. `ringTone` overrides both, for a
+    // tile whose icon means something different than usual in context.
+    const ringClass = ringTone ?? RING_COLORS[icon] ?? RING_FALLBACK;
 
     return (
       <div className="card flex flex-col gap-2 px-4 py-4 @[50rem]:px-5 @[50rem]:py-5">

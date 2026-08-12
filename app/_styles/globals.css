@@ -82,9 +82,9 @@ input[type='number']::-webkit-inner-spin-button {
    Component classes.
 
    Tailwind v4 only lets @apply reference real utilities, not other custom
-   classes - so `.btn-primary` cannot `@apply btn`. Each class below is
-   therefore written out in full rather than composed. Slightly repetitive,
-   but it means a class always works on its own in the markup.
+   classes - so one class here cannot `@apply` another. Each is therefore
+   written out in full rather than composed. Slightly repetitive, but it
+   means a class always works on its own in the markup.
 --------------------------------------------------------------------------- */
 @layer components {
   /*
@@ -122,52 +122,13 @@ input[type='number']::-webkit-inner-spin-button {
     font-variant-numeric: tabular-nums;
   }
 
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3
-           text-base font-semibold transition
-           focus-visible:outline-2 focus-visible:outline-offset-2
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
   /*
-   * The border here is INVISIBLE AND LOAD-BEARING. It is the same colour as
-   * the fill, and it exists only so a primary is the same height as the
-   * secondary and danger buttons beside it.
-   *
-   * Without it this was 48px against their 50px, because those two carry a 1px
-   * border and this did not. Every place in the app where a filled button sits
-   * next to an outlined one - "Manage lubricants" beside "Record a lubricant
-   * sale", every dialog's Save beside Cancel - the pair were two pixels apart
-   * and, being centred in a flex row, sitting a pixel off each other's
-   * baseline. Small enough to never look like a bug and large enough to make
-   * the row look wrong, which is how the owner reported it: the green ones are
-   * "a bit larger".
-   *
-   * Change the fill and this must change with it.
+   * THE .btn-* CLASSES ARE GONE. Buttons are Material UI now - see
+   * app/_components/ui/Button.js, which maps the app's three intents
+   * (primary / secondary / danger) onto MUI variants. Nothing here styles a
+   * button any more; adding a button style back here would put the app back
+   * to having two button systems, which is what this replaced.
    */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border
-           border-brand-600 bg-brand-600 px-4 py-3 text-base font-semibold text-white transition
-           hover:border-brand-700 hover:bg-brand-700
-           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border
-           border-ink-300 bg-white px-4 py-3 text-base font-semibold text-ink-800
-           transition hover:bg-ink-50
-           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-500
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border
-           border-red-300 bg-white px-4 py-3 text-base font-semibold text-red-700
-           transition hover:bg-red-50
-           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
 
   /*
    * The nav column's scrollbar, for the windows where twelve sections do not

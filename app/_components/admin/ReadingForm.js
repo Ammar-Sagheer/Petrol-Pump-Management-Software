@@ -13,6 +13,7 @@ import { shiftISODate, formatDateLong } from '@/app/_lib/date-helpers';
 import Dialog from '@/app/_components/ui/Dialog';
 import Icon from '@/app/_components/ui/Icon';
 import { fuelColor } from '@/app/_lib/fuel-colors';
+import Button from '@/app/_components/ui/Button';
 
 /*
  * Formatting is done inline here rather than imported from helpers.js: that
@@ -308,7 +309,7 @@ function SavedReading({ row, date, creditSales, canDelete }) {
       {canDelete ? (
         <form action={formAction} className="pt-1">
           <input type="hidden" name="reading_id" value={row.reading_id} />
-          <SubmitButton className="btn-danger w-full text-xs" pendingLabel="Deleting…">
+          <SubmitButton variant="danger" fullWidth className="text-xs"  pendingLabel="Deleting…">
             Delete this reading
           </SubmitButton>
         </form>
@@ -588,14 +589,16 @@ function EntryForm({ row, date, customers }) {
                       </option>
                     ))}
                   </select>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="small"
                     type="button"
                     onClick={() => removeLine(line.key)}
                     aria-label="Remove this slip"
-                    className="btn-secondary shrink-0 px-2.5 py-2 text-xs"
+                    className="shrink-0"
                   >
                     ✕
-                  </button>
+                  </Button>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <NumberInput
@@ -656,7 +659,7 @@ function EntryForm({ row, date, customers }) {
 
       <FormMessage state={state} />
 
-      <SubmitButton className="btn-primary w-full" disabled={!canSubmit}>
+      <SubmitButton fullWidth  disabled={!canSubmit}>
         Save nozzle
       </SubmitButton>
     </form>

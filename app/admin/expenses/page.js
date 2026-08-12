@@ -13,6 +13,7 @@ import EmptyState from '@/app/_components/ui/EmptyState';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import ExpenseForm from '@/app/_components/admin/ExpenseForm';
 import DeleteExpenseButton from '@/app/_components/admin/DeleteExpenseButton';
+import Button from '@/app/_components/ui/Button';
 
 export const metadata = { title: 'Expenses' };
 
@@ -72,9 +73,9 @@ export default async function ExpensesPage({ searchParams }) {
             defaultValue={monthParam}
             className="input py-2"
           />
-          <button type="submit" className="btn-secondary">
+          <Button variant="secondary" type="submit">
             Show
-          </button>
+          </Button>
         </form>
       </PageHeader>
 

@@ -11,6 +11,7 @@ import NumberInput from '@/app/_components/ui/NumberInput';
 import Icon from '@/app/_components/ui/Icon';
 import { todayISO } from '@/app/_lib/date-helpers';
 import { ASSET_CATEGORIES } from '@/app/_lib/asset-categories';
+import Button from '@/app/_components/ui/Button';
 
 /**
  * Adding and correcting a company asset, in one file with two triggers.
@@ -180,19 +181,19 @@ export function AddAssetButton() {
 
   return (
     <>
-      <button
+      <Button
+        variant="primary"
         type="button"
         onClick={() => {
           setShowResult(false);
           setIsOpen(true);
         }}
-        className="btn-primary"
       >
         <span aria-hidden="true" className="text-base leading-none">
           +
         </span>
         Add an asset
-      </button>
+      </Button>
 
       <Dialog
         open={isOpen}
@@ -217,12 +218,12 @@ export function AddAssetButton() {
           <FormMessage state={showResult ? state : null} />
 
           <div className="flex gap-2 border-t border-ink-200 pt-4">
-            <SubmitButton className="btn-primary flex-1" pendingLabel="Adding…">
+            <SubmitButton className="flex-1"  pendingLabel="Adding…">
               Add asset
             </SubmitButton>
-            <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">
+            <Button variant="secondary" type="button" onClick={() => setIsOpen(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Dialog>
@@ -280,12 +281,12 @@ export function EditAssetButton({ asset }) {
           <FormMessage state={showResult ? state : null} />
 
           <div className="flex gap-2 border-t border-ink-200 pt-4">
-            <SubmitButton className="btn-primary flex-1" pendingLabel="Saving…">
+            <SubmitButton className="flex-1"  pendingLabel="Saving…">
               Save changes
             </SubmitButton>
-            <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">
+            <Button variant="secondary" type="button" onClick={() => setIsOpen(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Dialog>

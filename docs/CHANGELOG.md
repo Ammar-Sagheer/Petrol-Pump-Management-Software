@@ -2265,3 +2265,67 @@ two paid-in/paid-out figures together as one block of text.
   one had a figure in it and what colour it was - green against amber,
   which is exactly the colour pair the icons rule in
   `docs/UI_CONVENTIONS.md` says must never be the only cue.
+
+## Colourful stat rings, and every button became Material UI
+
+Two requests together: the icons "look boring", and the buttons should be
+Material UI so they look more professional.
+
+### The rings are coloured by meaning, not by tone
+
+Every icon ring was the same grey, which made a row of four tiles read as
+four identical objects — the ring was taking up space without doing the one
+job it has, which is letting the reader pick out the tile they want without
+reading the labels. `RING_COLORS` in `AdminStats.js` now maps each icon name
+to a colour: green for cash and profit, amber for credit and expenses, blue
+for fuel, violet for oil (already lubricants' badge colour), teal for stock
+on the shelf, red for a warning.
+
+**Colour follows what the figure IS, not whether it is good news.** `tone`
+already colours the figure and its pill, so a loss shows as a red number
+inside a green "profit" ring. Driving both from `tone` was the obvious
+alternative and is wrong: it says the same thing twice, and it puts every
+tile in a bad month into the same red, which is exactly the sameness the
+colour was added to fix. Unlisted icons fall back to neutral slate so a new
+one is never accidentally loud.
+
+### Buttons
+
+`app/_components/ui/Button.js` wraps MUI's `Button` and maps the app's three
+intents (`primary` / `secondary` / `danger`) onto MUI variants, so call sites
+still name an intent rather than a Material recipe. All 79 usages across 35
+files were migrated and the `.btn-*` classes deleted from `globals.css` —
+leaving them would have meant two button systems, which is what this
+replaced.
+
+**The tap targets got smaller, and that was a deliberate, informed choice.**
+The old classes were `py-3`, about 50px, chosen because this app is used on a
+cheap tablet and pressed with a thumb. MUI's default medium Button is about
+36px. The trade was put to the owner explicitly — MUI's default look means
+smaller targets, uppercase labels and Material blue instead of the brand
+green — and the owner chose MUI's defaults as-is. `size="large"` in
+`Button.js` is the one-line reversal if the smaller target turns out to bite
+in the yard.
+
+Two hand-rolled buttons folded into the shared component along the way. The
+more interesting one is Clear this day, which had written its styles out by
+hand *specifically* so that with nothing to clear it went grey rather than a
+faded red — "unavailable at a glance, not a warning". MUI's own disabled
+state is that grey, so the reason for the special case disappeared with the
+migration.
+
+### What the verification caught, and what it nearly missed
+
+`npm run build` passed with a `Button is not defined` bug live in
+`Pager.js` — the import pass had run before six files were hand-edited, and
+a missing identifier inside a client component is a runtime error, not a
+build one. It surfaced only on actually loading the page. Worth remembering
+next time a mechanical migration "builds fine": for this class of change the
+build is close to no evidence at all.
+
+Verified by rendering the real dialog components (Customer, Asset, Bank
+account, Clear day) and clicking each trigger open, plus `/admin/login` as a
+real route, checking the browser console was clean at each step. The `+`
+glyph in "+ Add an asset" rendering flush against its label — MUI only
+spaces its own `startIcon`, not ordinary children — was found this way and
+fixed with a `gap` in the wrapper.

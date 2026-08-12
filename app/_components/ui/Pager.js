@@ -1,5 +1,6 @@
 import PendingLink from '@/app/_components/ui/PendingLink';
 import Icon from '@/app/_components/ui/Icon';
+import Button from '@/app/_components/ui/Button';
 
 /**
  * The row under a paged table: how much of it you are looking at, and the way
@@ -64,16 +65,16 @@ export default function Pager({ page, perPage, total, hrefFor, label = 'Pages' }
 function PagerLink({ href, disabled, label, children }) {
   if (disabled) {
     return (
-      <span className="btn-secondary cursor-not-allowed opacity-50" aria-disabled="true">
+      <Button variant="secondary" disabled aria-disabled="true">
         {children}
-      </span>
+      </Button>
     );
   }
 
   return (
-    <PendingLink href={href} className="btn-secondary" aria-label={label}>
+    <Button variant="secondary" component={PendingLink} href={href} aria-label={label}>
       {children}
-    </PendingLink>
+    </Button>
   );
 }
 
