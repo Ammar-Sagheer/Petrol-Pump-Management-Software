@@ -181,8 +181,21 @@ input[type='number']::-webkit-inner-spin-button {
    * the full gap. Adjacent margins collapse, so a preceding `mb-6` does not
    * add to this - the larger of the two wins.
    */
+  /*
+   * IT MUST NOT LOOK LIKE `.figure-label`. It did: both were small, uppercase,
+   * tracked and ink-600, so "Lubricants" over a row of tiles was set in very
+   * nearly the same style as the "SOLD" caption inside one of them. A heading
+   * that is typeset as a caption does not read as a heading, and the owner
+   * reported exactly that - the sections on Reports "are not so prominent".
+   *
+   * So it is now the one thing on the page that is neither a caption nor a
+   * figure: larger, near-black, and NOT uppercase. Dropping the uppercase is
+   * what does most of the work - it is the single feature the two classes
+   * shared most visibly, and lower case at 18px reads faster in poor light
+   * than capitals do at 14px.
+   */
   .section-heading {
-    @apply mb-3 mt-8 text-sm font-bold uppercase tracking-wide text-ink-600 first:mt-0;
+    @apply mb-3 mt-8 text-lg font-bold text-ink-900 first:mt-0;
   }
 
   /*

@@ -158,11 +158,17 @@ export default async function ReportsPage({ searchParams }) {
         />
       </StatGrid>
 
-      <p className="mt-3 rounded-lg border border-ink-200 bg-white px-4 py-3 text-xs text-ink-600">
-        Sales and profit here cover both trades — fuel through the nozzles and lubricants over the
-        counter. Profit counts stock <span className="font-semibold">bought</span> this month, not
-        stock sold from the tank or the shelf. A big delivery near month end therefore makes profit
-        look low — that money is sitting in stock, which is what the closing figures below show.
+      {/* One line, not four. This was a paragraph explaining that profit counts
+          stock bought rather than stock sold, why a late delivery flatters it
+          downwards, and that both trades are included - true, all of it, and
+          the owner's verdict was "too long". The first clause is the only part
+          that changes how a figure is read; "both trades" was already covered
+          by the Sales tile's own sub-line, which itemises fuel and lubricants.
+          The full reasoning lives in the Guide and on the Summary sheet of the
+          workbook, where there is room for it. */}
+      <p className="mt-3 text-sm text-ink-600">
+        Profit counts stock <span className="font-semibold">bought</span> this month, not stock
+        sold — so a big delivery near month end makes it look low.
       </p>
 
       {/* ---- cash / credit + pending ---- */}

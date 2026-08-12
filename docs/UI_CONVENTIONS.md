@@ -1415,6 +1415,43 @@ a toolbar or an error state, not as a headline.
 The hierarchy problem it was solving is real but is better solved by section
 order and figure size. Recorded so it is not tried a third time.
 
+## A heading must not be typeset like a caption
+
+`.section-heading` and `.figure-label` were nearly the same style - both small,
+uppercase, tracked, ink-600 - so "Lubricants" over a row of tiles was set like
+the "SOLD" caption inside one of them. The owner reported the result exactly:
+the sections on Reports "are not so prominent".
+
+- **`.section-heading` is now `text-lg font-bold text-ink-900`, and not
+  uppercase.** Dropping the uppercase does most of the work, because it was the
+  feature the two classes most visibly shared. Lower case at 18px also reads
+  faster in poor light than capitals at 14px.
+- **`.figure-label` keeps the small uppercase treatment.** It is a caption, and
+  captions should look like captions - the fix was to stop the heading looking
+  like one, not to restyle both.
+- **Two bars now exist, and which to use is decided by the surface.** A FILL
+  gauge inside a coloured band (tank levels, unit progress) is hand-rolled, so
+  it can carry its own track and fill colours against that band. A
+  share-of-total bar in a plain list is MUI's `LinearProgress`, which is what
+  that component is for - see `CategoryBreakdown`.
+
+## Free text that gets grouped needs a memory
+
+Expenses take a typed category, and the pump's real data shows the cost of
+offering a fixed suggestion list and nothing else: most rows had fallen into
+"Other", and one category had become the sentence *"salary of haseeb and pump
+tea and lunch"*. A breakdown is only worth as much as the consistency of what
+was typed into it.
+
+`getExpenseCategories()` returns every category actually used, **most-used
+first**, and those go in front of the stock suggestions in the datalist.
+Frequency order rather than alphabetical is the point - the handful used every
+month sit at the top, which is where reuse actually comes from.
+
+The lesson generalises: **any free-text field whose values are later grouped,
+totalled or filtered should offer what has already been used.** Otherwise every
+entry invents its own spelling and the grouping quietly becomes noise.
+
 ## Two palettes, and they never overlap
 
 The app uses **two** colour vocabularies, deliberately kept apart:

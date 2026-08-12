@@ -523,6 +523,36 @@ export async function getExpenses({ from, to, limit = 100 } = {}) {
   );
 }
 
+/**
+ * Every category the owner has actually used, most-used first.
+ *
+ * The Expenses form offers a fixed list of seven suggestions, and the pump's
+ * real data shows what that costs on its own: most rows had fallen into
+ * "Other", and one category had become the sentence "salary of haseeb and pump
+ * tea and lunch". A free-text box with no memory invites a new spelling every
+ * time, and the by-category breakdown is only as useful as the consistency of
+ * what was typed into it.
+ *
+ * Ordering by frequency rather than alphabetically puts the handful he uses
+ * every month at the top of the list, which is where the reuse actually comes
+ * from.
+ */
+export async function getExpenseCategories() {
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase.from('expenses').select('category').limit(2000),
+    'the expense categories',
+  );
+
+  const counts = new Map();
+  for (const row of rows) {
+    const category = String(row.category ?? '').trim();
+    if (category) counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([category]) => category);
+}
+
 export async function getProfiles() {
   const supabase = await createClient();
   return unwrap(

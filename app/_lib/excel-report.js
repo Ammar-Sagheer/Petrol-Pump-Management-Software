@@ -413,6 +413,24 @@ export async function buildMonthlyWorkbook(data, { generatedOn } = {}) {
     row.in_month ? 'Yes' : 'No',
     row.note ?? '',
   ]);
+  // A TOTAL AT THE FOOT, because the question this sheet is opened to answer
+  // is "what is all of it worth" and a column of twelve figures does not
+  // answer it without the reader reaching for a calculator. It comes from the
+  // `assets` summary rather than adding the rows up here, so the sheet and the
+  // Summary block cannot disagree - they are then the same figure from the
+  // same query rather than two counts that happen to match today.
+  if (assetRows.length > 0) {
+    assetRows.push(['', '', '', '', '', '']);
+    assetRows.push([
+      '',
+      `Total owned — ${assets.count ?? assetRows.length} asset${(assets.count ?? 0) === 1 ? '' : 's'}`,
+      '',
+      num(assets.total_value),
+      '',
+      '',
+    ]);
+  }
+
   const assetsXml = await zip.file(SHEET_FILES.Assets).async('string');
   zip.file(SHEET_FILES.Assets, writeSheet(assetsXml, assetRows));
 

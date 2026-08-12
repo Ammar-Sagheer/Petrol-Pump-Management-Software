@@ -2615,3 +2615,61 @@ of that which review would not have:
 The renumbering trap in the template was checked rather than assumed: after
 regenerating, every existing sheet still maps to its original `sheetN.xml` and
 the three chart parts are untouched. Assets is `sheet10.xml`, appended last.
+
+## Reports headings, a shorter note, and the Expenses page
+
+Three things the owner asked for after using the pages for real.
+
+**The section headings were not prominent** - and the reason was that
+`.section-heading` and `.figure-label` were nearly the same style. Both small,
+uppercase, tracked, ink-600, so "Lubricants" over a row of tiles was set like
+the "SOLD" caption inside one of them. A heading typeset as a caption does not
+read as a heading. It is now `text-lg font-bold text-ink-900` and NOT
+uppercase; dropping the uppercase does most of the work, since that was the
+feature the two shared most visibly. Fixed in the shared class rather than on
+Reports, so every page gains it.
+
+**The explanatory note under the tiles was four lines and is now one.** It
+explained that profit counts stock bought rather than sold, why a late delivery
+flatters it downwards, and that both trades are included - all true, and the
+verdict was "too long". Only the first clause changes how a figure is read;
+"both trades" was already covered by the Sales tile's own sub-line, which
+itemises fuel and lubricants. The full reasoning is in the Guide and on the
+workbook's Summary sheet, where there is room.
+
+**Expenses** got the shared stat tiles (it was the last page still rendering
+its total by hand), and its by-category list became a real breakdown with
+share bars and percentages - a column of figures of different digit lengths
+does not answer "which costs dominate" without arithmetic.
+
+Two tiles, not three, and both cuts came from rendering it: a "biggest
+category" tile arrived truncated to "salary of haseeb…" because StatTile keeps
+its value on one line - correct for money, wrong for free text - and a third
+tile repeated the month's total under "counted in profit", which is not a
+second fact. That link moved into the first tile's sub-line.
+
+### The category box now remembers
+
+The same screenshot showed why the breakdown was worth so little: most of the
+month sat under "Other", and one category was the sentence "salary of haseeb
+and pump tea and lunch". The form offered seven fixed suggestions and no
+memory, so every entry invented its own wording. `getExpenseCategories()` now
+returns what has actually been used, most-used first, ahead of the stock list.
+
+The rule this leaves behind: any free-text field whose values are later
+grouped, totalled or filtered should offer what has already been used, or the
+grouping quietly becomes noise.
+
+### Where MUI earned its place, and where it did not
+
+`CategoryBreakdown` uses MUI's `LinearProgress`; the tank gauges and the unit
+progress bar stay hand-rolled. The distinction is the surface: a FILL gauge
+sitting inside a coloured band needs its own track and fill colours against
+that band, while a share-of-total bar in a plain list is exactly what
+`LinearProgress` is. Worth knowing the app now has both, and which to reach
+for.
+
+It is also a server component with no `'use client'` - nothing in it is
+interactive, and that is what lets it use `formatPKR` from `helpers.js`, which
+reads request cookies and cannot enter a browser bundle. Importing MUI's own
+client component from a server one is fine; only the props have to serialise.
