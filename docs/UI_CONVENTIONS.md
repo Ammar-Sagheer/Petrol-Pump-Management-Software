@@ -1451,6 +1451,32 @@ they now differ on **three** axes at once, and all three are load-bearing.
   his word), rust and navy. Diesel moving from yellow to orange takes it
   *further* from the gold than it was.
 
+## `soft` and `strong`: one hue, two weights, so lightness is free
+
+Each fuel carries a **pair** of filled-band tokens beyond `solid`:
+
+- `soft` — the pale tint of the hue behind its own dark relative (~6.5:1)
+- `strong` — the dark relative filled, behind white text (~7.5:1)
+
+They exist so a surface can use **hue to say which fuel and lightness to say
+something else entirely**. The Readings unit header does exactly that: it wears
+its unit's fuel, `soft` while there is still a nozzle to enter and `strong`
+once the pump is finished. Two questions, two channels, neither borrowing the
+other's.
+
+- **`strong` is not `solid`.** For diesel they are opposites — `solid` is the
+  light orange band, so an "emphasised" header built from it would be *paler*
+  than the quiet one. `strong` always comes from the dark relative.
+- **Everything inside such a band takes its colour from the band**:
+  `currentColor` for icons, white-alpha for chips and progress tracks. That is
+  what lets one pair of classes serve both a pale band with dark text and a
+  dark band with white text — nothing inside has to know which it is on.
+- **A container whose contents disagree gets `NEUTRAL_FUEL`.** A unit is
+  normally plumbed to one tank, but the schema does not require it, and a unit
+  selling both fuels would be mislabelled by either colour. Falling back to
+  neutral is the honest answer; picking the first nozzle's fuel and calling the
+  whole pump diesel is not.
+
 ## A badge is not a card band: legibility per surface, not per fuel
 
 `FuelBadge` and the card bands (Dashboard, Stock) both come from

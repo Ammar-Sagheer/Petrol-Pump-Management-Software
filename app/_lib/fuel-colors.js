@@ -72,6 +72,15 @@ export const FUEL_COLORS = {
     solid: 'bg-[#075985] text-white',
     /** Muted text on that band - captions, capacities. */
     solidMuted: 'text-sky-100',
+    /** A QUIET filled band - the pale tint of the hue behind its own dark
+        relative, 6.6:1. For a header that should say which fuel without
+        shouting. */
+    soft: 'bg-sky-100 text-[#075985]',
+    /** THE SAME BAND, EMPHASISED - the dark relative filled, white text,
+        7.6:1. `soft` and `strong` are a pair: same hue, one quiet and one
+        loud, so a surface can use lightness to say something of its own
+        (done/not done, say) while hue keeps saying which fuel. */
+    strong: 'bg-[#075985] text-white',
     /** Same fill and the same white text as the band. The badge does not need
         a different treatment here the way it did when petrol was a mid teal:
         the fill is already dark enough for white letters. */
@@ -101,6 +110,12 @@ export const FUEL_COLORS = {
         every axis: lighter fill, darker letters. */
     solid: 'bg-[#FDBA74] text-ink-900',
     solidMuted: 'text-ink-800',
+    /** 6.4:1. */
+    soft: 'bg-orange-100 text-[#9A3412]',
+    /** 7.3:1. NOT `solid` - diesel's band is the light one, so the emphasised
+        version has to come from the dark relative instead, or a "loud" header
+        would be paler than the quiet one. */
+    strong: 'bg-[#9A3412] text-white',
     /** The light fill and dark text again, so the two fuels' badges differ in
         the colour of their letters as well as their fill. */
     badge: 'bg-[#FDBA74] text-ink-900',
@@ -125,6 +140,10 @@ export const FUEL_COLORS = {
     label: 'Lubricant',
     solid: 'bg-[#D4AF37] text-ink-900',
     solidMuted: 'text-ink-800',
+    /** 6.5:1. */
+    soft: 'bg-[#D4AF37]/20 text-[#655216]',
+    /** 7.6:1. */
+    strong: 'bg-[#655216] text-white',
     /** Dark relative behind white text, 7.6:1 - a badge is small and bold and
         wants the unambiguous version. */
     badge: 'bg-[#655216] text-white',
@@ -142,6 +161,11 @@ export const NEUTRAL_FUEL = {
   label: '',
   solid: 'bg-ink-700 text-white',
   solidMuted: 'text-ink-100',
+  /** What a MIXED unit wears - one dispenser plumbed to two different tanks.
+      Neutral rather than either fuel's colour, because picking one would
+      label the whole unit as a fuel only half of it sells. */
+  soft: 'bg-ink-100 text-ink-700',
+  strong: 'bg-ink-700 text-white',
   badge: 'bg-ink-700 text-white',
   border: 'border-ink-300',
   accent: 'border-t-ink-400',

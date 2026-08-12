@@ -11,6 +11,7 @@ import {
 import { getReadingSheet, getCustomers, getCreditSalesForReadings } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import Icon from '@/app/_components/ui/Icon';
+import { fuelColor, NEUTRAL_FUEL } from '@/app/_lib/fuel-colors';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
 import ClearDayButton from '@/app/_components/admin/ClearDayButton';
@@ -188,27 +189,47 @@ export default async function ReadingsPage({ searchParams }) {
           const allDone = entered === unit.rows.length;
           const percent = Math.round((entered / unit.rows.length) * 100);
 
+          /*
+           * THE HEADER WEARS THE UNIT'S FUEL, quietly until the pump is
+           * finished and then filled. Hue says which fuel, lightness says
+           * whether there is anything left to do - two questions, two cues,
+           * neither borrowing the other's channel.
+           *
+           * A unit is normally plumbed to one tank, so its nozzles share a
+           * fuel. The schema does not require that, though, and a unit
+           * selling both would be mislabelled by either colour - so a mixed
+           * one falls back to neutral rather than picking the first nozzle's
+           * fuel and calling the whole pump diesel.
+           */
+          const fuels = new Set(unit.rows.map((row) => row.fuel_type));
+          const unitColor = fuels.size === 1 ? fuelColor([...fuels][0]) : NEUTRAL_FUEL;
+          const headerClass = allDone ? unitColor.strong : unitColor.soft;
+
           return (
             <section
               key={unit.unitNumber}
               aria-label={`Unit ${unit.unitNumber}`}
               className="card overflow-hidden"
             >
+              {/* Everything inside the header takes its colour from the band
+                  rather than being coloured on its own - `currentColor` for
+                  the icon, white-alpha for the chip and the track. That is
+                  what lets one pair of classes serve both a pale band with
+                  dark text and a dark band with white text: nothing in here
+                  has to know which it is sitting on. */}
               <div
-                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${
-                  allDone ? 'bg-brand-50' : 'bg-ink-50'
-                }`}
+                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${headerClass}`}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                    allDone ? 'bg-brand-100 text-brand-700' : 'bg-white text-ink-500'
+                    allDone ? 'bg-white/20' : 'bg-white/70'
                   }`}
                   aria-hidden="true"
                 >
                   <Icon name={allDone ? 'check' : 'readings'} className="h-5 w-5" />
                 </span>
 
-                <h2 className="text-base font-bold uppercase tracking-wide text-ink-800">
+                <h2 className="text-base font-bold uppercase tracking-wide">
                   Unit {unit.unitNumber}
                 </h2>
 
@@ -217,26 +238,28 @@ export default async function ReadingsPage({ searchParams }) {
                     same thing as the words beside it - it is the glanceable
                     half of the pair, not the only carrier. */}
                 <span
-                  className={`badge ${
-                    allDone ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-700'
-                  }`}
+                  className={`badge ${allDone ? 'bg-white/20' : 'bg-white/70'}`}
                 >
                   {entered} of {unit.rows.length} entered
                 </span>
 
                 <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
                   <div
-                    className="h-1.5 overflow-hidden rounded-full bg-ink-200"
+                    className={`h-1.5 overflow-hidden rounded-full ${
+                      allDone ? 'bg-white/25' : 'bg-white/70'
+                    }`}
                     role="img"
                     aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
                   >
-                    {/* Green whether part-done or finished, rather than amber
-                        until complete. Amber now sits one row away from
-                        diesel's orange badge, and two warm colours in the same
-                        card muddy the one cue that has to stay unmistakable.
-                        Progress reads perfectly well as "how much green". */}
+                    {/* On a pale band the fill is the app's progress green. On
+                        the filled band it goes white instead: green on dark
+                        rust or dark blue is a third hue fighting for the same
+                        strip, and "how much of the bar is bright" reads the
+                        same either way. */}
                     <div
-                      className="h-full rounded-full bg-brand-500 transition-all"
+                      className={`h-full rounded-full transition-all ${
+                        allDone ? 'bg-white' : 'bg-brand-500'
+                      }`}
                       style={{ width: `${percent}%` }}
                     />
                   </div>

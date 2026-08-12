@@ -2462,3 +2462,29 @@ classes rather than by looking, which is the only reliable way to find this.
 Stock dip boxes (the other surface where typing into the wrong one costs
 something) and the full readings sheet with both fuels interleaved, at 1100px
 and 400px.
+
+## The Readings unit header wears its fuel
+
+The header strip had a wide empty middle and said nothing the rows below did
+not already say. It now carries the unit's fuel as a filled band - pale while
+there is still a nozzle to enter, filled dark once the pump is finished.
+
+**Hue says which fuel, lightness says whether there is work left.** Two
+questions on two channels, so neither has to borrow the other's. That needed a
+new pair of tokens in `fuel-colors.js` - `soft` (pale tint, own dark text) and
+`strong` (dark relative, white text) - because `solid` could not do the job
+alone: for diesel `solid` IS the light band, so an emphasised header built
+from it would have come out paler than the quiet one.
+
+Everything inside the band takes its colour from the band rather than being
+coloured itself - `currentColor` for the icon, white-alpha for the chip and
+the progress track - which is what lets one pair of classes serve both a pale
+band with dark text and a dark band with white text. The progress fill is the
+only exception: green on a pale band, white on a filled one, because green on
+dark rust is a third hue fighting for a 6px strip.
+
+**A unit with two different fuels falls back to neutral.** A dispenser is
+normally plumbed to one tank and every unit at this pump is single-fuel, but
+the schema does not require it, and a unit selling both would be mislabelled
+by either colour. Rendered that case deliberately in the check rather than
+assuming the real data would never produce it.
