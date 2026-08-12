@@ -37,7 +37,7 @@ import ChartTooltip from '@/app/_components/admin/ChartTooltip';
  * money the two are comparable, which is the whole reason to chart them
  * together.
  */
-const PACK_COLOR = '#059669';
+const PACK_COLOR = '#047857';
 const LOOSE_COLOR = '#7c3aed';
 const SURFACE = '#ffffff';
 

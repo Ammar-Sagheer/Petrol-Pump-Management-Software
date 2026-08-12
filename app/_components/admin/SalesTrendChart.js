@@ -40,9 +40,13 @@ import { FUEL_COLORS } from '@/app/_lib/fuel-colors';
  * of what petrol and diesel look like, so a bar means the same fuel here as the
  * badge does on every table. They were previously retyped as literals and had
  * already drifted from the badges. They also carry the word in the legend: this
- * is a navy/yellow pair, and colour is never the only cue.
+ * is a blue/orange pair, and colour is never the only cue.
+ *
+ * The single-series "Sales" bar takes the app's primary green. It was a lone
+ * teal, which was a hue this app used nowhere else - and with petrol now blue,
+ * a teal bar sat close enough to read as "some kind of petrol".
  */
-const SALE_COLOR = '#0f766e';
+const SALE_COLOR = '#047857';
 const PETROL_COLOR = FUEL_COLORS.petrol.hex;
 const DIESEL_COLOR = FUEL_COLORS.diesel.hex;
 const SURFACE = '#ffffff';

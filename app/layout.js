@@ -2,6 +2,8 @@ import '@/app/_styles/globals.css';
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 
+import AppTheme from '@/app/_components/ui/AppTheme';
+
 import { BUSINESS_NAME } from '@/app/_lib/brand';
 
 export const metadata = {
@@ -31,7 +33,9 @@ export default function RootLayout({ children }) {
          * itself comes first - a hydration mismatch on every MUI icon, not
          * a one-off bug in a particular icon.
          */}
-        <AppRouterCacheProvider options={{ key: 'mui' }}>{children}</AppRouterCacheProvider>
+        <AppRouterCacheProvider options={{ key: 'mui' }}>
+          <AppTheme>{children}</AppTheme>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

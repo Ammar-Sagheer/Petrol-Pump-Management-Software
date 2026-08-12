@@ -1,22 +1,27 @@
 /**
  * The avatar bubble beside a customer's name on the Customers list, in the
- * style of the MUI "Minimal Dashboard" list this was adapted from: a
- * coloured circle carrying the customer's first initial.
+ * style of the MUI "Minimal Dashboard" list this was adapted from: a circle
+ * carrying the customer's first initial.
  *
- * The colour is picked from the customer's id, not `Math.random()` - a name
- * that changed colour every time the page reloaded would look like a bug
- * rather than a feature, and a colour is one more thing the owner uses to
- * spot a regular in a long list. Deterministic per id is the "random" that
- * is actually wanted here: assigned once, stable forever after.
+ * The tint is picked from the customer's id, not `Math.random()` - a name that
+ * changed colour on every reload would look like a bug rather than a feature,
+ * and it is one more thing the owner uses to spot a regular in a long list.
+ * Deterministic per id is the "random" that is actually wanted: assigned once,
+ * stable forever after.
+ *
+ * FOUR TINTS OF THE APP'S OWN TWO FAMILIES, not seven hues. This started as
+ * sky / violet / amber / rose / indigo / teal / green, which is most of the
+ * colour wheel dropped into a list to tell one name from another - and two of
+ * those hues are what petrol and lubricant wear as identity elsewhere. The
+ * INITIAL is what actually distinguishes a customer; the tint only has to keep
+ * the row from looking uniform, and slate and green at two steps each do that
+ * without adding a hue to the app.
  */
 const COLORS = [
-  { bg: 'bg-brand-100', text: 'text-brand-700' },
-  { bg: 'bg-sky-100', text: 'text-sky-700' },
-  { bg: 'bg-violet-100', text: 'text-violet-700' },
-  { bg: 'bg-amber-100', text: 'text-amber-700' },
-  { bg: 'bg-rose-100', text: 'text-rose-700' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-700' },
-  { bg: 'bg-teal-100', text: 'text-teal-700' },
+  { bg: 'bg-brand-100', text: 'text-brand-800' },
+  { bg: 'bg-ink-200', text: 'text-ink-700' },
+  { bg: 'bg-brand-50', text: 'text-brand-700' },
+  { bg: 'bg-ink-100', text: 'text-ink-600' },
 ];
 
 function hashOf(seed) {
