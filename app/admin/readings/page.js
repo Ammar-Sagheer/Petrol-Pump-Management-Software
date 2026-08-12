@@ -183,7 +183,7 @@ export default async function ReadingsPage({ searchParams }) {
           the page reads as three pumps to work through rather than six
           unrelated forms, and the rows inside it get shorter because they
           no longer each need to carry their own edge. */}
-      <div className="space-y-5">
+      <div className="space-y-8">
         {units.map((unit) => {
           const entered = unit.rows.filter((row) => row.reading_id).length;
           const allDone = entered === unit.rows.length;
@@ -243,27 +243,29 @@ export default async function ReadingsPage({ searchParams }) {
                   {entered} of {unit.rows.length} entered
                 </span>
 
-                <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
-                  <div
-                    className={`h-1.5 overflow-hidden rounded-full ${
-                      allDone ? 'bg-white/25' : 'bg-white/70'
-                    }`}
-                    role="img"
-                    aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
-                  >
-                    {/* On a pale band the fill is the app's progress green. On
-                        the filled band it goes white instead: green on dark
-                        rust or dark blue is a third hue fighting for the same
-                        strip, and "how much of the bar is bright" reads the
-                        same either way. */}
+                {/*
+                 * ONLY WHILE THERE IS PROGRESS TO SHOW. A finished unit is by
+                 * definition at 100%, and a full bar has no empty track left
+                 * to contrast against - on the filled header it stopped
+                 * reading as a bar at all and just looked like a white rule
+                 * someone had left there. Nothing was lost by removing it:
+                 * the filled band, the check and "2 of 2 entered" already say
+                 * the pump is done, three times over.
+                 */}
+                {allDone ? null : (
+                  <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
                     <div
-                      className={`h-full rounded-full transition-all ${
-                        allDone ? 'bg-white' : 'bg-brand-500'
-                      }`}
-                      style={{ width: `${percent}%` }}
-                    />
+                      className="h-1.5 overflow-hidden rounded-full bg-white/70"
+                      role="img"
+                      aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-brand-500 transition-all"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="divide-y divide-ink-100 border-t border-ink-200">

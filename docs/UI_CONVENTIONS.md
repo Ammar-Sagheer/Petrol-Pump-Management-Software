@@ -1471,6 +1471,13 @@ other's.
   `currentColor` for icons, white-alpha for chips and progress tracks. That is
   what lets one pair of classes serve both a pale band with dark text and a
   dark band with white text — nothing inside has to know which it is on.
+- **A progress bar disappears at 100%, it does not sit there full.** A full
+  bar has no empty track left to contrast against, so it stops reading as a
+  bar and starts reading as a rule someone left behind - which is exactly how
+  the owner reported it ("the progress bar looks white even when filled"). A
+  finished unit is by definition at 100%, so the bar is dropped and the filled
+  band, the check and "2 of 2 entered" carry it instead. Show a bar only while
+  there is progress left to show.
 - **A container whose contents disagree gets `NEUTRAL_FUEL`.** A unit is
   normally plumbed to one tank, but the schema does not require it, and a unit
   selling both fuels would be mislabelled by either colour. Falling back to

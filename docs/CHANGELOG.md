@@ -2488,3 +2488,21 @@ normally plumbed to one tank and every unit at this pump is single-fuel, but
 the schema does not require it, and a unit selling both would be mislabelled
 by either colour. Rendered that case deliberately in the check rather than
 assuming the real data would never produce it.
+
+## The finished unit's progress bar was reading as a stray white rule
+
+Reported as "the progress bar looks white even when filled". It was: on a
+filled dark header a 100% bar is entirely fill, with no empty track left to
+contrast against, so it stopped looking like a bar and started looking like a
+white line left behind by mistake.
+
+The bar is now only rendered while a unit is unfinished. A finished one is at
+100% by definition, so the bar was carrying no information there - the filled
+band, the check icon and "2 of 2 entered" already say it three times over. The
+general rule, which is worth remembering the next time a progress indicator
+goes on a coloured surface: **show a bar only while there is progress left to
+show.**
+
+The gap between unit cards also went from 20px to 32px, so the three pumps
+read as three separate things to work through rather than one continuous
+stack.
