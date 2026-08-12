@@ -10,6 +10,7 @@ import {
 } from '@/app/_lib/helpers';
 import { getReadingSheet, getCustomers, getCreditSalesForReadings } from '@/app/_lib/data-service';
 import PageHeader from '@/app/_components/ui/PageHeader';
+import Icon from '@/app/_components/ui/Icon';
 import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
 import ClearDayButton from '@/app/_components/admin/ClearDayButton';
@@ -171,22 +172,50 @@ export default async function ReadingsPage({ searchParams }) {
       </div>
 
       {/* A list, not a grid of cards. Each row opens a dialog to enter that
-          nozzle, so the whole day stays visible on one screen - now gathered
-          under the unit each nozzle belongs to, with the units set well apart
-          so the grouping is read rather than worked out. */}
-      <div className="space-y-8">
+          nozzle, so the whole day stays visible on one screen.
+
+          THE CARD IS THE UNIT. A unit is a physical pump standing on the
+          forecourt with two nozzles bolted to it, and the flat list of
+          six identical full-width cards gave that nothing to be - "Unit 1"
+          was a caption floating above two slabs. Wrapping each unit's
+          nozzles in one card, with its own header and progress bar, means
+          the page reads as three pumps to work through rather than six
+          unrelated forms, and the rows inside it get shorter because they
+          no longer each need to carry their own edge. */}
+      <div className="space-y-5">
         {units.map((unit) => {
           const entered = unit.rows.filter((row) => row.reading_id).length;
           const allDone = entered === unit.rows.length;
+          const percent = Math.round((entered / unit.rows.length) * 100);
 
           return (
-            <section key={unit.unitNumber} aria-label={`Unit ${unit.unitNumber}`}>
-              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h2 className="text-base font-bold uppercase tracking-wide text-ink-700">
+            <section
+              key={unit.unitNumber}
+              aria-label={`Unit ${unit.unitNumber}`}
+              className="card overflow-hidden"
+            >
+              <div
+                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${
+                  allDone ? 'bg-brand-50' : 'bg-ink-50'
+                }`}
+              >
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    allDone ? 'bg-brand-100 text-brand-700' : 'bg-white text-ink-500'
+                  }`}
+                  aria-hidden="true"
+                >
+                  <Icon name={allDone ? 'check' : 'readings'} className="h-5 w-5" />
+                </span>
+
+                <h2 className="text-base font-bold uppercase tracking-wide text-ink-800">
                   Unit {unit.unitNumber}
                 </h2>
+
                 {/* How far through this unit is, so a finished pump can be
-                    skipped without reading both of its rows. */}
+                    skipped without reading both of its rows. The bar says the
+                    same thing as the words beside it - it is the glanceable
+                    half of the pair, not the only carrier. */}
                 <span
                   className={`badge ${
                     allDone ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-700'
@@ -194,9 +223,24 @@ export default async function ReadingsPage({ searchParams }) {
                 >
                   {entered} of {unit.rows.length} entered
                 </span>
+
+                <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
+                  <div
+                    className="h-1.5 overflow-hidden rounded-full bg-ink-200"
+                    role="img"
+                    aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
+                  >
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        allDone ? 'bg-brand-500' : 'bg-amber-400'
+                      }`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="divide-y divide-ink-100 border-t border-ink-200">
                 {unit.rows.map((row) => (
                   <ReadingForm
                     key={row.nozzle_id}

@@ -132,13 +132,39 @@ export default function ReadingForm({
 
   return (
     <>
+      {/*
+       * A ROW INSIDE ITS UNIT'S CARD, not a card of its own.
+       *
+       * Six identically-shaped full-width cards stacked down the page had no
+       * rhythm to them and gave the unit grouping nothing to be - "Unit 1"
+       * was a caption floating above two slabs rather than the physical pump
+       * those two nozzles are bolted to. The card is the unit now (see
+       * readings/page.js) and this is one row in it, so the page reads as
+       * three pumps rather than six unrelated forms.
+       *
+       * The fuel accent moved from a rule across the top to one down the
+       * left edge for the same reason: a top rule drew a line between rows
+       * that already have a divider, where a left edge runs alongside the
+       * whole row and still says which fuel without adding a second border.
+       * That is `color.border` (the plain border COLOUR) rather than
+       * `color.accent`, which is `border-t-*` and so only ever paints a top
+       * rule - pairing it with `border-l-4` gave a 4px edge in the default
+       * grey and no fuel colour at all.
+       *
+       * NOT YET ENTERED IS THE TINTED ONE. Every evening this page is opened
+       * to answer "what is left to do", and a finished nozzle used to look
+       * exactly as loud as one still waiting - same size, same weight, same
+       * white. The amber wash is the same amber the Enter chip already wears,
+       * so it adds no new colour language, and it means the remaining work is
+       * what the eye lands on.
+       */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`card block w-full border-t-4 px-4 py-4 text-left transition sm:px-5 sm:py-5
-                   hover:border-brand-300 hover:bg-brand-50/40
-                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600
-                   ${color.accent}`}
+        className={`block w-full border-l-4 px-4 py-3.5 text-left transition
+                   focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600
+                   ${color.border}
+                   ${isSaved ? 'bg-white hover:bg-ink-50' : 'bg-amber-50/50 hover:bg-amber-50'}`}
       >
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -154,7 +180,7 @@ export default function ReadingForm({
 
           <span
             className={`badge shrink-0 ${
-              isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-100 text-amber-900'
+              isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-200 text-amber-900'
             }`}
           >
             <Icon name={isSaved ? 'check' : 'pencil'} className="h-4 w-4" />
@@ -168,7 +194,7 @@ export default function ReadingForm({
             already know which figure is which - and left most of the row
             empty. Spread across the width, each one says what it is. */}
         {isSaved ? (
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink-200/70 pt-3 sm:grid-cols-4">
+          <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
             <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
             <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
             <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
@@ -179,7 +205,7 @@ export default function ReadingForm({
             />
           </dl>
         ) : (
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink-200/70 pt-3 sm:grid-cols-4">
+          <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
             <RowFigure label="Meter starts at" value={meterFormat.format(openingUsed)} strong />
             {/* "/ litre" lives in the caption, not in the figure. At the
                 readable type size "Rs 336.34 / litre" no longer fits the
@@ -191,7 +217,7 @@ export default function ReadingForm({
               value={row.rate ? formatRate(row.rate) : 'Not set'}
               tone={row.rate ? undefined : 'warn'}
             />
-            <div className="col-span-2 self-center text-sm text-ink-600 sm:col-span-2">
+            <div className="col-span-2 self-center text-sm font-medium text-amber-900 sm:col-span-2">
               Tap to enter the closing meter reading.
             </div>
           </dl>

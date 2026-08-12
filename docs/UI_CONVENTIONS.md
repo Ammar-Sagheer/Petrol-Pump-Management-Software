@@ -86,11 +86,25 @@ intent name and maps it onto MUI:
   a table row. The only style added on top of MUI's defaults is a `gap`, so a
   glyph or `<Icon>` passed as an ordinary child does not sit flush against
   the label.
-- **A button that navigates should still be a link**: pass
-  `component={Link}` (or `component={PendingLink}` where a spinner is
-  wanted) with `href`. MUI renders a real `<a>`, so middle-click and
-  open-in-new-tab keep working, which they do not on a button with an
-  onClick router push.
+- **A button that navigates should still be a link**: pass `href`, and add
+  `pending` where a spinner during the navigation is wanted. MUI renders a
+  real `<a>` through Next's `Link`, so middle-click and open-in-new-tab keep
+  working, which they do not on a button with an onClick router push.
+- **Never pass `component={Link}` from a server component.** `<Button>` is a
+  client component, and a function cannot cross the server/client boundary -
+  doing it throws *"Functions cannot be passed directly to Client
+  Components"* at render time. That is why the API is `href` (a string) and
+  `pending` (a boolean): both serialise, and `Button` picks the component on
+  the client side of the boundary. `component="a"` is fine, being a string -
+  it is what the Excel download uses so the browser handles it rather than
+  the client router.
+- **This class of bug does not show up in `npm run build`.** It is a render-
+  time error on an auth-gated page, so the build is green and the page is
+  broken. Worse, it surfaced to the owner as _"page not found"_ rather than
+  as an error: clicking a row is a client-side navigation, which fetches that
+  route's RSC payload, and a payload that fails to generate lands on
+  not-found. If a page 404s only when navigated to by clicking, suspect a
+  serialisation error in that route before suspecting the data.
 - `<SubmitButton>` (`app/_components/ui/SubmitButton.js`) wraps a submit
   button in `useFormStatus()` so it disables itself and shows a
   `pendingLabel` while a Server Action is in flight — use it for every form
@@ -478,23 +492,41 @@ the wrong question.
   strip. Three pages had their own copy and all three had the same latent
   bug; they are one component now.
 
-## Let spacing do the grouping
+## The container is the group — Readings
 
 Readings lists six nozzles that belong to three physical units. Flat and
 evenly spaced they read as six unrelated pumps, and the only thing saying
 otherwise was the words "Unit 1 ·" repeated on two cards — a relationship the
 reader had to compare character by character to see.
 
-- **The gap carries the grouping**: 32px between units against 12px between
-  the nozzles inside one. The heading only names what the spacing already
-  showed.
+Spacing was the first fix (32px between units against 12px inside one) and it
+was not enough on its own: six identically-shaped full-width cards down the
+page still had no rhythm, and "Unit 1" was a caption floating above two slabs
+rather than the pump those nozzles are bolted to.
+
+- **One card per unit, nozzles as rows inside it.** The card is the physical
+  pump; the rows are its nozzles. Three objects to work through instead of
+  six, and the rows get shorter because they no longer each carry their own
+  card edge and shadow.
+- **A group carries its own progress** — "1 of 2 entered" plus a bar, green
+  once done — so a finished pump is skipped without reading its rows. The bar
+  and the words say the same thing; the bar is the glanceable half, never the
+  only carrier.
+- **The unentered row is the tinted one.** This page is opened every evening
+  to answer "what is left to do", and a finished nozzle used to look exactly
+  as loud as one still waiting. The amber wash is the same amber the Enter
+  chip already wears, so it adds no new colour language — it just puts the
+  remaining work where the eye lands first.
 - **Drop the repetition the grouping makes redundant.** With a "Unit 1"
-  heading above them, the cards say "Nozzle A" and "Nozzle B". The _dialog_
+  heading above them, the rows say "Nozzle A" and "Nozzle B". The _dialog_
   keeps the full "Unit 1 · Nozzle A", because it opens over the whole page
   with the heading out of sight — shorten a label only where the context that
   replaces it is on screen.
-- **A group can carry its own progress** — "1 of 2 entered", green once done —
-  so a finished group is skipped without reading its rows.
+- **A left edge, not a top rule, for the fuel colour on a row inside a
+  card.** Use `color.border` (the plain border colour) for this, not
+  `color.accent` — `accent` is `border-t-*` and only ever paints a top rule,
+  so pairing it with `border-l-4` silently gives a grey edge and no fuel
+  colour at all.
 
 ## The day on screen is stated once, and loudly
 

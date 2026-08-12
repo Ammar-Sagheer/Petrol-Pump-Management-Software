@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { requirePageRole, ROLES, formatPKR, formatLitres } from '@/app/_lib/helpers';
@@ -53,7 +52,7 @@ export default async function CustomerDetailPage({ params, searchParams }) {
         description={[customer.vehicle_number, customer.phone].filter(Boolean).join(' · ') || null}
       >
         <EditCustomerButton customer={customer} />
-        <Button variant="secondary" component={Link} href="/admin/customers">
+        <Button variant="secondary" href="/admin/customers">
           Back to customers
         </Button>
       </PageHeader>

@@ -1,4 +1,3 @@
-import PendingLink from '@/app/_components/ui/PendingLink';
 import Icon from '@/app/_components/ui/Icon';
 import Button from '@/app/_components/ui/Button';
 
@@ -72,7 +71,7 @@ function PagerLink({ href, disabled, label, children }) {
   }
 
   return (
-    <Button variant="secondary" component={PendingLink} href={href} aria-label={label}>
+    <Button variant="secondary" href={href} pending aria-label={label}>
       {children}
     </Button>
   );
