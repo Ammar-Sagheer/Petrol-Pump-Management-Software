@@ -2415,3 +2415,50 @@ What actually caught it was a devcheck page deliberately written **without**
 URL, reproducing the client-navigation path. The fix was then confirmed the
 only way worth trusting: by reintroducing the bug and checking the test went
 red (it did, with the owner's exact error), then removing it again.
+
+## Petrol went blue, diesel went orange
+
+The owner asked for a pair his father cannot mix up. The mistake being
+designed out is concrete: a closing reading typed against the wrong nozzle,
+which poisons every later day because each opening comes from the day before.
+
+**Blue against orange, dark against light.** The old pair — the owner's own
+teal `#54A2B3` and yellow `#FCFC62` — worked, but only just. They sat 2.67x
+apart in luminance, and the yellow was near enough to lubricant's gold to blur
+a purchase list. The new pair is 4.48x apart, on opposite sides of the colour
+wheel, and differs in a third way as well: petrol's fill is dark and carries
+WHITE letters, diesel's is light and carries DARK ones. Three independent
+cues, so the pair survives a dim office, a failing screen, and colour-vision
+deficiency — blue against orange does, where red against green would not.
+
+The module's own rule was the thing to respect here, and it nearly got broken:
+the first candidate was a mid blue against a mid orange, which is a fine-
+looking pair and 8.3:1 against 7.9:1 — i.e. the same weight, exactly what the
+owner rejected once before as "they both look the same, both are dark". The
+lightness gap is checked now rather than assumed, and the numbers are written
+into `fuel-colors.js`.
+
+**`border` is a step lighter than `onWhite`.** At text-grade darkness the 8px
+nozzle rail read as near-black for petrol and as brown — close enough to the
+app's red to look like a warning — for diesel. A rule only has to be seen; text
+has to be read, so the two jobs take different values of the same hue.
+
+**Two things had to move out of amber**, because diesel now owns orange and two
+warm colours competing on one row is exactly the confusion this was meant to
+end: the readings "Enter" chip (now neutral slate) and the unit progress bar
+(now green whether part-done or complete). The nozzle row's state tint
+inverted as a result — a finished row settles into a faint green matching the
+check in its unit header, and a row still to enter stays plain white and stands
+out against them. The colour budget on that row belongs to the fuel.
+
+**A corner of the app was still on the old colours and nearly stayed there.**
+The customer detail page's "Fuel taken in total" tiles hard-coded `bg-sky-50`
+and `bg-amber-50` instead of calling `fuelColor()`, so they were invisible to
+a change made in the module — the exact drift that caused the module to be
+written in the first place. Found by grepping for fuel names next to colour
+classes rather than by looking, which is the only reliable way to find this.
+
+**Verified** by rendering all three badges together, the filled bands, the
+Stock dip boxes (the other surface where typing into the wrong one costs
+something) and the full readings sheet with both fuels interleaved, at 1100px
+and 400px.

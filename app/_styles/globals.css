@@ -28,8 +28,11 @@
   --color-ink-800: #1e293b;
   --color-ink-900: #0f172a;
 
-  --color-petrol: #0284c7;
-  --color-diesel: #ca8a04;
+  /* Kept in step with app/_lib/fuel-colors.js, which is the source of
+     truth for anything that renders a fuel. Petrol is the dark blue, diesel
+     the light orange - see the header of that file for why. */
+  --color-petrol: #075985;
+  --color-diesel: #FDBA74;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }

@@ -230,10 +230,13 @@ export default async function ReadingsPage({ searchParams }) {
                     role="img"
                     aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
                   >
+                    {/* Green whether part-done or finished, rather than amber
+                        until complete. Amber now sits one row away from
+                        diesel's orange badge, and two warm colours in the same
+                        card muddy the one cue that has to stay unmistakable.
+                        Progress reads perfectly well as "how much green". */}
                     <div
-                      className={`h-full rounded-full transition-all ${
-                        allDone ? 'bg-brand-500' : 'bg-amber-400'
-                      }`}
+                      className="h-full rounded-full bg-brand-500 transition-all"
                       style={{ width: `${percent}%` }}
                     />
                   </div>

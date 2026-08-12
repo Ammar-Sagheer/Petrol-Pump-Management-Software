@@ -142,29 +142,34 @@ export default function ReadingForm({
        * readings/page.js) and this is one row in it, so the page reads as
        * three pumps rather than six unrelated forms.
        *
-       * The fuel accent moved from a rule across the top to one down the
-       * left edge for the same reason: a top rule drew a line between rows
-       * that already have a divider, where a left edge runs alongside the
-       * whole row and still says which fuel without adding a second border.
-       * That is `color.border` (the plain border COLOUR) rather than
-       * `color.accent`, which is `border-t-*` and so only ever paints a top
-       * rule - pairing it with `border-l-4` gave a 4px edge in the default
-       * grey and no fuel colour at all.
+       * WHICH FUEL THIS IS, TWICE OVER. This row is the surface the owner
+       * named when he asked for the two fuels to be unmistakable: a reading
+       * typed against the wrong nozzle is the mistake being designed out. So
+       * it carries the fuel in two independent ways - an 8px rail down the
+       * left in the fuel's dark relative (blue against rust, a hue
+       * difference), and the badge beside the name (dark blue with white
+       * letters against light orange with dark letters, a lightness AND a
+       * letter-colour difference). The rail uses `color.border`, not
+       * `color.accent`, which is `border-t-*` and paints only a top rule; and
+       * not `color.solid` either, because diesel's light orange is 1.6:1 on
+       * white and would be an invisible rail. See fuel-colors.js.
        *
-       * NOT YET ENTERED IS THE TINTED ONE. Every evening this page is opened
-       * to answer "what is left to do", and a finished nozzle used to look
-       * exactly as loud as one still waiting - same size, same weight, same
-       * white. The amber wash is the same amber the Enter chip already wears,
-       * so it adds no new colour language, and it means the remaining work is
-       * what the eye lands on.
+       * DONE IS THE TINTED ONE, and it used to be the other way round. An
+       * amber wash on the rows still to enter was right when the fuels were
+       * teal and yellow, but diesel is orange now and an amber row behind an
+       * orange rail is mud - the colour budget on this row belongs to the
+       * fuel. So state moved to the quieter cue: a finished row settles into
+       * a faint green, matching the check in its unit header, and a row still
+       * to enter stays plain white and stands out against them. The Enter
+       * chip still carries the word.
        */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`block w-full border-l-4 px-4 py-3.5 text-left transition
+        className={`block w-full border-l-8 px-4 py-3.5 text-left transition
                    focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600
                    ${color.border}
-                   ${isSaved ? 'bg-white hover:bg-ink-50' : 'bg-amber-50/50 hover:bg-amber-50'}`}
+                   ${isSaved ? 'bg-brand-50/40 hover:bg-brand-50' : 'bg-white hover:bg-ink-50'}`}
       >
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -178,9 +183,14 @@ export default function ReadingForm({
             ) : null}
           </div>
 
+          {/* Green for done, NEUTRAL for still-to-do. This chip was amber
+              until diesel became orange; a pale amber chip sitting beside an
+              orange fuel badge on the same row is two warm colours competing
+              to be noticed, and the fuel has to win that. Slate says "not
+              yet" without claiming any of the colour the fuels now own. */}
           <span
             className={`badge shrink-0 ${
-              isSaved ? 'bg-brand-100 text-brand-800' : 'bg-amber-200 text-amber-900'
+              isSaved ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-800'
             }`}
           >
             <Icon name={isSaved ? 'check' : 'pencil'} className="h-4 w-4" />
@@ -217,7 +227,7 @@ export default function ReadingForm({
               value={row.rate ? formatRate(row.rate) : 'Not set'}
               tone={row.rate ? undefined : 'warn'}
             />
-            <div className="col-span-2 self-center text-sm font-medium text-amber-900 sm:col-span-2">
+            <div className="col-span-2 self-center text-sm font-medium text-ink-600 sm:col-span-2">
               Tap to enter the closing meter reading.
             </div>
           </dl>
