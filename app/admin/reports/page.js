@@ -18,6 +18,7 @@ import SalesTrendChart from '@/app/_components/admin/SalesTrendChart';
 import CashCreditChart from '@/app/_components/admin/CashCreditChart';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import PendingLink from '@/app/_components/ui/PendingLink';
+import Button from '@/app/_components/ui/Button';
 
 export const metadata = { title: 'Reports' };
 
@@ -82,9 +83,9 @@ export default async function ReportsPage({ searchParams }) {
             defaultValue={monthParam}
             className="input py-2"
           />
-          <button type="submit" className="btn-secondary">
+          <Button variant="secondary" type="submit">
             Show
-          </button>
+          </Button>
         </form>
 
         {/* A plain link, not a fetch: the browser handles the download itself,
@@ -95,9 +96,9 @@ export default async function ReportsPage({ searchParams }) {
             export landed in Downloads as a junk file instead of showing why.
             The route's Content-Disposition header downloads the workbook on
             its own, and lets a failure navigate back here normally. */}
-        <a href={`/admin/reports/export?month=${monthParam}`} className="btn-primary">
+        <Button component="a" variant="primary" href={`/admin/reports/export?month=${monthParam}`}>
           Download Excel
-        </a>
+        </Button>
       </PageHeader>
 
       {exportError ? (

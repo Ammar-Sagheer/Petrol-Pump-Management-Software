@@ -221,8 +221,10 @@ function AccountCard({ account, transactionCount }) {
           as a plain block of text. */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
+          {/* Indigo, matching the ring the Banking stat tile above it wears -
+              see RING_COLORS in AdminStats.js. */}
           <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-600"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600"
             aria-hidden="true"
           >
             <Icon name="banking" className="h-5 w-5" />

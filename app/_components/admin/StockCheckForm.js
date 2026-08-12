@@ -417,7 +417,7 @@ export default function StockCheckForm({
               here describing a day that is no longer on screen. */}
             {state?.ok === false ? <FormMessage state={state} /> : null}
 
-            <SubmitButton className="btn-primary w-full">Record dip</SubmitButton>
+            <SubmitButton fullWidth >Record dip</SubmitButton>
           </form>
         )}
       </div>

@@ -9,6 +9,7 @@ import LedgerAdjustmentForm from '@/app/_components/admin/LedgerAdjustmentForm';
 import CustomerLedgerTable from '@/app/_components/admin/CustomerLedgerTable';
 import EditCustomerButton from '@/app/_components/admin/EditCustomerButton';
 import Pager, { pageFrom } from '@/app/_components/ui/Pager';
+import Button from '@/app/_components/ui/Button';
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -52,9 +53,9 @@ export default async function CustomerDetailPage({ params, searchParams }) {
         description={[customer.vehicle_number, customer.phone].filter(Boolean).join(' · ') || null}
       >
         <EditCustomerButton customer={customer} />
-        <Link href="/admin/customers" className="btn-secondary">
+        <Button variant="secondary" component={Link} href="/admin/customers">
           Back to customers
-        </Link>
+        </Button>
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem] [&>*]:min-w-0">

@@ -3,6 +3,7 @@ import DateJump from '@/app/_components/admin/DateJump';
 import Icon from '@/app/_components/ui/Icon';
 
 import { todayISO, shiftISODate, formatDate, formatDateLong } from '@/app/_lib/date-helpers';
+import Button from '@/app/_components/ui/Button';
 
 /**
  * Previous / next day, a date box, and a way back to today.
@@ -94,31 +95,33 @@ export default function DateNav({
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
-        <PendingLink
+        <Button
+          variant="secondary"
+          component={PendingLink}
           href={dateHref(previousDate)}
-          className="btn-secondary px-3"
           aria-label={`Go to ${formatDate(previousDate)}`}
           spinnerOnly
         >
           <Icon name="chevronRight" className="h-5 w-5 rotate-180" />
-        </PendingLink>
+        </Button>
 
         <DateJump date={date} basePath={basePath} paramName={paramName} extraParams={extraParams} />
 
-        <PendingLink
+        <Button
+          variant="secondary"
+          component={PendingLink}
           href={dateHref(nextDate)}
-          className="btn-secondary px-3"
           aria-label={`Go to ${formatDate(nextDate)}`}
           spinnerOnly
         >
           <Icon name="chevronRight" className="h-5 w-5" />
-        </PendingLink>
+        </Button>
 
         {/* Only worth showing when it would actually do something. */}
         {!isToday ? (
-          <PendingLink href={todayHref} className="btn-primary py-2 text-sm">
+          <Button variant="primary" component={PendingLink} href={todayHref}>
             Back to today
-          </PendingLink>
+          </Button>
         ) : null}
 
         {children}

@@ -90,7 +90,7 @@ export default function ExpenseForm() {
 
       <FormMessage state={state} />
 
-      <SubmitButton className="btn-primary w-full">Save expense</SubmitButton>
+      <SubmitButton fullWidth >Save expense</SubmitButton>
     </form>
   );
 }

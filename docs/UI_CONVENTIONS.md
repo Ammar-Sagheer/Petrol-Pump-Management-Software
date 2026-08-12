@@ -16,7 +16,8 @@ a comment at the top of the file saying why it exists.
 | `<Dialog>` | Native `<dialog>` + `showModal()`. Full-screen sheet on a phone, centred panel above `sm`. No click-outside-to-close, deliberately. |
 | `<ConfirmAction>` | Every "are you sure?": trash icon → dialog. Replaced seven inline confirms that shifted the page. |
 | `<Pager>` | The row under a paged table — "Showing 1 to 8 of 26" plus Previous/Next. `pageFrom(searchParams)` reads and clamps `?page=`. |
-| `<SubmitButton>` | A submit that disables itself and shows a pending label. Mandatory on anything destructive. |
+| `<Button>` | Every button in the app. Material UI, with the three intents as `variant` (`primary` / `secondary` / `danger`). |
+| `<SubmitButton>` | A submit that disables itself and shows a pending label. Renders a `<Button>`. Mandatory on anything destructive. |
 | `<PendingLink>` | A link that shows a spinner while the navigation is in flight. Every server-rendered page needs one round trip. |
 | `<IconButton>` | Square 44px icon-only row action. The one place an icon may stand without a word. |
 | `<NumberInput>` | Blocks scroll-wheel and arrow-key changes that silently corrupt a typed figure. Use instead of bare `type="number"`. |
@@ -51,34 +52,45 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 
 ## Buttons
 
-- `.btn-primary` — the one confirming/positive action per view (green).
-  **One exception, deliberate**: the Lubricants header carries *Record a
-  lubricant sale* and *Record a loose oil sale* side by side, both primary.
-  They are peers — two kinds of the same job, and the drum is the more
-  frequent of the two — so demoting either would point the reader at the
-  wrong one. Two primaries are only right when neither action is subordinate;
-  if one is, it is `.btn-secondary`.
-- **`.btn-primary` carries an invisible 1px border in the fill colour, and it
-  is load-bearing.** `.btn-secondary` and `.btn-danger` have a real border;
-  without a matching one the filled button was 48px against their 50px, so
-  every pair in the app — "Manage lubricants" beside "Record a lubricant sale",
-  every dialog's Save beside Cancel — was two pixels apart and, being centred
-  in a flex row, a pixel off each other's baseline. Too small to look like a
-  bug, big enough to make the row look wrong: the owner reported it as the
-  green ones being "a bit larger". If the fill colour changes, the border
-  changes with it.
-- `.btn-secondary` — everything else that isn't primary or destructive
-  (white, ink border).
-- `.btn-danger` — destructive or sign-out-style actions (white, red border
-  and text, red hover fill). **Use this rather than hand-rolling red
-  styles** — it was added for exactly this and had gone unused; the Sign
-  out button was briefly a one-off red style before being folded into it.
-- Size overrides are applied by adding utility classes after the component
-  class, e.g. `className="btn-secondary px-2.5 py-1.5 text-xs"` for the
-  compact buttons inside a table row, as on the staff list — the later
-  utility classes win under Tailwind's
-  cascade layers regardless of source order, since `@layer components`
-  always loses to plain utilities.
+**Every button is Material UI**, through `<Button>`
+(`app/_components/ui/Button.js`). The old `.btn-primary` / `.btn-secondary` /
+`.btn-danger` CSS classes are gone from `globals.css` — do not add them back,
+or the app has two button systems again. `<Button>` takes the app's own
+intent name and maps it onto MUI:
+
+| `variant` | What it is for | MUI |
+|---|---|---|
+| `primary` | the one confirming action per view | `contained` |
+| `secondary` | everything else (the default) | `outlined` |
+| `danger` | destructive, or sign-out | `outlined` + `color="error"` |
+
+- **One `primary` per view.** *One exception, deliberate*: the Lubricants
+  header carries *Record a lubricant sale* and *Record a loose oil sale* side
+  by side, both primary. They are peers — two kinds of the same job, and the
+  drum is the more frequent — so demoting either would point the reader at
+  the wrong one. Two primaries are only right when neither action is
+  subordinate; if one is, it is `secondary`.
+- **`danger` rather than hand-rolled red styles.** Two places used to write
+  their own: the Sign out button, and Clear this day — the latter because it
+  wanted a *grey* disabled state rather than a faded red, which MUI's own
+  disabled state gives for free.
+- **MUI's default look, at the owner's request** — its sizing, its uppercase
+  labels, its palette. That means a tap target around 36px where the old
+  classes gave about 50px, which was itself a deliberate number for a tablet
+  pressed with a thumb (see the type-and-target floor below). If that ever
+  bites in the yard, `size="large"` inside `Button.js` is the one-line fix
+  and is worth trying before anything more elaborate.
+- **Sizing and layout overrides** still go through `className`
+  (`className="flex-1"` in a dialog footer) or MUI's own props — `fullWidth`
+  for a full-width form submit, `size="small"` for the compact buttons inside
+  a table row. The only style added on top of MUI's defaults is a `gap`, so a
+  glyph or `<Icon>` passed as an ordinary child does not sit flush against
+  the label.
+- **A button that navigates should still be a link**: pass
+  `component={Link}` (or `component={PendingLink}` where a spinner is
+  wanted) with `href`. MUI renders a real `<a>`, so middle-click and
+  open-in-new-tab keep working, which they do not on a button with an
+  onClick router push.
 - `<SubmitButton>` (`app/_components/ui/SubmitButton.js`) wraps a submit
   button in `useFormStatus()` so it disables itself and shows a
   `pendingLabel` while a Server Action is in flight — use it for every form
@@ -288,9 +300,9 @@ useEffect(() => {
 
 return (
   <>
-    <button type="button" onClick={() => { setShowResult(false); setIsOpen(true); }} className="btn-primary">
+    <Button variant="primary" type="button" onClick={() => { setShowResult(false); setIsOpen(true); }}>
       <span aria-hidden="true">+</span> Add whatever
-    </button>
+    </Button>
 
     <Dialog open={isOpen} onClose={() => setIsOpen(false)} title="Add whatever">
       <form
@@ -301,8 +313,8 @@ return (
         {/* fields */}
         <FormMessage state={showResult ? state : null} />
         <div className="flex gap-2 border-t border-ink-200 pt-4">
-          <SubmitButton className="btn-primary flex-1">Save</SubmitButton>
-          <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">Cancel</button>
+          <SubmitButton className="flex-1">Save</SubmitButton>
+          <Button variant="secondary" type="button" onClick={() => setIsOpen(false)}>Cancel</Button>
         </div>
       </form>
     </Dialog>
@@ -1040,6 +1052,17 @@ picking one deterministic scheme is that it only needs auditing once.
   app now carry an icon ring (see `<StatGrid>`/`<StatTile>` above) because
   the owner asked for that look specifically — it is a deliberate exception
   made once, not a licence to add an icon to every future control.
+- **A stat tile's icon ring is coloured by what the figure IS, not by
+  whether it is good news.** `RING_COLORS` in `AdminStats.js` maps each icon
+  name to its colour — green for cash and profit, amber for credit and
+  expenses, blue for fuel, violet for oil (the colour lubricants already
+  wear on their badge), red for a warning. `tone` is the other axis and
+  still colours the figure itself and its pill, so a bad month shows a red
+  number inside a green ring: the ring says "this tile is profit", the
+  number says "and it is negative". Colouring both by `tone` would say the
+  same thing twice and leave every tile in a row looking alike, which is
+  the one job the ring has. Anything unlisted falls back to neutral slate,
+  so a new icon is never accidentally loud.
 - **`StatTile`'s `iconNode` prop is a narrower escape hatch than `icon`**,
   for a rendered node that isn't in `Icon.js`'s own set at all (a category
   badge's existing markup, say). Reach for `icon` — a name into the shared

@@ -2,6 +2,7 @@ import { requirePageRole, ROLES } from '@/app/_lib/helpers';
 import { GUIDE, LANGUAGES } from '@/app/_lib/guide-content';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import Icon from '@/app/_components/ui/Icon';
+import Button from '@/app/_components/ui/Button';
 import {
   GuideStages,
   GuideSteps,
@@ -44,15 +45,16 @@ export default async function GuidePage({ searchParams }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="figure-label">{t.labels.onThisPage}</p>
 
-        <PendingLink
+        <Button
+          variant="secondary"
+          component={PendingLink}
           href={`/admin/guide?lang=${other}`}
-          className="btn-secondary"
           aria-label={t.switchAria}
           hrefLang={other}
         >
           <Icon name="guide" className="h-5 w-5" />
           {t.switchLabel}
-        </PendingLink>
+        </Button>
       </div>
 
       <header className="mb-6">
