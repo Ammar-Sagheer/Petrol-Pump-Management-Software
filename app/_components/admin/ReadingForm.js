@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useId, useRef, useState } from 'react';
 
 import { saveReading, deleteReading } from '@/app/_lib/actions';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
@@ -10,7 +10,6 @@ import NumberInput from '@/app/_components/ui/NumberInput';
 import ReadingChainWarning from '@/app/_components/admin/ReadingChainWarning';
 import { formatRate } from '@/app/_lib/format-helpers';
 import { shiftISODate, formatDateLong } from '@/app/_lib/date-helpers';
-import Dialog from '@/app/_components/ui/Dialog';
 import Icon from '@/app/_components/ui/Icon';
 import { fuelColor } from '@/app/_lib/fuel-colors';
 import Button from '@/app/_components/ui/Button';
@@ -110,18 +109,24 @@ export default function ReadingForm({
 
   const hasChainProblem = openingDoesNotFollow || nextDoesNotFollow || backFillingUnderALaterDay;
 
-  const title = `Unit ${row.unit_number} · Nozzle ${row.nozzle_label}`;
+  // Ties the trigger to the panel it opens, for anything reading the page
+  // aloud. `useId` rather than the nozzle id so it is stable across a
+  // re-render and unique even if two of these were ever shown for one nozzle.
+  const panelId = useId();
 
   /*
    * The row drops "Unit 1 ·" when the list is already grouped under a Unit
    * heading - repeating it on both cards under that heading is the clutter the
    * grouping was meant to remove.
    *
-   * The DIALOG always keeps the full name. It opens over the whole page with
-   * the heading out of sight, and it is the one place where being sure which
-   * nozzle you are typing into actually matters.
+   * The row now opens IN PLACE, so its unit heading stays on screen the whole
+   * time it is being typed into - which is what makes the short name safe
+   * here. When this was a dialog the full "Unit 1 · Nozzle A" was repeated
+   * inside it, precisely because the dialog covered the heading over.
    */
-  const rowTitle = showUnit ? title : `Nozzle ${row.nozzle_label}`;
+  const rowTitle = showUnit
+    ? `Unit ${row.unit_number} · Nozzle ${row.nozzle_label}`
+    : `Nozzle ${row.nozzle_label}`;
 
   // A quiet accent, not a filled band - the same rationing as the Dashboard's
   // fuel cards. A row of six nozzles in solid colour would be louder than a
@@ -163,94 +168,154 @@ export default function ReadingForm({
        * to enter stays plain white and stands out against them. The Enter
        * chip still carries the word.
        */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={`block w-full border-l-8 px-4 py-3.5 text-left transition
-                   focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600
-                   ${color.border}
-                   ${isSaved ? 'bg-brand-50/40 hover:bg-brand-50' : 'bg-white hover:bg-ink-50'}`}
+      <div
+        className={`border-l-8 ${color.border}
+                   ${isSaved ? 'bg-brand-50/40' : isOpen ? 'bg-white' : 'bg-white'}`}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <span className="text-lg font-bold text-ink-900">{rowTitle}</span>
-            <FuelBadge fuelType={row.fuel_type} />
-            {hasChainProblem ? (
-              <span className="badge bg-red-100 text-red-800">
-                <Icon name="warning" className="h-4 w-4" />
-                Check
-              </span>
-            ) : null}
-          </div>
-
-          {/* Green for done, NEUTRAL for still-to-do. This chip was amber
-              until diesel became orange; a pale amber chip sitting beside an
-              orange fuel badge on the same row is two warm colours competing
-              to be noticed, and the fuel has to win that. Slate says "not
-              yet" without claiming any of the colour the fuels now own. */}
-          <span
-            className={`badge shrink-0 ${
-              isSaved ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-800'
-            }`}
-          >
-            <Icon name={isSaved ? 'check' : 'pencil'} className="h-4 w-4" />
-            {isSaved ? 'Entered' : 'Enter'}
-          </span>
-          <Icon name="chevronRight" className="h-5 w-5 shrink-0 text-ink-500" />
-        </div>
-
-        {/* Every number gets its own label. The old single line read
-            "100 L · Rs 30,000 · cash Rs 30,000", which needs someone to
-            already know which figure is which - and left most of the row
-            empty. Spread across the width, each one says what it is. */}
-        {isSaved ? (
-          <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
-            <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
-            <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
-            <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
-            <RowFigure
-              label="On credit"
-              value={Number(row.credit_amount) > 0 ? showMoney(row.credit_amount) : '—'}
-              tone={Number(row.credit_amount) > 0 ? 'credit' : 'muted'}
-            />
-          </dl>
-        ) : (
-          <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
-            <RowFigure label="Meter starts at" value={meterFormat.format(openingUsed)} strong />
-            {/* "/ litre" lives in the caption, not in the figure. At the
-                readable type size "Rs 336.34 / litre" no longer fits the
-                half-width column a phone gives this, and it was truncating to
-                "Rs 336.34 / lit..." - hiding part of a number to make room for
-                a unit that never changes. */}
-            <RowFigure
-              label="Rate a litre"
-              value={row.rate ? formatRate(row.rate) : 'Not set'}
-              tone={row.rate ? undefined : 'warn'}
-            />
-            <div className="col-span-2 self-center text-sm font-medium text-ink-600 sm:col-span-2">
-              Tap to enter the closing meter reading.
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          className={`block w-full px-4 py-3.5 text-left transition
+                     focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600
+                     ${isSaved ? 'hover:bg-brand-50' : 'hover:bg-ink-50'}`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <span className="text-lg font-bold text-ink-900">{rowTitle}</span>
+              <FuelBadge fuelType={row.fuel_type} />
+              {hasChainProblem ? (
+                <span className="badge bg-red-100 text-red-800">
+                  <Icon name="warning" className="h-4 w-4" />
+                  Check
+                </span>
+              ) : null}
             </div>
-          </dl>
-        )}
-      </button>
 
-      <Dialog
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        title={title}
-        subtitle={
-          <div className="flex items-center gap-2">
-            <FuelBadge fuelType={row.fuel_type} />
-            <span className="text-sm text-ink-600">{formatDayLabel(date)}</span>
+            {/* Green for done, NEUTRAL for still-to-do. This chip was amber
+                until diesel became orange; a pale amber chip sitting beside an
+                orange fuel badge on the same row is two warm colours competing
+                to be noticed, and the fuel has to win that. Slate says "not
+                yet" without claiming any of the colour the fuels now own.
+
+                The word changes with the panel, because the chip is now the
+                disclosure's label rather than a link to somewhere else: an
+                open row says "Close", so the way out is the same control as
+                the way in. */}
+            <span
+              className={`badge shrink-0 ${
+                isSaved ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-800'
+              }`}
+            >
+              <Icon name={isSaved ? 'check' : 'pencil'} className="h-4 w-4" />
+              {isSaved ? 'Entered' : isOpen ? 'Close' : 'Enter'}
+            </span>
+
+            {/* Down, not right. A chevron pointing right promises another
+                screen; this one opens the row where it stands, and it turns to
+                point at what it opened. */}
+            <Icon
+              name="chevronRight"
+              className={`h-5 w-5 shrink-0 text-ink-500 transition-transform ${
+                isOpen ? 'rotate-90' : ''
+              }`}
+            />
           </div>
-        }
-      >
-        {isSaved ? (
-          <SavedReading row={row} date={date} creditSales={creditSales} canDelete={canDelete} />
-        ) : (
-          <EntryForm row={row} date={date} customers={customers} />
-        )}
-      </Dialog>
+
+          {/*
+           * THE COLLAPSED ROW IS ONE LINE NOW, not a four-column grid.
+           *
+           * An unentered row used to spend two labelled columns on the opening
+           * meter and the rate, and then a third of its width on the sentence
+           * "Tap to enter the closing meter reading." - printed six times down
+           * a page whose every row already carried an Enter chip and a
+           * chevron saying the same thing. The instruction is gone because the
+           * input it described is now in the row itself.
+           *
+           * The labels have NOT gone: "Meter starts at 1,988,181.70" reads as
+           * a labelled figure inline. The convention that earned those labels
+           * was written against a bare run of numbers - "100 L · Rs 30,000 ·
+           * cash Rs 30,000" - which is a different thing entirely.
+           *
+           * AND IT DISAPPEARS WHEN THE ROW OPENS. The form directly beneath it
+           * states both figures again and states them better - "Opening" over
+           * the meter in a field of its own, and the rate on its own line - so
+           * leaving the summary up made the open row say the opening meter
+           * twice and the rate twice, three lines apart. A summary is for a
+           * thing you cannot currently see.
+           */}
+          {isSaved ? (
+            <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
+              <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
+              <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
+              <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
+              <RowFigure
+                label="On credit"
+                value={Number(row.credit_amount) > 0 ? showMoney(row.credit_amount) : '—'}
+                tone={Number(row.credit_amount) > 0 ? 'credit' : 'muted'}
+              />
+            </dl>
+          ) : isOpen ? null : (
+            <p className="mt-1.5 text-base text-ink-600">
+              Meter starts at{' '}
+              <span className="tabular font-semibold text-ink-800">
+                {meterFormat.format(openingUsed)}
+              </span>
+              {row.rate ? (
+                <>
+                  {' · '}
+                  <span className="tabular font-semibold text-ink-800">
+                    {formatRate(row.rate)}
+                  </span>{' '}
+                  a litre
+                </>
+              ) : (
+                <>
+                  {' · '}
+                  <span className="font-semibold text-amber-800">rate not set</span>
+                </>
+              )}
+            </p>
+          )}
+        </button>
+
+        {/*
+         * THE ENTRY OPENS IN THE ROW, WHERE IT USED TO OPEN IN A DIALOG.
+         *
+         * The job this screen exists for is six numbers, and in the dialog it
+         * cost six open / type / save / close round trips - the page behind it
+         * covered over each time by the thing it had just launched. A dialog
+         * is the right shape for "set up once, not read constantly" (see
+         * docs/UI_CONVENTIONS.md); the evening's meter readings are the
+         * opposite of that, and were the one daily task wearing it.
+         *
+         * Inline is also more room, not less: this panel has the page's full
+         * width where the dialog was capped, which is what lets the credit
+         * slips and the running total sit side by side further down.
+         *
+         * Only the trigger is rendered when closed - the form is unmounted,
+         * not hidden. That matters for more than weight: `EntryForm` keeps the
+         * typed closing reading in component state, so unmounting is what
+         * discards a half-typed number when the row is closed, rather than
+         * leaving it to reappear later against a day the reader has since
+         * navigated away from.
+         */}
+        {isOpen ? (
+          <div id={panelId} className="border-t border-ink-200 bg-ink-50/60">
+            {isSaved ? (
+              <SavedReading row={row} date={date} creditSales={creditSales} canDelete={canDelete} />
+            ) : (
+              <EntryForm
+                row={row}
+                date={date}
+                customers={customers}
+                onCancel={() => setIsOpen(false)}
+              />
+            )}
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }
@@ -345,7 +410,7 @@ function SavedReading({ row, date, creditSales, canDelete }) {
       {canDelete ? (
         <form action={formAction} className="pt-1">
           <input type="hidden" name="reading_id" value={row.reading_id} />
-          <SubmitButton variant="danger" fullWidth className="text-xs"  pendingLabel="Deleting…">
+          <SubmitButton variant="danger" fullWidth className="text-xs" pendingLabel="Deleting…">
             Delete this reading
           </SubmitButton>
         </form>
@@ -374,7 +439,7 @@ function Figure({ label, value, strong }) {
 // Not yet entered - the form
 // ---------------------------------------------------------------------------
 
-function EntryForm({ row, date, customers }) {
+function EntryForm({ row, date, customers, onCancel }) {
   const [state, formAction] = useActionState(saveReading, null);
 
   const opening = Number(row.opening_reading ?? 0);
@@ -695,9 +760,21 @@ function EntryForm({ row, date, customers }) {
 
       <FormMessage state={state} />
 
-      <SubmitButton fullWidth  disabled={!canSubmit}>
-        Save nozzle
-      </SubmitButton>
+      {/* Save leads and takes the width it needs; Close is beside it rather
+          than under it, because in a panel this tall the chip that opened the
+          row has often scrolled off the top by the time somebody wants out. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-[12rem] flex-1">
+          <SubmitButton fullWidth disabled={!canSubmit}>
+            Save nozzle
+          </SubmitButton>
+        </div>
+        {onCancel ? (
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Close
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

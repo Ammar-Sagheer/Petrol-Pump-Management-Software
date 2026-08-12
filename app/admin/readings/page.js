@@ -16,6 +16,7 @@ import ReadingForm from '@/app/_components/admin/ReadingForm';
 import DateNav from '@/app/_components/admin/DateNav';
 import ClearDayButton from '@/app/_components/admin/ClearDayButton';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
+import ReadingsCashUpBar from '@/app/_components/admin/ReadingsCashUpBar';
 
 export const metadata = { title: 'Daily readings' };
 
@@ -163,9 +164,16 @@ export default async function ReadingsPage({ searchParams }) {
           against their own width, which is what keeps a big day's cash figure
           from running out of its tile now the sidebar has taken 240px off
           every page. */}
-      <div className="mb-6" aria-label="Progress for the day">
+      {/* The id is what the cash-up bar watches: it shows itself only once
+          these tiles have left the viewport, so the day's totals are on screen
+          exactly once at any moment. See ReadingsCashUpBar. */}
+      <div className="mb-6" id="day-totals" aria-label="Progress for the day">
         <StatGrid>
-          <StatTile icon="readings" label="Nozzles entered" value={`${done.length} of ${sheet.length}`} />
+          <StatTile
+            icon="readings"
+            label="Nozzles entered"
+            value={`${done.length} of ${sheet.length}`}
+          />
           <StatTile icon="fuelPump" label="Litres sold" value={formatLitres(totals.litres)} />
           <StatTile icon="cash" label="Cash" value={formatPKR(totals.cash)} />
           <StatTile icon="credit" label="Credit" value={formatPKR(totals.credit)} />
@@ -237,9 +245,7 @@ export default async function ReadingsPage({ searchParams }) {
                     skipped without reading both of its rows. The bar says the
                     same thing as the words beside it - it is the glanceable
                     half of the pair, not the only carrier. */}
-                <span
-                  className={`badge ${allDone ? 'bg-white/20' : 'bg-white/70'}`}
-                >
+                <span className={`badge ${allDone ? 'bg-white/20' : 'bg-white/70'}`}>
                   {entered} of {unit.rows.length} entered
                 </span>
 
@@ -285,6 +291,26 @@ export default async function ReadingsPage({ searchParams }) {
           );
         })}
       </div>
+
+      {/* Clears the last unit card from under the bar. A fixed strip covering
+          the final nozzle's Save button would be the worst possible thing for
+          it to cover, and the last row is exactly where somebody is working
+          when the bar is showing.
+
+          h-28 (112px) because the bar MEASURES 100px at a phone width, where
+          it wraps to two lines - not the 76px it takes on a laptop. Sized to
+          the laptop it would have left the last Save button under the bar on
+          the device this app is actually used on. */}
+      <div aria-hidden="true" className="h-28" />
+
+      <ReadingsCashUpBar
+        watchId="day-totals"
+        entered={done.length}
+        total={sheet.length}
+        litres={formatLitres(totals.litres)}
+        cash={formatPKR(totals.cash)}
+        credit={formatPKR(totals.credit)}
+      />
     </>
   );
 }

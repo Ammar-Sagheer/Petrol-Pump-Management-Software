@@ -1790,3 +1790,67 @@ ended up with:
 And keep any explanatory note in step with the headings — the register's note
 still said "Books" and "variance" after the columns had been renamed, which is
 how a legend stops being read.
+
+## A daily task opens in place; a dialog is for setting something up
+
+The dialog rules above still hold for what they were written about — adding a
+bank account, recording a delivery, nozzle settings. Those are *set up once and
+then not read*, which is exactly what a dialog is good at.
+
+Daily readings was wearing that pattern and should not have been. It is the one
+screen someone opens every single evening, and the job is six numbers; behind a
+dialog that cost **six open / type / save / close round trips**, with the page
+covered over each time by the thing it had just launched. The tell was that the
+dialog had grown its own little running total, because the page's own figures
+were unreachable from inside the task.
+
+The test: **is this a thing done once, or the reason the screen exists?** If it
+is the reason the screen exists, open it in place.
+
+- **The row is a disclosure, not a link.** `aria-expanded` and `aria-controls`
+  on the trigger, and the chevron turns to point down at what it opened —
+  a chevron pointing right promises another screen.
+- **The chip becomes the way out too.** An open row's chip reads "Close", so
+  the control that opened it closes it; and the form grows its own Close beside
+  Save, because in a tall panel the chip has often scrolled off the top.
+- **Unmount the panel when closed, do not hide it.** The entry form keeps the
+  typed closing reading in component state, so unmounting is what discards a
+  half-typed number — hidden, it would come back later against a day the reader
+  has since navigated away from.
+- **Inline is more room, not less.** The panel gets the page's full width where
+  the dialog was capped.
+- **Drop the summary line while the panel is open.** The collapsed row states
+  the opening meter and the rate; the form beneath states both again, better
+  and with real labels. Left up, the open row said each of them twice, three
+  lines apart. A summary is for something you cannot currently see.
+
+## A figure that must be checkable from the far end of a long page
+
+`ReadingsCashUpBar` is a slim strip pinned to the bottom of Readings carrying
+the day's running totals. The pattern is worth copying, and so is the
+constraint that keeps it from being clutter.
+
+- **It appears only when the thing it duplicates has scrolled away.** The same
+  four figures sit in stat tiles at the top of the page; the bar watches those
+  tiles with an `IntersectionObserver` and shows itself only once they leave
+  the viewport. At any moment the day's totals are on screen exactly once —
+  which is "say it once" honoured rather than broken.
+- **`IntersectionObserver`, never a scroll handler.** The observer fires when
+  the element actually crosses the edge, off the main thread; a scroll listener
+  answers the same question on every frame of every scroll, on a cheap tablet.
+- **`aria-hidden` while it is off screen**, so the figures are not read out
+  twice.
+- **Nothing to say, no bar.** Suppressed entirely until the first entry — on a
+  fresh day it would be a strip of "Rs 0" following the reader down a page they
+  have not started.
+- **Leave a spacer the height of the bar**, and size it from the NARROWEST
+  screen: this bar is 76px on a laptop and **100px on a phone**, where it wraps
+  to two lines. Sized to the laptop it would have left the last nozzle's Save
+  button underneath it, on the device the app is actually used on.
+- **Drop the least useful figure before letting it wrap.** Litres go at narrow
+  widths (a container query, not `sm:` — the bar is inset by the sidebar).
+  The bar answers "does this match the notes in the drawer"; cash and credit
+  answer it and litres do not.
+- **`lg:pl-60` on a fixed element under the admin layout**, to match the
+  sidebar offset. That number now appears in three places and they have to
+  agree.

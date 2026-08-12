@@ -2851,3 +2851,83 @@ One heading also had to be shortened after rendering it: "Gain / loss that
 day" wrapped to two lines and then clipped at the pinned block's edge, showing
 as "GAIN / LOSS T" over "DAY". It is just "Gain / loss" - paired against
 "Running total" beside it, the contrast already says which is which.
+
+## Readings, redesigned: type on the page
+
+The owner asked for a complete redesign of the daily entry screen. It is the
+most-used page in the app, and `docs/UI_CONVENTIONS.md` already records three
+separate designs that were built here and reverted — so this started by reading
+that history rather than by drawing. Nothing reverted was reintroduced: no
+day-completion strip, the unit-as-card grouping kept, the day banner untouched.
+
+**What was actually wrong was the flow, not the paint.** Each nozzle opened a
+dialog, so an evening's work — six numbers — cost six open / type / save /
+close round trips, the page covered over each time by the thing it had just
+launched. The giveaway was that the dialog had grown its own running total
+panel: the page's own figures were unreachable from inside the task.
+
+Dialogs are still right for what the conventions recommended them for — set up
+once, then not read. The evening's meter readings are the opposite of that, and
+were the one daily task wearing the pattern.
+
+### The row opens where it stands
+
+Tapping a nozzle now expands it in place. Type the closing reading and the
+litres and the value compute under it as you type, exactly as the dialog did,
+because it is the same `EntryForm` — none of the hard-won validation moved. All
+of it still applies: the overlap check that stops a day being counted twice
+(migration 026), the gap checkbox (027), the chain warning, and the refusal when
+credit slips exceed what the nozzle sold.
+
+Around it:
+
+- **The chip becomes the way out** — an open row reads "Close" — and the form
+  grew a Close beside Save, since in a tall panel the chip has scrolled off.
+- **The panel is unmounted when closed, not hidden.** That is what discards a
+  half-typed closing reading rather than letting it reappear against a day the
+  reader has since navigated away from.
+- **The collapsed row is one line instead of a four-column grid.** It had spent
+  two labelled columns on the opening meter and the rate and a third of its
+  width on the sentence *"Tap to enter the closing meter reading."* — printed
+  six times down a page where every row already carried an Enter chip and a
+  chevron saying the same thing. The instruction is gone because the input it
+  described is now in the row. The labels are not: "Meter starts at
+  1,988,061.61" is still a labelled figure.
+- **And that line disappears when the row opens**, because the form beneath
+  states both figures again with proper labels — left up, the open row said the
+  opening meter twice and the rate twice, three lines apart.
+
+The result: all six nozzles now fit on one screen at a laptop width, where
+three and a half did before.
+
+### A cash-up bar that only appears when it is needed
+
+The four stat tiles stay at the top of the page, at the owner's choice. But the
+last nozzle is a long way below them, and the question being answered while
+typing into it — *does this match the notes in the drawer* — is a question about
+the day's total, asked at the point furthest from where the day's total is.
+
+`ReadingsCashUpBar` is a slim dark strip pinned to the bottom carrying the same
+figures, and it shows itself **only once the tiles have scrolled out of view**,
+watched with an `IntersectionObserver`. So the totals are on screen exactly once
+at any moment — "say it once" honoured rather than broken — and they are
+reachable from inside the task without scrolling back up. It stays hidden
+entirely until something is entered, since on a fresh day it would be a strip of
+"Rs 0" following the reader down a page they have not started.
+
+### What rendering it caught
+
+- The **spacer under the page had to be sized from the phone, not the laptop**.
+  The bar is 76px at a laptop width and **100px at 400px**, where it wraps to
+  two lines; sized to the laptop, the last nozzle's Save button sat underneath
+  the bar on the device the app is actually used on.
+- **Litres now drop off the bar at narrow widths.** All four figures wrapped to
+  three lines at 400px — about 90px of a short screen, permanently, over the row
+  being typed into. Cash and credit answer the drawer question; litres do not.
+  A container query rather than `sm:`, since the bar is inset by the sidebar.
+- A note for the next person screenshotting this page: **a full-page Playwright
+  screenshot renders a `fixed` element at its viewport position**, so the bar
+  appears stranded in the middle of the page in every `fullPage: true` capture.
+  It is an artefact of the capture, not a bug. Verify a fixed element with a
+  normal viewport screenshot plus a computed-style read, which is how the
+  show/hide behaviour here was actually confirmed.
