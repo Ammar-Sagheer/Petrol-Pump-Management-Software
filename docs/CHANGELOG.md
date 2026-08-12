@@ -2571,3 +2571,47 @@ next audit does not spend the same half hour rediscovering it.
 
 Two stale references also went: a Dashboard comment still describing diesel as
 `#FCFC62` yellow, and a chart comment calling the fuel pair "navy/yellow".
+
+## Company Assets reach the monthly workbook
+
+The owner opened the Excel download expecting the month's whole record and
+found Company Assets missing - it was the one section of the app with no
+column in the export. Three layers had to learn about it: the RPC, the
+template, and the writer.
+
+**`040_company_assets_in_the_export.sql`** adds `asset_rows` and an `assets`
+summary to `get_month_export`, restated in full because plpgsql cannot replace
+part of a function body - the same reason 019 and 030 are full copies.
+
+**The Assets sheet is the only one that ignores the report's month.** It
+carries the whole register with an `in_month` flag rather than just that
+month's purchases. An asset register answers "what does the business own", and
+most months the pump buys nothing at all - a month-scoped sheet would be empty
+in those months and read as a bug rather than as a fact. "Bought this month"
+is a column instead, so the sheet still filters down to the month when that is
+the question. `bank_accounts` already set this precedent by carrying standing
+balances beside the month's movements.
+
+**Not counted in profit, and the Summary block says so.** Money spent on a
+delivery bike is not a cost of trading the way a fuel delivery is - the pump
+still has the bike - and the app has never counted it as one. The figure
+without that sentence is one somebody subtracts by hand, so the block carries
+"Not counted in profit above" the way the BANK block carries its own note.
+
+### What the readback caught
+
+The sheet was verified by generating a real workbook from fixture data and
+reading it back with openpyxl, not by trusting the code. Two things came out
+of that which review would not have:
+
+- The Category column was printing the raw Postgres enum (`vehicle`) where the
+  app shows `Vehicle`. It now maps through `ASSET_CATEGORIES`, the same list
+  the picker and the page use, rather than capitalising by hand.
+- Applying that mapping, the edit landed on the **Expenses** sheet instead -
+  both had a bare `row.category ?? ''` and the first match won. Expense
+  categories are free text and would have been silently mangled by an asset
+  enum lookup. Caught only because the readback showed Assets still lowercase.
+
+The renumbering trap in the template was checked rather than assumed: after
+regenerating, every existing sheet still maps to its original `sheetN.xml` and
+the three chart parts are untouched. Assets is `sheet10.xml`, appended last.

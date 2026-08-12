@@ -473,6 +473,7 @@ Applied in order:
 | `037_reading_completion_by_date.sql` | How many nozzles were read on each recent day, for the Readings page's day strip |
 | `038_drop_reading_completion.sql` | Drops 037 again — the day strip it fed was removed; the gap warning that replaced it needs no new query |
 | `039_dip_belongs_to_the_day_it_closes.sql` | A dip is a moment, not a day: `taken` + generated `books_date`, so a morning dip closes yesterday. And `expected_stock` recalculated from history by trigger instead of frozen at insert |
+| `040_company_assets_in_the_export.sql` | Company Assets reach the monthly workbook: the whole register plus the month's own purchases |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -592,6 +593,15 @@ the numbers are fast and cannot be altered client-side.
   transferring it out is not a cost — the sale and the expense were already
   counted when they happened. That is why the Summary sheet keeps them in their
   own `BANK` block instead of under `COSTS`, where they would count twice.
+- **Company assets are not profit either**, for the same reason bank movements
+  are not: the pump spent money and still has the thing. The Summary sheet keeps
+  them in their own `COMPANY ASSETS` block with a line saying so, because a
+  figure on that sheet without the sentence is one somebody subtracts by hand.
+- **The Assets sheet is the only one that ignores the report's month.** It
+  carries the whole register with a "Bought this month" column, rather than only
+  that month's purchases. An asset register answers *what does the business
+  own*, and most months the pump buys nothing — a month-scoped sheet would be
+  empty in those months and read as a bug rather than as a fact.
 - **Adding a sheet to the Excel template**: the app addresses sheets by file name
   (`sheet1.xml`, `sheet2.xml`, …), and openpyxl numbers them in creation order.
   Always `create_sheet` a new one **last** in `scripts/build-report-template.py`,

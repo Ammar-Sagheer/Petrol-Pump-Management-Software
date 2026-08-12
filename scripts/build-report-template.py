@@ -278,6 +278,24 @@ def build():
     prototype_row(lubricants, 2,
                   [DATE_FMT, None, LITRES, MONEY, MONEY, MONEY, MONEY, None, None])
 
+    # Assets goes after Lubricants for the reason given above it: a new sheet
+    # always goes LAST, or every sheet after the insertion point is renumbered
+    # and excel-report.js starts rewriting the wrong ones.
+    #
+    # The WHOLE register, not just what was bought this month - an asset
+    # register answers "what does the business own", and most months the pump
+    # buys nothing, so a month-scoped sheet would be empty and read as a bug.
+    # "Bought this month" is a column instead, so the sheet can be filtered
+    # down to the month when that is the question.
+    assets = wb.create_sheet("Assets")
+    style_header(
+        assets,
+        1,
+        ["Date", "Asset", "Category", "Value", "Bought this month", "Note"],
+        [14, 30, 18, 18, 20, 34],
+    )
+    prototype_row(assets, 2, [DATE_FMT, None, None, MONEY, None, None])
+
     out = os.path.join("app", "_lib", "report-template.xlsx")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     wb.save(out)
