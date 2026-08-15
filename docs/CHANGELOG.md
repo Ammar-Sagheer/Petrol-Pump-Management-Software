@@ -3376,3 +3376,25 @@ were "John Doe" and "Bilal Sons Goods Carrier", and both worked perfectly. The
 real list is names plus filing numbers, and no amount of care over the
 algorithm would have found that — only running it over the actual names did.
 When a helper derives something FROM USER DATA, test it on the user's data.
+
+## The percent badge loses its sentence
+
+`DeltaBadge` shipped as two parts — the pill, then "up from Rs 655,595
+yesterday" beside it — on the reasoning that the percentage is read at a
+glance and the baseline only when the percentage is surprising. The owner had
+the sentence removed, and the tiles are better for it.
+
+The argument for keeping it was about the badge in isolation. On the actual
+tile it is the **fourth** thing on a card that already carries a label, a
+figure and a sparkline, and it was the only line there made of prose. It also
+pushed every tile taller to say something one date-step away already answers.
+
+**`previous` is still required** — the badge cannot be computed without it. It
+is simply no longer printed.
+
+What this costs is one of the two written cues, so the remaining ones have to
+carry it: the **arrow** states the direction independently of the colour, so a
+reader who cannot separate the red pill from the green one still sees which
+way the figure moved. That is why the arrow is drawn rather than implied by
+hue, and it is now the only thing standing between this badge and colour being
+the sole cue.

@@ -189,9 +189,7 @@ export default async function RegisterPage({ searchParams }) {
   const seriesSales = salesTrend.map((row) => Number(row.sale_amount ?? 0));
   const seriesStock = dayKeys.map((day) => Number(purchaseDays[day] ?? 0));
   const seriesExpenses = dayKeys.map((day) => Number(expenseDays[day] ?? 0));
-  const seriesProfit = dayKeys.map(
-    (_, i) => seriesSales[i] - seriesStock[i] - seriesExpenses[i],
-  );
+  const seriesProfit = dayKeys.map((_, i) => seriesSales[i] - seriesStock[i] - seriesExpenses[i]);
 
   const tips = (series) =>
     dayKeys.map((day, i) => ({ v: formatPKR(series[i]), d: formatDate(day) }));
@@ -254,7 +252,6 @@ export default async function RegisterPage({ searchParams }) {
                 delta={{
                   current: totalSales,
                   previous: previousSales,
-                  from: formatPKR(previousSales),
                 }}
               />
               <MoneyTile
@@ -265,7 +262,6 @@ export default async function RegisterPage({ searchParams }) {
                 delta={{
                   current: totalStockCost,
                   previous: previousStock,
-                  from: formatPKR(previousStock),
                   higherIsBetter: false,
                 }}
               />
@@ -277,7 +273,6 @@ export default async function RegisterPage({ searchParams }) {
                 delta={{
                   current: expenses,
                   previous: previousExpenses,
-                  from: formatPKR(previousExpenses),
                   higherIsBetter: false,
                 }}
               />
@@ -291,7 +286,6 @@ export default async function RegisterPage({ searchParams }) {
                 delta={{
                   current: profit,
                   previous: previousProfit,
-                  from: formatPKR(previousProfit),
                 }}
               />
             </div>

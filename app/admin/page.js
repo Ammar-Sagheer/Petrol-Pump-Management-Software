@@ -144,7 +144,6 @@ export default async function DashboardPage({ searchParams }) {
               : {
                   current: Number(totals.litres_sold ?? 0),
                   previous: previousLitres,
-                  from: `${formatLitres(previousLitres)} yesterday`,
                 }
           }
           sub={
@@ -168,7 +167,6 @@ export default async function DashboardPage({ searchParams }) {
               : {
                   current: saleAmount,
                   previous: previousSales,
-                  from: `${formatPKR(previousSales)} yesterday`,
                 }
           }
           sub={

@@ -1,13 +1,17 @@
 /**
- * "↗ 37.3%  up from Rs 1,204,950" — a figure's change against the span before
- * it, on the cards that have one.
+ * "↗ 37.3%" — a figure's change against the span before it, on the cards that
+ * have one.
  *
- * TWO PARTS ON PURPOSE, and the split is the whole design. The percentage goes
- * in a coloured pill because it is the part read at a glance; what it is
- * measured against goes beside it in plain muted text, because that is the
- * part read only when the pill is surprising. Putting the whole sentence in
- * the pill makes a long chip that competes with the figure above it; leaving
- * the percentage out of a pill makes it just another grey line.
+ * THE PILL AND NOTHING ELSE. It shipped with the comparison spelled out beside
+ * it ("up from Rs 1,204,950 yesterday") and the owner had it removed. He is
+ * right: on a tile that already carries a label, a figure and a sparkline, a
+ * fourth line of prose is the one thing on the card nobody is reading, and it
+ * pushed the tiles taller for it. The arrow says which way, the percentage
+ * says how far, and the number it came from is on yesterday's screen - which
+ * is one date-step away and not worth a permanent line on every card.
+ *
+ * `previous` is still REQUIRED, because the badge cannot be computed without
+ * it. It is simply no longer printed.
  *
  * THE ARROW IS DIRECTION; THE COLOUR IS WHETHER IT IS GOOD NEWS. They are not
  * the same axis and this app has to keep them apart: expenses up is an up
@@ -16,17 +20,13 @@
  * rose 40%", which is the one mistake a money app cannot make. Callers say
  * which way is good with `higherIsBetter`.
  *
- * `from` is pre-formatted by the caller, for the same reason Sparkline's tips
- * are: `formatPKR` and `formatLitres` are the app's single answer to how a
- * number is written, and a component that re-implements either is how two
- * parts of one page start disagreeing.
- *
- * NEVER THE ONLY STATEMENT OF THE CHANGE. The pill is a summary of two figures
- * the page shows in full elsewhere; the arrow's meaning is also written in the
- * words beside it ("up from" / "down from"), so nothing here depends on
- * telling red from green.
+ * NEVER THE ONLY STATEMENT OF THE CHANGE, and this matters more now that the
+ * words are gone. The pill summarises two figures the page shows in full
+ * elsewhere, and the ARROW carries the direction independently of the colour -
+ * so a reader who cannot tell the red pill from the green one still sees which
+ * way the figure moved. Colour is the second cue here, never the only one.
  */
-export default function DeltaBadge({ current, previous, from, higherIsBetter = true }) {
+export default function DeltaBadge({ current, previous, higherIsBetter = true }) {
   const now = Number(current);
   const before = Number(previous);
 
@@ -44,12 +44,7 @@ export default function DeltaBadge({ current, previous, from, higherIsBetter = t
   const pct = hasBase ? (change / Math.abs(before)) * 100 : null;
 
   if (change === 0) {
-    return (
-      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="badge bg-ink-100 text-xs text-ink-600">No change</span>
-        {from ? <span className="text-xs text-ink-500">same as {from}</span> : null}
-      </span>
-    );
+    return <span className="badge mt-1 w-fit bg-ink-100 text-xs text-ink-600">No change</span>;
   }
 
   const up = change > 0;
@@ -58,36 +53,29 @@ export default function DeltaBadge({ current, previous, from, higherIsBetter = t
   const pillClass = good ? 'bg-brand-50 text-brand-700' : 'bg-red-50 text-red-700';
 
   return (
-    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className={`badge tabular whitespace-nowrap px-2 py-0.5 text-xs ${pillClass}`}>
-        <svg viewBox="0 0 12 12" className="h-3 w-3 shrink-0" aria-hidden="true">
-          {up ? (
-            <path
-              d="M2 8.5 5 5.5l2 2L10 4M10 4H7.2M10 4v2.8"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : (
-            <path
-              d="M2 3.5 5 6.5l2-2L10 8M10 8H7.2M10 8V5.2"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
-        {pct === null ? (up ? 'New' : 'Down') : `${Math.abs(pct).toFixed(1)}%`}
-      </span>
-      {from ? (
-        <span className="whitespace-nowrap text-xs text-ink-500">
-          {up ? 'up from' : 'down from'} {from}
-        </span>
-      ) : null}
+    <span className={`badge tabular mt-1 w-fit whitespace-nowrap px-2 py-0.5 text-xs ${pillClass}`}>
+      <svg viewBox="0 0 12 12" className="h-3 w-3 shrink-0" aria-hidden="true">
+        {up ? (
+          <path
+            d="M2 8.5 5 5.5l2 2L10 4M10 4H7.2M10 4v2.8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ) : (
+          <path
+            d="M2 3.5 5 6.5l2-2L10 8M10 8H7.2M10 8V5.2"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </svg>
+      {pct === null ? (up ? 'New' : 'Down') : `${Math.abs(pct).toFixed(1)}%`}
     </span>
   );
 }
