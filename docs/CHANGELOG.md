@@ -3398,3 +3398,56 @@ reader who cannot separate the red pill from the green one still sees which
 way the figure moved. That is why the arrow is drawn rather than implied by
 hue, and it is now the only thing standing between this badge and colour being
 the sole cue.
+
+## "Why new?" — and the badge that had nothing to say
+
+The register's four money tiles all showed a **"New"** badge at once. The
+answer is in the data, not the code: this pump's records begin **01 Aug 2026**
+(`min(reading_date)` confirms it), so the equal-length span before any August
+range lands in July, which is empty. `previous` came back 0, there was nothing
+to divide by, and the divide-by-zero branch printed "New" on every card.
+
+**A zero baseline and an absent one cannot be told apart here.** Both arrive as
+0 from the summary RPC, and "sales rose from nothing" and "there is no July to
+compare against" are different sentences. Given a label that is sometimes
+wrong or no label, **a card with no comparison now shows no comparison.** The
+figure above it is unaffected and still true. The reasoning is kept in the
+file because "just show 100%" is the obvious next suggestion and it is wrong —
+a percentage of zero is not a percentage.
+
+### Cash and On credit get their badges — migration 043
+
+`get_lubricant_trend` returned amounts and litres but no cash/credit split, so
+those two tiles (fuel cash **plus oil cash**) had no exact previous day and
+shipped without badges. `lubricant_sales` has carried `cash_amount` and
+`credit_amount` since 024, with a constraint that they sum to the amount —
+nothing new is recorded, two existing columns are now summed and returned.
+All four dashboard badges are exact; none is an estimate.
+
+**042 and 043 are applied to the live database**, at the owner's instruction,
+and verified by reading the function signatures back from `pg_proc` rather
+than trusting the success flag.
+
+### Two pills stacked is clutter
+
+`StatTile` rendered every `sub` as a pill, which is not what its own
+documentation said — the pill was meant for a `sub` with a *direction*. It did
+not matter until the percent badge arrived and put two chips of nearly equal
+size one above the other.
+
+They are different kinds of thing: the badge is a **measurement** and earns a
+chip; `sub` is a **description** ("Rs 795,698 fuel · Rs 2,400 lubricants") and
+reads better as a line of text beneath one. A toned `sub` keeps its pill,
+where the colour and arrow carry meaning grey text would lose. `DeltaBadge`
+also stopped setting its own top margin — the tile owns the spacing between
+its parts, and a component adding `mt-1` on top of the tile's gap sits at a
+different distance depending on what is above it.
+
+### No empty cards
+
+On a day with no readings the four tiles were "Rs 0" over an inch of white,
+which reads as a page that failed to load rather than a day nobody has entered
+yet. Each tile now says which: "No readings entered for this day", "Nothing
+sold on this day", "Nothing taken in cash", "Nothing sold on credit". There is
+also a middle case worth naming — fuel sold but no oil — which now says "fuel
+only — no oil sold" instead of falling back to the blank.

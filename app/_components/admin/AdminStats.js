@@ -177,7 +177,24 @@ export function StatTile({
         ? 'bg-red-50 text-red-700'
         : 'bg-ink-100 text-ink-600';
 
+  /*
+   * A PILL ONLY WHEN IT HAS A DIRECTION; PLAIN TEXT OTHERWISE.
+   *
+   * This is what the component was documented as doing and not what it did -
+   * every `sub` was a pill regardless of `tone`. It did not matter until the
+   * percent badge arrived, and then it did: two chips of almost the same size
+   * stacked one above the other, which the owner's word for was "cluttered".
+   * They are not the same kind of thing. The badge is a MEASUREMENT and earns
+   * a chip; `sub` is a DESCRIPTION ("Rs 795,698 fuel · Rs 2,400 lubricants")
+   * and reads better as a line of text under one.
+   *
+   * A toned `sub` keeps its pill, because there the colour and the arrow are
+   * carrying meaning that plain grey text would lose.
+   */
+  const subIsPill = tone === 'positive' || tone === 'negative';
+
   const sub_ = sub ? (
+    subIsPill ? (
     <span
       className={`tabular inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${pillClass}`}
     >
@@ -192,6 +209,9 @@ export function StatTile({
       ) : null}
       {sub}
     </span>
+    ) : (
+      <span className="tabular block text-xs font-medium leading-relaxed text-ink-500">{sub}</span>
+    )
   ) : null;
 
   if (icon || iconNode || spark) {

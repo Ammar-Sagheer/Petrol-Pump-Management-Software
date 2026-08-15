@@ -72,13 +72,12 @@ export default async function DashboardPage({ searchParams }) {
    * window exactly as this page computes them for the day on screen, so those
    * two can be compared against the day before with nothing fudged.
    *
-   * Cash and On credit deliberately have NO badge. Their tiles are fuel cash
-   * plus lubricant cash, and `lubricantTrend` carries only amounts - there is
-   * no per-day cash/credit split for oil in it. The comparison would have to
-   * either quietly drop the oil half or pretend it was all cash, and a percent
-   * badge that is wrong by an unstated amount is worse than no badge at all.
-   * Adding the split to get_lubricant_trend is the fix, and it is a migration,
-   * not a formatting change.
+   * Cash and On credit shipped WITHOUT badges for one round, because
+   * `lubricantTrend` carried only amounts and their tiles are fuel cash plus
+   * OIL cash - the comparison would have had to drop the oil half or pretend
+   * it was all cash, wrong by an amount the reader could not see. Migration
+   * 043 added the per-day split, so all four are exact now and none of them is
+   * an estimate.
    */
   const previousDay = shiftISODate(date, -1);
   const previousFuel = trend.find((row) => row.day === previousDay);
@@ -92,6 +91,14 @@ export default async function DashboardPage({ searchParams }) {
     ? Number(previousFuel.sale_amount ?? 0) +
       Number(previousLub?.pack_amount ?? 0) +
       Number(previousLub?.loose_amount ?? 0)
+    : null;
+
+  const previousCash = previousFuel
+    ? Number(previousFuel.cash_amount ?? 0) + Number(previousLub?.cash_amount ?? 0)
+    : null;
+
+  const previousCredit = previousFuel
+    ? Number(previousFuel.credit_amount ?? 0) + Number(previousLub?.credit_amount ?? 0)
     : null;
 
   return (
@@ -146,10 +153,17 @@ export default async function DashboardPage({ searchParams }) {
                   previous: previousLitres,
                 }
           }
+          /* A TILE WITH NOTHING TO ADD SAYS SO. On a day with no readings the
+             four tiles were "Rs 0" over an inch of white, which reads as a
+             page that failed to load rather than a day that has not been
+             entered yet. The message is the same length as the figure it
+             replaces, so the row keeps its height either way. */
           sub={
             Number(lubricants.litres ?? 0) > 0
               ? `plus ${formatLitres(lubricants.litres)} of lubricants`
-              : null
+              : Number(totals.litres_sold ?? 0) > 0
+                ? 'no lubricants sold'
+                : 'No readings entered for this day'
           }
         />
         <StatTile
@@ -172,7 +186,9 @@ export default async function DashboardPage({ searchParams }) {
           sub={
             lubricantAmount > 0
               ? `${formatPKR(fuelAmount)} fuel · ${formatPKR(lubricantAmount)} lubricants`
-              : null
+              : saleAmount > 0
+                ? 'fuel only — no oil sold'
+                : 'Nothing sold on this day'
           }
         />
         <StatTile
@@ -184,7 +200,8 @@ export default async function DashboardPage({ searchParams }) {
             v: formatPKR(row.cash_amount),
             d: formatDate(row.day),
           }))}
-          sub={saleAmount > 0 ? `${100 - creditShare}% of takings` : null}
+          delta={previousCash === null ? null : { current: cashAmount, previous: previousCash }}
+          sub={saleAmount > 0 ? `${100 - creditShare}% of takings` : 'Nothing taken in cash'}
         />
         <StatTile
           icon="credit"
@@ -195,7 +212,12 @@ export default async function DashboardPage({ searchParams }) {
             v: formatPKR(row.credit_amount),
             d: formatDate(row.day),
           }))}
-          sub={saleAmount > 0 ? `${creditShare}% of takings` : null}
+          delta={
+            previousCredit === null
+              ? null
+              : { current: creditAmount, previous: previousCredit, higherIsBetter: false }
+          }
+          sub={saleAmount > 0 ? `${creditShare}% of takings` : 'Nothing sold on credit'}
           tone={creditShare > 50 ? 'negative' : 'default'}
         />
       </StatGrid>
