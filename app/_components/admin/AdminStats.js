@@ -1,5 +1,6 @@
 import Icon from '@/app/_components/ui/Icon';
 import Sparkline from '@/app/_components/ui/Sparkline';
+import DeltaBadge from '@/app/_components/ui/DeltaBadge';
 
 /**
  * What colour an icon ring wears, keyed by the icon's own name.
@@ -135,7 +136,12 @@ const SPARK_FALLBACK = 'text-ink-400';
  * days - drawn as a sparkline to the right of the value. `sparkTips` is the
  * matching array of `{ v, d }` readouts, pre-formatted by the caller (see
  * Sparkline.js on why the formatting cannot happen in there), which is what
- * turns the line into something hoverable. It is DECORATION
+ * turns the line into something hoverable.
+ *
+ * `delta` is `{ current, previous, from, higherIsBetter }` and renders the
+ * percent badge - see DeltaBadge.js, and note `higherIsBetter: false` on
+ * anything where a rise is bad news. It sits ABOVE `sub`: the comparison is a
+ * fact about the figure, `sub` is a description of it. It is DECORATION
  * WITH A SHAPE, not a second figure: no axis, no scale, no tooltip, and
  * aria-hidden, so nothing on it can be misread as a quantity. Pass it only
  * where a real series already exists; a tile with none simply has none, and
@@ -158,6 +164,7 @@ export function StatTile({
   iconNode,
   spark,
   sparkTips,
+  delta,
   accentTone,
 }) {
   const valueTone =
@@ -240,6 +247,8 @@ export function StatTile({
           ) : null}
         </div>
 
+        {delta ? <DeltaBadge {...delta} /> : null}
+
         {/* `sub` spans the full card width rather than being squeezed beside
             anything. A long description ("sales - stock bought - expenses")
             wrapped to three cramped lines in a narrower column. */}
@@ -257,6 +266,7 @@ export function StatTile({
       <p className={`tabular whitespace-nowrap text-xl font-bold @[62rem]:text-2xl ${valueTone}`}>
         {value}
       </p>
+      {delta ? <DeltaBadge {...delta} /> : null}
       {sub_}
     </div>
   );

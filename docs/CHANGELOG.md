@@ -3189,3 +3189,89 @@ disagreeing about how a number is written.
 **Still open:** `MoneyTile` and `FuelCard` are MUI `Paper` while the rest of
 the app is `.card`. That was justified while the page was a preview. It is not
 a preview any more, so the two systems on one page should be reduced to one.
+
+## Percent badges, graphs on the money tiles, and the Customers table ruled
+
+**`DeltaBadge`** is the new shared piece: a coloured pill with the percentage
+and an arrow, then the figure it is measured against in plain muted text
+beside it. Split in two on purpose — the percentage is read at a glance, what
+it is measured against is read only when the percentage is surprising, and
+putting the whole sentence in the pill makes a chip that competes with the
+figure above it.
+
+**The arrow is direction; the colour is whether it is good news.** They are
+different axes and this app has to keep them apart: expenses up is an up arrow
+and a RED pill, sales up is an up arrow and a green one. Colouring by
+direction alone would paint "expenses rose 40%" the same green as "sales rose
+40%", which is the one mistake a money app cannot make. Callers pass
+`higherIsBetter`. A change against zero has no percentage to state, so the
+badge says the direction in words rather than inventing "+100%".
+
+### Graphs on the register's money tiles
+
+They were skipped last round for want of a daily series. Two new data
+functions supply it — `getPurchaseTotalsByDay` and `getExpenseTotalsByDay` —
+narrow date-bounded selects grouped in JavaScript, rather than a migration
+written to feed a decoration.
+
+**Neither takes a `limit`, deliberately.** `getExpenses` has one and defaults
+it to 100, which is right for a table that pages and would be silently wrong
+here: a cap on a list you are going to total is a cap on the total, and the
+101st expense of a month would just vanish from the line.
+
+**Days with nothing are zero, not absent.** Deliveries and expenses do not
+happen daily, so their maps have holes; drawing straight from a map would give
+a four-point line labelled as a month and quietly join the 3rd to the 19th as
+if nothing sat between them. The day list comes from the sales trend, which
+fills every day.
+
+The percent badges compare against **the equally long span ending the day
+before this one starts** — "this week against last week", never "these four
+days against a whole month". One extra `get_range_summary` call, no new SQL.
+
+### Customers
+
+- **The table is ruled in both directions**, as asked. Vertical dividers are
+  usually the wrong call — whitespace already does that work — but they earn
+  their place once a row carries five short fields of similar visual weight,
+  which is when the eye starts sliding between neighbouring cells.
+- **The avatars are two-letter initials.** This has now been a single letter,
+  an icon, and finally this, and the round trip is the point: the icon version
+  lost something immediately visible, because forty identical circles tell you
+  nothing about which row you are on. Initials are the strongest cue available
+  because they differ per customer, which neither a colour nor an icon manages
+  across a long list. First word and last word, so a trading name gives "BC"
+  for Bilal Sons Goods Carrier rather than "BS".
+- **Six tints, and none is a fuel's.** The reference uses lavender, pink,
+  blue, peach and mint; blue and peach are the two this app cannot spend.
+  Violet, fuchsia, teal, rose, green and slate give the same soft, varied look
+  with nothing borrowed from petrol or diesel.
+- **Search over name, vehicle and phone**, written to the query string like
+  every other filter, debounced at 250ms and using `replace` so typing eight
+  letters does not put eight entries in the browser's history. **The tiles
+  still count every account**, not the matches — a search that quietly turned
+  "total outstanding" into "total outstanding among rows matching 'ahm'" would
+  be a figure that looks like the headline and is not.
+- **Search and Add now sit in the table's own header bar**, at the owner's
+  request, which is also the better place for them: both act on the table, and
+  a control parked against the page title reads as applying to everything
+  below it including the Removed list.
+- **Phone is a column** — `migration 042`. The column has existed since 001 and
+  the dialog has always written to it; nothing ever read it back, so a number
+  typed into the form went in and was never seen again. Both read functions
+  are dropped and recreated rather than altered, because Postgres will not
+  change a function's return type in place, and the grants are restated
+  underneath because dropping a function takes its grants with it. It renders
+  as a `tel:` link: this list is read on a tablet at the pump, and the reason
+  to look up a number is almost always to ring it.
+
+### What is deliberately missing
+
+**Cash and On credit have no percent badge on the dashboard.** Those tiles are
+fuel cash plus lubricant cash, and `get_lubricant_trend` carries only amounts —
+there is no per-day cash/credit split for oil. The comparison would have to
+drop the oil half or pretend it was all cash, and a badge that is wrong by an
+unstated amount is worse than none. Fuel sold and Total sales can be
+reconstructed exactly from the two trends, so those two have badges. Fixing
+the rest means widening the lubricant trend RPC — a migration, not a format
+change.

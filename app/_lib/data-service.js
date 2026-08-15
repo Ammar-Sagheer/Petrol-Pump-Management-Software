@@ -524,6 +524,67 @@ export async function getRangeSummary(from, to) {
   );
 }
 
+/**
+ * Daily totals for the register's money tiles, one row per day that has any.
+ *
+ * TWO NARROW READS RATHER THAN A NEW RPC. Every other figure on the register
+ * comes from `get_range_summary`, which returns totals only - it has no
+ * per-day breakdown, and adding one would be a migration written to feed a
+ * decoration. These select two columns over a bounded date range and add them
+ * up in JavaScript, which for one month of deliveries and expenses is a few
+ * dozen rows.
+ *
+ * NO `limit`, DELIBERATELY. `getExpenses` takes one and defaults it to 100,
+ * which is right for a table that pages - and would be silently wrong here:
+ * a cap on a list you are going to total is a cap on the total, so the 101st
+ * expense of a month would just vanish from the line. See "Two traps, both
+ * hit for real" in the skill's ui-patterns notes; this is that trap, and the
+ * reason these are separate functions rather than a reused one.
+ *
+ * The grouping is by the business date the row is FILED under - `purchase_date`
+ * and `expense_date` - not `created_at`. A delivery entered on the 5th against
+ * the 3rd belongs to the 3rd, which is the same rule every other figure in
+ * the app follows.
+ */
+export async function getPurchaseTotalsByDay(from, to) {
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase
+      .from('fuel_purchases')
+      .select('purchase_date, total_cost')
+      .gte('purchase_date', from)
+      .lte('purchase_date', to),
+    'the deliveries for those days',
+  );
+
+  return sumByDay(rows, 'purchase_date', 'total_cost');
+}
+
+export async function getExpenseTotalsByDay(from, to) {
+  const supabase = await createClient();
+  const rows = unwrap(
+    await supabase
+      .from('expenses')
+      .select('expense_date, amount')
+      .gte('expense_date', from)
+      .lte('expense_date', to),
+    'the expenses for those days',
+  );
+
+  return sumByDay(rows, 'expense_date', 'amount');
+}
+
+/** `[{ purchase_date, total_cost }]` -> `{ '2026-08-03': 41200 }`. */
+function sumByDay(rows, dateKey, valueKey) {
+  const byDay = {};
+  for (const row of rows ?? []) {
+    const day = row[dateKey];
+    if (!day) continue;
+    byDay[day] = (byDay[day] ?? 0) + Number(row[valueKey] ?? 0);
+  }
+  return byDay;
+}
+
 export async function getMonthlyReport(year, month) {
   const supabase = await createClient();
   return unwrap(

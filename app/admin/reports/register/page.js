@@ -3,7 +3,13 @@ import { Fragment } from 'react';
 import Chip from '@mui/material/Chip';
 
 import { requirePageRole, ROLES, todayISO, formatDate, formatPKR } from '@/app/_lib/helpers';
-import { getStockRegister, getRangeSummary } from '@/app/_lib/data-service';
+import {
+  getStockRegister,
+  getRangeSummary,
+  getSalesTrend,
+  getPurchaseTotalsByDay,
+  getExpenseTotalsByDay,
+} from '@/app/_lib/data-service';
 import { fuelColor, byFuelOrder } from '@/app/_lib/fuel-colors';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import EmptyState from '@/app/_components/ui/EmptyState';
@@ -97,16 +103,51 @@ function resolveRange(params) {
   };
 }
 
+/**
+ * The equally long span ending the day before this one starts.
+ *
+ * Worked out in UTC on purpose: these are plain calendar dates with no clock
+ * attached, and `Date.UTC` is the one arithmetic that cannot be shifted by the
+ * server's timezone. The business day is pinned to Asia/Karachi elsewhere (see
+ * date-helpers.js) but that matters for deciding WHICH day it is now, not for
+ * counting backwards from a date already chosen.
+ */
+function previousRange(range) {
+  const start = new Date(`${range.from}T00:00:00Z`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() - 1);
+  start.setUTCDate(start.getUTCDate() - range.days);
+  return {
+    from: start.toISOString().slice(0, 10),
+    to: end.toISOString().slice(0, 10),
+  };
+}
+
 export default async function RegisterPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
 
   const params = await searchParams;
   const range = resolveRange(params);
 
-  const [rows, summary] = await Promise.all([
-    getStockRegister(range.from, range.to),
-    getRangeSummary(range.from, range.to),
-  ]);
+  /*
+   * THE SPAN BEFORE THIS ONE, of exactly the same length, ending the day
+   * before it starts. That is what the percent badges compare against, and it
+   * is the only comparison that is fair: "this week against last week", not
+   * "these four days against a whole month". `getRangeSummary` is one RPC, so
+   * the comparison costs one more round trip and no new SQL.
+   */
+  const previous = previousRange(range);
+
+  const [rows, summary, previousSummary, salesTrend, purchaseDays, expenseDays] = await Promise.all(
+    [
+      getStockRegister(range.from, range.to),
+      getRangeSummary(range.from, range.to),
+      getRangeSummary(previous.from, previous.to),
+      getSalesTrend(range.from, range.to),
+      getPurchaseTotalsByDay(range.from, range.to),
+      getExpenseTotalsByDay(range.from, range.to),
+    ],
+  );
 
   // Grouped by tank, in the order the app shows fuels everywhere else (diesel
   // first - see FUEL_ORDER). The RPC already returns each tank's rows in date
@@ -136,6 +177,29 @@ export default async function RegisterPage({ searchParams }) {
   const totalSales = Number(summary.total_sales ?? 0);
   const totalStockCost = Number(summary.total_stock_cost ?? 0);
   const expenses = Number(summary.expenses_total ?? 0);
+
+  /*
+   * ONE ROW PER DAY IN THE RANGE, INCLUDING THE EMPTY ONES. `salesTrend` fills
+   * every day; deliveries and expenses do not happen daily, so their maps have
+   * holes. Drawing straight from the map would give a four-point line labelled
+   * as a month and quietly join the 3rd to the 19th as if nothing sat between
+   * them. Days with nothing are zero, which is what actually happened.
+   */
+  const dayKeys = salesTrend.map((row) => row.day);
+  const seriesSales = salesTrend.map((row) => Number(row.sale_amount ?? 0));
+  const seriesStock = dayKeys.map((day) => Number(purchaseDays[day] ?? 0));
+  const seriesExpenses = dayKeys.map((day) => Number(expenseDays[day] ?? 0));
+  const seriesProfit = dayKeys.map(
+    (_, i) => seriesSales[i] - seriesStock[i] - seriesExpenses[i],
+  );
+
+  const tips = (series) =>
+    dayKeys.map((day, i) => ({ v: formatPKR(series[i]), d: formatDate(day) }));
+
+  const previousProfit = Number(previousSummary.profit ?? 0);
+  const previousSales = Number(previousSummary.total_sales ?? 0);
+  const previousStock = Number(previousSummary.total_stock_cost ?? 0);
+  const previousExpenses = Number(previousSummary.expenses_total ?? 0);
 
   return (
     <>
@@ -177,13 +241,58 @@ export default async function RegisterPage({ searchParams }) {
 
           <div className="@container">
             <div className="grid grid-cols-1 gap-4 @[24rem]:grid-cols-2 @[50rem]:grid-cols-4">
-              <MoneyTile label="Sales" value={formatPKR(totalSales)} />
-              <MoneyTile label="Stock bought" value={formatPKR(totalStockCost)} />
-              <MoneyTile label="Expenses" value={formatPKR(expenses)} />
+              {/* `higherIsBetter` is FALSE on stock bought and expenses. An
+                  up arrow on either is still an up arrow, but the pill goes
+                  red: "expenses rose 40%" must never be painted the same green
+                  as "sales rose 40%". See DeltaBadge.js. */}
+              <MoneyTile
+                label="Sales"
+                value={formatPKR(totalSales)}
+                spark={seriesSales}
+                sparkTips={tips(seriesSales)}
+                sparkTone="text-brand-600"
+                delta={{
+                  current: totalSales,
+                  previous: previousSales,
+                  from: formatPKR(previousSales),
+                }}
+              />
+              <MoneyTile
+                label="Stock bought"
+                value={formatPKR(totalStockCost)}
+                spark={seriesStock}
+                sparkTips={tips(seriesStock)}
+                delta={{
+                  current: totalStockCost,
+                  previous: previousStock,
+                  from: formatPKR(previousStock),
+                  higherIsBetter: false,
+                }}
+              />
+              <MoneyTile
+                label="Expenses"
+                value={formatPKR(expenses)}
+                spark={seriesExpenses}
+                sparkTips={tips(seriesExpenses)}
+                delta={{
+                  current: expenses,
+                  previous: previousExpenses,
+                  from: formatPKR(previousExpenses),
+                  higherIsBetter: false,
+                }}
+              />
               <MoneyTile
                 label="Profit"
                 value={formatPKR(profit)}
                 tone={profit >= 0 ? 'positive' : 'negative'}
+                spark={seriesProfit}
+                sparkTips={tips(seriesProfit)}
+                sparkTone={profit >= 0 ? 'text-brand-600' : 'text-red-600'}
+                delta={{
+                  current: profit,
+                  previous: previousProfit,
+                  from: formatPKR(previousProfit),
+                }}
               />
             </div>
           </div>

@@ -63,6 +63,37 @@ export default async function DashboardPage({ searchParams }) {
   const creditAmount = Number(totals.credit_amount ?? 0) + Number(lubricants.credit_amount ?? 0);
   const creditShare = saleAmount > 0 ? Math.round((creditAmount / saleAmount) * 100) : 0;
 
+  /*
+   * YESTERDAY, FOR THE PERCENT BADGES - and only on the two tiles where the
+   * comparison is EXACT.
+   *
+   * `trend` is fuel; `lubricantTrend` is oil, split packed and loose. Added
+   * together they reconstruct "Fuel sold" and "Total sales" for any day in the
+   * window exactly as this page computes them for the day on screen, so those
+   * two can be compared against the day before with nothing fudged.
+   *
+   * Cash and On credit deliberately have NO badge. Their tiles are fuel cash
+   * plus lubricant cash, and `lubricantTrend` carries only amounts - there is
+   * no per-day cash/credit split for oil in it. The comparison would have to
+   * either quietly drop the oil half or pretend it was all cash, and a percent
+   * badge that is wrong by an unstated amount is worse than no badge at all.
+   * Adding the split to get_lubricant_trend is the fix, and it is a migration,
+   * not a formatting change.
+   */
+  const previousDay = shiftISODate(date, -1);
+  const previousFuel = trend.find((row) => row.day === previousDay);
+  const previousLub = lubricantTrend.find((row) => row.day === previousDay);
+
+  const previousLitres = previousFuel
+    ? Number(previousFuel.petrol_litres ?? 0) + Number(previousFuel.diesel_litres ?? 0)
+    : null;
+
+  const previousSales = previousFuel
+    ? Number(previousFuel.sale_amount ?? 0) +
+      Number(previousLub?.pack_amount ?? 0) +
+      Number(previousLub?.loose_amount ?? 0)
+    : null;
+
   return (
     <>
       <PageHeader
@@ -107,6 +138,15 @@ export default async function DashboardPage({ searchParams }) {
             v: formatLitres(Number(row.petrol_litres ?? 0) + Number(row.diesel_litres ?? 0)),
             d: formatDate(row.day),
           }))}
+          delta={
+            previousLitres === null
+              ? null
+              : {
+                  current: Number(totals.litres_sold ?? 0),
+                  previous: previousLitres,
+                  from: `${formatLitres(previousLitres)} yesterday`,
+                }
+          }
           sub={
             Number(lubricants.litres ?? 0) > 0
               ? `plus ${formatLitres(lubricants.litres)} of lubricants`
@@ -122,6 +162,15 @@ export default async function DashboardPage({ searchParams }) {
             v: formatPKR(row.sale_amount),
             d: formatDate(row.day),
           }))}
+          delta={
+            previousSales === null
+              ? null
+              : {
+                  current: saleAmount,
+                  previous: previousSales,
+                  from: `${formatPKR(previousSales)} yesterday`,
+                }
+          }
           sub={
             lubricantAmount > 0
               ? `${formatPKR(fuelAmount)} fuel · ${formatPKR(lubricantAmount)} lubricants`

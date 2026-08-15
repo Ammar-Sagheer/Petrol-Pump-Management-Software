@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import { formatNumber, formatPKR, formatDate } from '@/app/_lib/helpers';
 import { fuelColor } from '@/app/_lib/fuel-colors';
 import Sparkline from '@/app/_components/ui/Sparkline';
+import DeltaBadge from '@/app/_components/ui/DeltaBadge';
 
 /**
  * The two cards at the top of the Sale & Stock Register, drawn on Material UI
@@ -133,18 +134,39 @@ export function FuelCard({ fuelType, rows = [] }) {
  * preview, the right move is to pick one of the two and delete the other -
  * not to leave both.
  */
-export function MoneyTile({ label, value, tone = 'default' }) {
+export function MoneyTile({
+  label,
+  value,
+  tone = 'default',
+  spark,
+  sparkTips,
+  sparkTone,
+  delta,
+}) {
   const valueTone =
     tone === 'positive' ? 'text-brand-700' : tone === 'negative' ? 'text-red-700' : 'text-ink-900';
 
   return (
     <Paper elevation={3} sx={{ borderRadius: 3, px: 2.5, py: 2.5 }}>
       <p className="figure-label">{label}</p>
-      <p
-        className={`tabular mt-1 whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}
-      >
-        {value}
-      </p>
+      {/* Figure and line share a row, the same shape as StatTile - the figure
+          keeps the left edge and the line takes what is left. `min-w-0` on the
+          chart side and `flex-1 max-w-[72px]`, so it is the sparkline that
+          gives way when a seven-figure total needs the width, never the
+          number. */}
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <p className={`tabular whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}>
+          {value}
+        </p>
+        {spark ? (
+          <span
+            className={`hidden min-w-0 max-w-[72px] flex-1 @[62rem]:block ${sparkTone ?? 'text-ink-400'}`}
+          >
+            <Sparkline data={spark} tips={sparkTips} className="h-[34px] w-full" />
+          </span>
+        ) : null}
+      </div>
+      {delta ? <DeltaBadge {...delta} /> : null}
     </Paper>
   );
 }
