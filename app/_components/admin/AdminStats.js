@@ -25,24 +25,49 @@ import Icon from '@/app/_components/ui/Icon';
  * pill, so a bad month's profit is a red number in a green ring: the ring says
  * "this tile is about money coming in", the number says "and it went the wrong
  * way".
+ *
+ * ONE STEP STRONGER THAN THE 50, AND NOT SOLID. The Argon pass tried the
+ * reference's own treatment first - the hue at full strength with a white
+ * glyph - and it has to be recorded here that it FAILED on this app, because
+ * it is the obvious thing to try again.
+ *
+ * Solid works for three of the four meanings. It breaks on the fourth: money
+ * owed is amber, and a saturated amber is diesel. Measured rather than
+ * eyeballed, `amber-600` is `#d97706`, hue 33 degrees; diesel's own swatch is
+ * `#FB923C` at 27 degrees and its accent rule `#C2410C` at 17. Six degrees is
+ * not a distinction. On the dashboard the "On credit" ring landed one section
+ * above a diesel-accented card wearing that swatch, and it was the loudest
+ * thing on a page where orange is supposed to mean one specific fuel - the
+ * exact failure docs/UI_CONVENTIONS.md → "Two palettes, and they never
+ * overlap" exists to prevent, and it is a safety rule, not a taste one.
+ *
+ * A pale `amber-50` was tolerable only because it is barely a hue. There is no
+ * step in between that is both solid and not orange: `amber-700` is 25
+ * degrees, nearer diesel still.
+ *
+ * So the whole set stops one step short of solid rather than making one tile
+ * the odd pale one out. `100` over `700` has real presence against a white
+ * card where the `50` washed out, and it spends no colour the fuels own. The
+ * borrowed look is carried by the tile's ARRANGEMENT and the card's shadow
+ * instead - see StatTile below - which cost nothing to adopt.
  */
 const RING_COLORS = {
   // Money arriving.
-  cash: 'bg-brand-50 text-brand-700',
-  moneyIn: 'bg-brand-50 text-brand-700',
-  profit: 'bg-brand-50 text-brand-700',
-  sales: 'bg-brand-50 text-brand-700',
+  cash: 'bg-brand-100 text-brand-700',
+  moneyIn: 'bg-brand-100 text-brand-700',
+  profit: 'bg-brand-100 text-brand-700',
+  sales: 'bg-brand-100 text-brand-700',
   // Money owed, or already gone.
-  credit: 'bg-amber-50 text-amber-700',
-  moneyOut: 'bg-amber-50 text-amber-700',
-  expenses: 'bg-amber-50 text-amber-700',
-  purchases: 'bg-amber-50 text-amber-700',
-  list: 'bg-amber-50 text-amber-700',
+  credit: 'bg-amber-100 text-amber-700',
+  moneyOut: 'bg-amber-100 text-amber-700',
+  expenses: 'bg-amber-100 text-amber-700',
+  purchases: 'bg-amber-100 text-amber-700',
+  list: 'bg-amber-100 text-amber-700',
   // Something to look at.
-  warning: 'bg-red-50 text-red-700',
+  warning: 'bg-red-100 text-red-700',
 };
 
-const RING_FALLBACK = 'bg-ink-100 text-ink-600';
+const RING_FALLBACK = 'bg-ink-200 text-ink-600';
 
 /**
  * The headline figures at the top of a page.
@@ -115,24 +140,43 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode, 
     // tile whose icon means something different than usual in context.
     const ringClass = ringTone ?? RING_COLORS[icon] ?? RING_FALLBACK;
 
+    /*
+     * THE ICON SHARES THE LABEL'S ROW; THE FIGURE GETS THE WHOLE CARD WIDTH.
+     *
+     * Argon puts label and figure in one column with the icon beside them,
+     * and copying that directly does not survive this app's numbers. Its
+     * figures are things like "$53,000"; ours are "Rs 1,204,950", set bold at
+     * 24px, in a tile about 265px wide once four of them share a laptop grid
+     * with a 240px sidebar taken off the window first. Icon beside figure
+     * leaves the number roughly 170px and it needs about 190px, so it ran
+     * underneath the icon - and `whitespace-nowrap` is not negotiable here
+     * (a money figure breaking after the "Rs" reads for a moment as two
+     * separate figures, which is the one thing this tile must never do).
+     *
+     * Pairing the icon with the LABEL instead fixes it at the source. The
+     * label is short and elastic, so it can give up the 48px; the figure then
+     * spans the full card and cannot collide with anything. It also keeps the
+     * borrowed look - a coloured badge in the tile's top-right corner - which
+     * was the part worth having.
+     *
+     * Caught by rendering the long-figure case, not by reading the markup:
+     * "Rs 1,603,290" happened to clear the icon by about 6px, so the ordinary
+     * dashboard looked correct while the Expenses and Reports tiles did not.
+     */
     return (
-      <div className="card flex flex-col gap-2 px-4 py-4 @[50rem]:px-5 @[50rem]:py-5">
-        <div className="flex items-center gap-3">
+      <div className="card flex flex-col gap-2 px-4 py-4 @[62rem]:px-5 @[62rem]:py-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="figure-label">{label}</p>
           <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${ringClass}`}
+            className={`-mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${ringClass}`}
             aria-hidden="true"
           >
             {iconNode ?? <Icon name={icon} className="h-5 w-5" />}
           </span>
-          <div className="min-w-0">
-            <p className="figure-label">{label}</p>
-            <p
-              className={`tabular whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}
-            >
-              {value}
-            </p>
-          </div>
         </div>
+        <p className={`tabular whitespace-nowrap text-xl font-bold @[62rem]:text-2xl ${valueTone}`}>
+          {value}
+        </p>
         {/* `sub` sits below the icon+figure row, spanning the full card width
             - not squeezed into the text column beside the ring. A long
             description ("sales - stock bought - expenses") wrapped to three
@@ -144,12 +188,12 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode, 
   }
 
   return (
-    <div className="card flex flex-col gap-2 px-4 py-4 @[50rem]:px-5 @[50rem]:py-5">
+    <div className="card flex flex-col gap-2 px-4 py-4 @[62rem]:px-5 @[62rem]:py-5">
       <p className="figure-label">{label}</p>
       {/* nowrap, and a step smaller on a phone. "Rs 4,386,211" in a
           half-width tile was breaking after the "Rs", which reads for a moment
           as two separate figures - the one thing a money tile must never do. */}
-      <p className={`tabular whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}>
+      <p className={`tabular whitespace-nowrap text-xl font-bold @[62rem]:text-2xl ${valueTone}`}>
         {value}
       </p>
       {sub_}
@@ -159,7 +203,7 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode, 
 
 export function StatGrid({ children, columns = 4 }) {
   const columnClass =
-    columns === 2 ? '' : columns === 3 ? '@[50rem]:grid-cols-3' : '@[50rem]:grid-cols-4';
+    columns === 2 ? '' : columns === 3 ? '@[50rem]:grid-cols-3' : '@[54rem]:grid-cols-4';
 
   /*
    * The column count follows the WIDTH OF THIS GRID, not the width of the

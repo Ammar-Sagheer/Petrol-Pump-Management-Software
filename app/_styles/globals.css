@@ -99,8 +99,28 @@ input[type='number']::-webkit-inner-spin-button {
    * nearly invisible against the pale page background - the border used to be
    * carrying the edge definition the shadow should have been supplying.
    */
+  /*
+   * A softer, lower, more diffuse shadow and a wider radius than the
+   * `shadow-md` this used to be - the Argon pass, and the part of it that
+   * touches the most screens, since almost every block in the app is a
+   * `.card`.
+   *
+   * `shadow-md` is a tight contact shadow: two stacked layers at 10% black
+   * within 6px of the edge, which reads as a card pressed close to the page
+   * and gives a grid of them a slightly gritty, ruled look. The borrowed one
+   * is a single 27px blur at 5% dropped 20px down - much wider, much fainter,
+   * and offset far enough to read as height rather than as an outline. Cards
+   * separate from the canvas by depth instead of by contrast, which is what
+   * makes the reference page look calm at a glance.
+   *
+   * It has to stay FAINT to be safe here. This app is read on a cheap tablet
+   * in poor light, where a heavy shadow turns into a visible grey band along
+   * every card edge and starts competing with the hairline dividers inside the
+   * card. 5% survives that; the 15%-20% a marketing page would use does not.
+   */
   .card {
-    @apply rounded-xl border-0 bg-white shadow-md;
+    @apply rounded-2xl border-0 bg-white;
+    box-shadow: 0 20px 27px 0 rgb(0 0 0 / 0.05);
   }
 
   .label {

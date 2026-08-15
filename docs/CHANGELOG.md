@@ -2947,3 +2947,83 @@ entirely until something is entered, since on a fresh day it would be a strip of
   It is an artefact of the capture, not a bug. Verify a fixed element with a
   normal viewport screenshot plus a computed-style read, which is how the
   show/hide behaviour here was actually confirmed.
+
+## The dashboard, in Argon's clothes — and a money figure that never fitted
+
+_"find me a minimal dashboard, no blacks" → "go ahead, build it with argon
+style"._ The owner went looking for a new dashboard design; what came back is
+mostly a craft change, plus one real bug that the craft change exposed.
+
+**Where the reference came from, since it is not reproducible from here.**
+Behance, Dribbble, Figma and creative-tim.com are all blocked by this
+environment's network egress policy. The npm registry is not, and Creative Tim
+publish their templates there under MIT, so the four dashboards actually
+compared were pulled as tarballs, extracted, served on localhost and
+screenshotted. Argon Dashboard 2 won on being light, black-free and closest to
+what this app already does. Now UI was rejected outright: its orange sidebar
+and blue chart header are diesel and petrol spent on chrome.
+
+### What was worth taking
+
+- **A softer, lower, wider shadow on `.card`** — `0 20px 27px 0 rgb(0 0 0 /
+  0.05)` in place of `shadow-md`, with `rounded-2xl`. `shadow-md` is a tight
+  contact shadow (two layers at 10% within 6px), which reads as cards pressed
+  flat against the page and gives a grid of them a ruled, gritty look. The
+  borrowed one separates card from canvas by *height* rather than by contrast.
+  It has to stay faint: on a cheap tablet in poor light a heavier shadow turns
+  into a grey band along every card edge and starts competing with the
+  hairline dividers inside the card.
+- **The icon as a badge in the tile's top-right corner**, which is the single
+  most recognisable thing about the reference's stat row.
+
+### What was rejected, and why it is written down
+
+Argon's icon circles are **solid saturated fills**. Three of this app's four
+ring meanings survive that; the fourth does not. Money owed is amber, and a
+saturated amber is diesel — `amber-600` is hue 33°, diesel's own swatch is
+27°, its accent rule 17°. Six degrees is not a distinction. Rendered, the "On
+credit" ring sat one section above a diesel-accented card and was the loudest
+thing on a page where orange is supposed to mean one fuel. No step is both
+solid and not orange (`amber-700` is 25°, nearer still), so the whole set went
+to `100` over `700` rather than making one tile the odd pale one out.
+
+**The generalisable bit: check a chrome colour against `fuel-colors.js` by
+hue, not by eye.** Six degrees apart looks like a different colour in a swatch
+and the same colour on a page. An earlier draft of this change shipped a code
+comment asserting the solid amber "sits on the chrome's side of that line" —
+written before rendering it, and wrong.
+
+### The bug the layout change exposed
+
+Copying Argon's arrangement directly — label and figure in a column, icon
+beside them — put `Rs 1,204,950` underneath the icon. Chasing that turned up
+something older and worse.
+
+**Money figures were overflowing their cards at nearly every laptop width, and
+had been.** Swept in 20px steps from 340px to 1600px, `main` overflows the
+figure at every width from 860px up, and the page itself scrolls sideways
+between 860 and 900. It was invisible because `Rs 1,603,290` on the ordinary
+dashboard happened to clear the icon by about 6px — the tiles that did not
+clear are Expenses, Reports and any month with a seven-figure total.
+
+Two fixes, both measured rather than guessed:
+
+- **The icon moved onto the label's row**, so the figure spans the whole card
+  instead of the card minus 48px. The label is short and elastic and can give
+  up the width; the figure cannot.
+- **`grid-cols-4` and `text-2xl` got separate thresholds** — `@[54rem]` and
+  `@[62rem]`, against the grid. They were one number (`@[50rem]`) serving
+  both, and four columns arrived while each tile was still ~204px. A single
+  breakpoint cannot serve a column count and a font size that need different
+  amounts of room.
+
+The same 20px sweep now reports clean from 340px to 1600px.
+
+### Blast radius
+
+`StatTile` is on eight pages and `.card` on nearly every block in the app, so
+this is a wider change than "the dashboard". Verified by rendering the
+dashboard with realistic fixtures at laptop and phone width, plus a strip of
+`StatTile` edge cases the dashboard does not itself produce: a negative tone
+with its pill, a positive tone, a seven-figure value, a two-line `sub`, and
+the no-icon variant.

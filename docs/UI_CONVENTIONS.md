@@ -1101,15 +1101,51 @@ picking one deterministic scheme is that it only needs auditing once.
   made once, not a licence to add an icon to every future control.
 - **A stat tile's icon ring is coloured by what the figure IS, not by
   whether it is good news.** `RING_COLORS` in `AdminStats.js` maps each icon
-  name to its colour — green for cash and profit, amber for credit and
-  expenses, blue for fuel, violet for oil (the colour lubricants already
-  wear on their badge), red for a warning. `tone` is the other axis and
+  name to its colour — green for money arriving, amber for money owed or
+  gone, red for something to look at, slate for everything else. (It once
+  also had blue for fuel and violet for oil; those were the fuels' own
+  colours and went in the palette audit — see "What the decorative hues were
+  actually doing" in the changelog.) `tone` is the other axis and
   still colours the figure itself and its pill, so a bad month shows a red
   number inside a green ring: the ring says "this tile is profit", the
   number says "and it is negative". Colouring both by `tone` would say the
   same thing twice and leave every tile in a row looking alike, which is
   the one job the ring has. Anything unlisted falls back to neutral slate,
   so a new icon is never accidentally loud.
+- **The rings stop one step short of solid, and the reason is diesel.** The
+  Argon pass tried the reference's own treatment — the hue at full strength
+  with a white glyph — and it works for three of the four meanings and breaks
+  on the fourth. Money owed is amber, and a saturated amber *is* diesel:
+  measured, `amber-600` is `#d97706` at hue 33°, against diesel's swatch
+  `#FB923C` at 27° and its accent rule `#C2410C` at 17°. On the dashboard the
+  "On credit" ring landed a section above a diesel-accented card and became
+  the loudest thing on a page where orange means one specific fuel. There is
+  no step that is both solid and not orange — `amber-700` is 25°, nearer
+  still. So the whole set sits at `100` over `700`: real presence against a
+  white card, no colour the fuels own, and no single odd pale tile. **Check a
+  chrome colour against `fuel-colors.js` by hue before saturating it**, not
+  by eye — 6° apart looks like a different colour in a swatch and the same
+  colour on a page.
+- **A stat tile's icon shares the LABEL's row; the figure gets the whole
+  card.** Not the reference layout, and the difference is this app's numbers.
+  Argon Dashboard 2 (the source for the tile's current look) stacks label and
+  figure in a column with the icon beside them, which works for `$53,000` and
+  fails for `Rs 1,204,950`: bold at 24px that needs ~190px, in a tile about
+  265px wide once four share a laptop grid with the 240px sidebar taken off
+  first. Beside an icon it gets ~170px and runs underneath it, and
+  `whitespace-nowrap` on a money figure is not negotiable — a figure that
+  breaks after the "Rs" reads for a moment as two figures. Pairing the icon
+  with the short, elastic label instead gives the number the full card width
+  and keeps the borrowed look (a coloured badge in the top-right corner).
+- **Four columns and the 24px figure have separate, measured thresholds.**
+  `@[54rem]` for `grid-cols-4` and `@[62rem]` for `text-2xl`, both against the
+  *grid*, not the window. They used to be one number (`@[50rem]`) and it was
+  too low for both: four columns arrived while each tile was still ~204px, so
+  the money figure overflowed its card at nearly every width from 860px up,
+  and the page itself scrolled sideways between 860 and 900. Swept in 20px
+  steps from 340px to 1600px before and after — the point is that a *single*
+  breakpoint cannot serve a column count and a font size that need different
+  amounts of room. Re-sweep if either changes.
 - **`StatTile`'s `iconNode` prop is a narrower escape hatch than `icon`**,
   for a rendered node that isn't in `Icon.js`'s own set at all (a category
   badge's existing markup, say). Reach for `icon` — a name into the shared
