@@ -84,11 +84,20 @@ export default async function DashboardPage({ searchParams }) {
         />
       </div>
 
+      {/* The sparklines are the SAME SERIES the charts further down already
+          draw, over the same window - `trend` is fetched once and read twice.
+          No extra query, and no risk of the little line and the big chart
+          disagreeing about a day, which is what would happen if the tile
+          fetched its own. They are decoration with a shape: unlabelled, no
+          axis, aria-hidden, and never the only place a figure appears. */}
       <StatGrid>
         <StatTile
           icon="fuelPump"
           label="Fuel sold"
           value={formatLitres(totals.litres_sold)}
+          spark={trend.map(
+            (row) => Number(row.petrol_litres ?? 0) + Number(row.diesel_litres ?? 0),
+          )}
           sub={
             Number(lubricants.litres ?? 0) > 0
               ? `plus ${formatLitres(lubricants.litres)} of lubricants`
@@ -99,6 +108,7 @@ export default async function DashboardPage({ searchParams }) {
           icon="sales"
           label="Total sales"
           value={formatPKR(saleAmount)}
+          spark={trend.map((row) => Number(row.sale_amount ?? 0))}
           sub={
             lubricantAmount > 0
               ? `${formatPKR(fuelAmount)} fuel · ${formatPKR(lubricantAmount)} lubricants`
@@ -109,12 +119,14 @@ export default async function DashboardPage({ searchParams }) {
           icon="cash"
           label="Cash"
           value={formatPKR(cashAmount)}
+          spark={trend.map((row) => Number(row.cash_amount ?? 0))}
           sub={saleAmount > 0 ? `${100 - creditShare}% of takings` : null}
         />
         <StatTile
           icon="credit"
           label="On credit"
           value={formatPKR(creditAmount)}
+          spark={trend.map((row) => Number(row.credit_amount ?? 0))}
           sub={saleAmount > 0 ? `${creditShare}% of takings` : null}
           tone={creditShare > 50 ? 'negative' : 'default'}
         />

@@ -1099,44 +1099,75 @@ picking one deterministic scheme is that it only needs auditing once.
   app now carry an icon ring (see `<StatGrid>`/`<StatTile>` above) because
   the owner asked for that look specifically — it is a deliberate exception
   made once, not a licence to add an icon to every future control.
-- **A stat tile's icon ring is coloured by what the figure IS, not by
-  whether it is good news.** `RING_COLORS` in `AdminStats.js` maps each icon
-  name to its colour — green for money arriving, amber for money owed or
-  gone, red for something to look at, slate for everything else. (It once
-  also had blue for fuel and violet for oil; those were the fuels' own
-  colours and went in the palette audit — see "What the decorative hues were
-  actually doing" in the changelog.) `tone` is the other axis and
-  still colours the figure itself and its pill, so a bad month shows a red
-  number inside a green ring: the ring says "this tile is profit", the
-  number says "and it is negative". Colouring both by `tone` would say the
-  same thing twice and leave every tile in a row looking alike, which is
-  the one job the ring has. Anything unlisted falls back to neutral slate,
-  so a new icon is never accidentally loud.
-- **The rings stop one step short of solid, and the reason is diesel.** The
-  Argon pass tried the reference's own treatment — the hue at full strength
-  with a white glyph — and it works for three of the four meanings and breaks
-  on the fourth. Money owed is amber, and a saturated amber *is* diesel:
-  measured, `amber-600` is `#d97706` at hue 33°, against diesel's swatch
-  `#FB923C` at 27° and its accent rule `#C2410C` at 17°. On the dashboard the
-  "On credit" ring landed a section above a diesel-accented card and became
-  the loudest thing on a page where orange means one specific fuel. There is
-  no step that is both solid and not orange — `amber-700` is 25°, nearer
-  still. So the whole set sits at `100` over `700`: real presence against a
-  white card, no colour the fuels own, and no single odd pale tile. **Check a
-  chrome colour against `fuel-colors.js` by hue before saturating it**, not
-  by eye — 6° apart looks like a different colour in a swatch and the same
-  colour on a page.
-- **A stat tile's icon shares the LABEL's row; the figure gets the whole
-  card.** Not the reference layout, and the difference is this app's numbers.
-  Argon Dashboard 2 (the source for the tile's current look) stacks label and
-  figure in a column with the icon beside them, which works for `$53,000` and
-  fails for `Rs 1,204,950`: bold at 24px that needs ~190px, in a tile about
-  265px wide once four share a laptop grid with the 240px sidebar taken off
-  first. Beside an icon it gets ~170px and runs underneath it, and
-  `whitespace-nowrap` on a money figure is not negotiable — a figure that
-  breaks after the "Rs" reads for a moment as two figures. Pairing the icon
-  with the short, elastic label instead gives the number the full card width
-  and keeps the borrowed look (a coloured badge in the top-right corner).
+- **A stat tile is: small icon + label, then the figure, then the
+  comparison — with a sparkline at the figure's right if a series exists.**
+  The anatomy comes from the Ramtabs dashboard the owner supplied as a
+  reference. The icon is a 16px glyph sharing the label's line, not a filled
+  ring; the colour it carries says which of four things the tile is about, not
+  whether the news is good.
+- **`ACCENT_COLORS` is the meaning; `tone` is the direction; they are
+  different axes.** `AdminStats.js` maps each icon name to a hue — green for
+  money arriving, amber for money owed or gone, red for something to look at,
+  **teal for things the pump holds** (fuel in a tank, oil on a shelf, kit in
+  the yard), **violet for the record-keeping** (what was read, what was
+  banked, which day), slate for anything unlisted. Five hues, and every one of
+  them is outside the fuel triad — teal and violet are there precisely because
+  the obvious colours for "fuel" and "stock" are blue and orange, which belong
+  to petrol and diesel and to nothing else. `tone` separately colours the figure and its
+  pill, so a bad month is a red number under a green "profit" glyph: the glyph
+  says "this tile is profit", the number says "and it is negative". Colouring
+  both by `tone` would say the same thing twice and leave a row of tiles
+  looking alike. Anything unlisted falls back to slate, so a new icon is never
+  accidentally loud. (The map once had blue for fuel and violet for oil; those
+  were the fuels' own colours and went in the palette audit.)
+- **A sparkline may only be green, red or slate — never amber.** `SPARK_COLORS`
+  is deliberately a different map from `ACCENT_COLORS` for one reason, and it
+  is the most reusable thing on this page: **the test is AREA, not size.** A
+  16px outline glyph in amber is a stroke, and the words "On credit" sit next
+  to it. A 72×34px sparkline in the same amber is more of the hue than the
+  44px filled circle that was already rejected — rendered directly above a
+  diesel-accented card, the two read as one colour language. Amber is the
+  single chrome colour a fuel owns (diesel), so anything with real area uses
+  slate and keeps its amber on the glyph. A tile with `tone` set overrides
+  this: direction wins over category, or a green line would sit under a red
+  number saying the opposite thing.
+- **Check a chrome colour against `fuel-colors.js` by hue before you saturate
+  it**, not by eye. `amber-600` is `#d97706` at hue 33°; diesel's swatch is
+  `#FB923C` at 27° and its accent rule `#C2410C` at 17°. Six degrees apart
+  looks like a different colour in a swatch and the same colour on a page.
+  This was found twice in one sitting — once as a filled ring, once as a
+  sparkline — because the second one felt too small to matter and was not.
+- **A sparkline carries no `width`/`height` attribute — the caller sizes it
+  with a class.** An SVG with `width={72}` is 72px wide whatever the box round
+  it says, so in a flex row beside a figure that cannot shrink it pushed out
+  through the card's right edge on narrow tiles. Sized by class
+  (`max-w-[72px] flex-1 min-w-0` on the wrapper, `w-full` on the svg) it
+  shrinks with its container; `preserveAspectRatio="none"` lets it squash
+  rather than crop, and `vectorEffect="non-scaling-stroke"` keeps the line 2px
+  while it does.
+- **Test containment against the card's PADDING box, not `scrollWidth`.** A
+  figure or a chart can sit entirely inside its own box while hanging out of
+  the card, so a `scrollWidth > clientWidth` check reports clean and the page
+  still looks broken. Walk every width and compare each child's rect against
+  its card's padding box — that is what caught both the sparkline leak and
+  `Rs 14,386,211` escaping at 440px. The latter is why two columns now wait
+  until `@[32rem]` instead of `@[24rem]`: at a 392px grid each tile was 188px
+  and an eight-figure month needs about 200px.
+- **The sparkline is the part that yields when space runs out.** It is hidden
+  below `@[68rem]` and the tile is then exactly what it was, a label over a
+  number. Ramtabs draws its mini-chart beside `$1,842,400` in a wide tile;
+  ours would sit beside `Rs 1,204,950` in one about 265px wide, and the figure
+  cannot shrink (`whitespace-nowrap` on money is not negotiable — a figure
+  breaking after the "Rs" reads for a moment as two figures). **Decoration
+  must never be the reason a figure cannot be read.**
+- **A sparkline is hand-drawn SVG, not a chart library.** `Sparkline.js` is a
+  path with no axes, tooltip or measurement, so it server-renders with no
+  JavaScript and no layout shift. Four Recharts instances in a stat row would
+  each ship a client bundle and measure-then-paint, so the row the owner looks
+  at first would land empty and pop in a beat later. It is also `aria-hidden`
+  and carries no scale: it says "rising", "falling", "steady", and the figure
+  it belongs to is beside it at 24px. **Never let a sparkline be the only
+  place a quantity appears.**
 - **Four columns and the 24px figure have separate, measured thresholds.**
   `@[54rem]` for `grid-cols-4` and `@[62rem]` for `text-2xl`, both against the
   *grid*, not the window. They used to be one number (`@[50rem]`) and it was

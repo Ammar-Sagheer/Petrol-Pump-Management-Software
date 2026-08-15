@@ -3027,3 +3027,91 @@ dashboard with realistic fixtures at laptop and phone width, plus a strip of
 `StatTile` edge cases the dashboard does not itself produce: a negative tone
 with its pill, a positive tone, a seven-figure value, a two-line `sub`, and
 the no-icon variant.
+
+## Stat tiles get the Ramtabs anatomy, and a sparkline
+
+The owner sent a screenshot of the Ramtabs finance dashboard — the design he
+had been trying to show since the start, and which none of the earlier
+guessing had matched — with two asks: _"the cards on top with graphs too if
+possible and the card text in the card should be shown like this"_, then
+_"i want to improve the top cards in all my website pages which uses cards"_.
+
+So this is app-wide, not the dashboard: `StatTile` is on eight pages.
+
+**The anatomy is now the reference's.** A 16px icon sharing the label's line,
+the figure below it, the comparison under that, and a sparkline at the
+figure's right where a series exists. The filled icon ring from the Argon pass
+is gone — the reference spends its colour on the chart, not on a badge, and it
+is the better trade.
+
+**The sparkline is hand-drawn SVG** (`app/_components/ui/Sparkline.js`), not
+Recharts. Four Recharts instances in a stat row would each ship a client
+bundle and measure themselves before painting, so the row the owner reads
+first would land empty and pop in a beat later. A sparkline has no axes,
+tooltip or interaction, so it is just a path: server-rendered, no JavaScript,
+no layout shift, a few hundred bytes. It is `aria-hidden` and carries no
+scale — it says "rising", "falling", "steady", and the figure is beside it at
+24px.
+
+**The dashboard's four sparklines are the same `trend` array the charts below
+already draw**, read twice from one fetch. No extra query, and no way for the
+little line and the big chart to disagree about a day.
+
+### Diesel, again — and the rule that came out of it
+
+The same trap as the Argon pass, sprung a second time in one sitting. The
+tile's meaning colours include amber for money owed, so the "On credit"
+sparkline came out amber, and rendered above the diesel-accented fuel cards it
+was the same orange all over again.
+
+The reasoning that let it through is worth recording, because it was written
+down confidently and was wrong: a comment argued that a small glyph "spends so
+little of the hue that the question goes away". True for a 16px outline
+stroke. Not true for a 72×34px line with an area fill, which is **more** amber
+than the 44px filled circle already rejected.
+
+**The rule: the test is AREA, not size.** `SPARK_COLORS` is therefore a
+separate map from `ACCENT_COLORS` and may only be green, red or slate — the
+chrome colours no fuel owns. The money-owed group draws slate and keeps its
+amber on the glyph. `tone` overrides both: direction beats category, or a
+green line would sit under a red number saying the opposite thing.
+
+### Verified
+
+Rendered with the fuel-type cards deliberately in frame, because the colour
+question only exists where chrome and fuel colours share a page — the first
+pass was judged on a tile row alone and looked fine. Also swept in 20px steps
+from 340px to 1600px: clean, including the 860–900 band where `main` used to
+scroll the page sideways. At phone width the sparklines drop out entirely and
+the tile is a label over a number, which is the intended degradation:
+decoration must never be the reason a figure cannot be read.
+
+### Two follow-ups from the owner, in the same pass
+
+**"please use colorful icons too, relevant colors."** The accent map grew from
+three meanings to five, and the two new ones are chosen around the fuel triad
+rather than for it: **teal** for what the pump holds (fuel, stock, inventory,
+lubricants, assets) and **violet** for the record-keeping (readings, banking,
+dates). The obvious colours for "fuel" and "stock" are blue and orange, and
+those belong to petrol and diesel — teal and violet are what is left that is
+still distinct, and neither is a colour any fuel wears.
+
+**"make sure graphs does not leak out of the card."** They were, and the sweep
+that had reported CLEAN did not see it: it compared each figure's
+`scrollWidth` against its own `clientWidth`, which says nothing about whether
+the element sits inside its CARD. The sparkline carried `width={72}` as an SVG
+attribute, so it stayed 72px wide however narrow the tile got and pushed
+straight out through the right edge. It is now sized by class and shrinks with
+its container.
+
+Re-tested with the right check — every child's rect against its card's padding
+box, at every width from 340px to 1600px — which promptly turned up a second
+leak the first check had also missed: `Rs 14,386,211` escaping at 440px, where
+two columns gave each tile 188px for a figure needing ~200px. Two columns now
+wait until `@[32rem]`. **The lesson worth keeping: `scrollWidth` tests whether
+an element overflows ITSELF, and that is not the question.**
+
+**Not done: sparklines on the other seven pages.** Only the dashboard has a
+daily series to hand. Customers, Expenses, Banking, Lubricants, Readings and
+Reports would each need a small trend query before their tiles could carry
+one; the anatomy change reaches them all today, the charts do not.

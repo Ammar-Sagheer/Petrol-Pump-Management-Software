@@ -1,4 +1,5 @@
 import Icon from '@/app/_components/ui/Icon';
+import Sparkline from '@/app/_components/ui/Sparkline';
 
 /**
  * What colour an icon ring wears, keyed by the icon's own name.
@@ -26,48 +27,79 @@ import Icon from '@/app/_components/ui/Icon';
  * "this tile is about money coming in", the number says "and it went the wrong
  * way".
  *
- * ONE STEP STRONGER THAN THE 50, AND NOT SOLID. The Argon pass tried the
- * reference's own treatment first - the hue at full strength with a white
- * glyph - and it has to be recorded here that it FAILED on this app, because
- * it is the obvious thing to try again.
+ * NOT A FILLED RING ANY MORE - a small glyph beside the label, in the hue.
+ * The Ramtabs reference the owner supplied sets its tiles that way: a quiet
+ * outline icon sharing the label's line, with the card's colour spent on the
+ * sparkline instead. It is the better trade for this app, and it also settled
+ * a question the Argon pass had got stuck on.
  *
- * Solid works for three of the four meanings. It breaks on the fourth: money
- * owed is amber, and a saturated amber is diesel. Measured rather than
- * eyeballed, `amber-600` is `#d97706`, hue 33 degrees; diesel's own swatch is
- * `#FB923C` at 27 degrees and its accent rule `#C2410C` at 17. Six degrees is
- * not a distinction. On the dashboard the "On credit" ring landed one section
- * above a diesel-accented card wearing that swatch, and it was the loudest
- * thing on a page where orange is supposed to mean one specific fuel - the
- * exact failure docs/UI_CONVENTIONS.md → "Two palettes, and they never
- * overlap" exists to prevent, and it is a safety rule, not a taste one.
+ * WHAT THE FILLED VERSION COST. Argon's rings are solid saturated circles.
+ * That works for three of these four meanings and breaks on the fourth: money
+ * owed is amber, and a saturated amber IS diesel. Measured rather than
+ * eyeballed, `amber-600` is `#d97706` at hue 33 degrees, against diesel's own
+ * swatch `#FB923C` at 27 and its accent rule `#C2410C` at 17. Six degrees is
+ * not a distinction. Rendered, the "On credit" ring landed one section above a
+ * diesel-accented card and was the loudest thing on a page where orange is
+ * supposed to mean one specific fuel - exactly what docs/UI_CONVENTIONS.md ->
+ * "Two palettes, and they never overlap" exists to prevent, and a safety rule
+ * rather than a taste one. There is no step that is both solid and not orange;
+ * `amber-700` is 25 degrees, nearer still.
  *
- * A pale `amber-50` was tolerable only because it is barely a hue. There is no
- * step in between that is both solid and not orange: `amber-700` is 25
- * degrees, nearer diesel still.
+ * WHERE THE LINE ACTUALLY FALLS: AREA, NOT SIZE. A 16px outline glyph spends
+ * so little of the hue that the question goes away - it is a stroke, and the
+ * label beside it says "On credit" in words. A sparkline is not: 72x34px of
+ * line plus fill is MORE amber than the 44px circle that was rejected, and
+ * rendered directly above a diesel-accented card the two read as one colour
+ * language. So the two get different maps.
  *
- * So the whole set stops one step short of solid rather than making one tile
- * the odd pale one out. `100` over `700` has real presence against a white
- * card where the `50` washed out, and it spends no colour the fuels own. The
- * borrowed look is carried by the tile's ARRANGEMENT and the card's shadow
- * instead - see StatTile below - which cost nothing to adopt.
+ * SPARK_COLORS may only be green, red or slate - the chrome colours no fuel
+ * owns. Amber is the single chrome colour a fuel does own, so the money-owed
+ * group draws its sparkline in neutral slate and keeps its amber on the glyph.
+ * The tile does not lose the meaning; it stops shouting it in diesel's voice.
  */
-const RING_COLORS = {
+const ACCENT_COLORS = {
   // Money arriving.
-  cash: 'bg-brand-100 text-brand-700',
-  moneyIn: 'bg-brand-100 text-brand-700',
-  profit: 'bg-brand-100 text-brand-700',
-  sales: 'bg-brand-100 text-brand-700',
+  cash: 'text-brand-600',
+  moneyIn: 'text-brand-600',
+  profit: 'text-brand-600',
+  sales: 'text-brand-600',
   // Money owed, or already gone.
-  credit: 'bg-amber-100 text-amber-700',
-  moneyOut: 'bg-amber-100 text-amber-700',
-  expenses: 'bg-amber-100 text-amber-700',
-  purchases: 'bg-amber-100 text-amber-700',
-  list: 'bg-amber-100 text-amber-700',
+  credit: 'text-amber-600',
+  moneyOut: 'text-amber-600',
+  expenses: 'text-amber-600',
+  purchases: 'text-amber-600',
+  list: 'text-amber-600',
   // Something to look at.
-  warning: 'bg-red-100 text-red-700',
+  warning: 'text-red-600',
+  // Things the pump HOLDS - fuel in a tank, oil on a shelf, kit in the yard.
+  fuelPump: 'text-teal-600',
+  stock: 'text-teal-600',
+  inventory: 'text-teal-600',
+  lubricants: 'text-teal-600',
+  assets: 'text-teal-600',
+  // The record-keeping: what was read, what was banked, which day.
+  readings: 'text-violet-600',
+  banking: 'text-violet-600',
+  date: 'text-violet-600',
 };
 
-const RING_FALLBACK = 'bg-ink-200 text-ink-600';
+const ACCENT_FALLBACK = 'text-ink-500';
+
+/* The same keys, but amber is deliberately absent - see above. */
+const SPARK_COLORS = {
+  cash: 'text-brand-600',
+  moneyIn: 'text-brand-600',
+  profit: 'text-brand-600',
+  sales: 'text-brand-600',
+  credit: 'text-ink-400',
+  moneyOut: 'text-ink-400',
+  expenses: 'text-ink-400',
+  purchases: 'text-ink-400',
+  list: 'text-ink-400',
+  warning: 'text-red-600',
+};
+
+const SPARK_FALLBACK = 'text-ink-400';
 
 /**
  * The headline figures at the top of a page.
@@ -90,13 +122,18 @@ const RING_FALLBACK = 'bg-ink-200 text-ink-600';
  * `positive`/`negative`) - the same information, just legible at a glance the
  * way a coloured tag is and a sentence is not.
  *
- * `icon` is optional and switches the tile to a horizontal layout - an icon
- * in a tinted ring beside the label and figure, the shape used on the
- * Customers stat row. Left off (the default), the tile stays the plain
- * label-over-figure stack every other page uses; not every stat has an icon
- * that means anything, so this is opt-in rather than automatic. The ring's
- * colour comes from the icon's own meaning (see RING_COLORS), not from
- * `tone`; pass `ringTone` to override it.
+ * `icon` is optional and puts a small glyph beside the label, in the hue its
+ * meaning carries (see ACCENT_COLORS). Left off, the tile is the same tile
+ * without it; not every stat has an icon that means anything, so this is
+ * opt-in. `accentTone` overrides the colour for a tile whose icon means
+ * something different in context.
+ *
+ * `spark` is an optional array of numbers - the same figure over the last N
+ * days - drawn as a sparkline to the right of the value. It is DECORATION
+ * WITH A SHAPE, not a second figure: no axis, no scale, no tooltip, and
+ * aria-hidden, so nothing on it can be misread as a quantity. Pass it only
+ * where a real series already exists; a tile with none simply has none, and
+ * that is not a broken-looking tile.
  *
  * `iconNode` is the escape hatch for a one-off icon that isn't in the app's
  * own hand-drawn set (`Icon.js`) - currently only the Customers "Total
@@ -106,7 +143,16 @@ const RING_FALLBACK = 'bg-ink-200 text-ink-600';
  * differ without teaching the whole set about a package the rest of the app
  * does not use.
  */
-export function StatTile({ label, value, sub, tone = 'default', icon, iconNode, ringTone }) {
+export function StatTile({
+  label,
+  value,
+  sub,
+  tone = 'default',
+  icon,
+  iconNode,
+  spark,
+  accentTone,
+}) {
   const valueTone =
     tone === 'positive' ? 'text-brand-700' : tone === 'negative' ? 'text-red-700' : 'text-ink-900';
 
@@ -134,54 +180,62 @@ export function StatTile({ label, value, sub, tone = 'default', icon, iconNode, 
     </span>
   ) : null;
 
-  if (icon || iconNode) {
-    // Keyed by the icon, not by `tone` - see RING_COLORS above for why the
-    // two are deliberately different axes. `ringTone` overrides both, for a
-    // tile whose icon means something different than usual in context.
-    const ringClass = ringTone ?? RING_COLORS[icon] ?? RING_FALLBACK;
+  if (icon || iconNode || spark) {
+    const accentClass = accentTone ?? ACCENT_COLORS[icon] ?? ACCENT_FALLBACK;
+
+    /* Direction wins over category when the tile has one: a negative tone
+       means the figure itself is already red, and a green line under a red
+       number would be two cues disagreeing. */
+    const sparkClass =
+      tone === 'negative'
+        ? 'text-red-600'
+        : tone === 'positive'
+          ? 'text-brand-600'
+          : (SPARK_COLORS[icon] ?? SPARK_FALLBACK);
 
     /*
-     * THE ICON SHARES THE LABEL'S ROW; THE FIGURE GETS THE WHOLE CARD WIDTH.
+     * THE FIGURE KEEPS THE LEFT EDGE AND ITS OWN LINE; THE SPARKLINE TAKES
+     * WHAT IS LEFT, AND GIVES IT BACK WHEN THERE IS NOT ENOUGH.
      *
-     * Argon puts label and figure in one column with the icon beside them,
-     * and copying that directly does not survive this app's numbers. Its
-     * figures are things like "$53,000"; ours are "Rs 1,204,950", set bold at
-     * 24px, in a tile about 265px wide once four of them share a laptop grid
-     * with a 240px sidebar taken off the window first. Icon beside figure
-     * leaves the number roughly 170px and it needs about 190px, so it ran
-     * underneath the icon - and `whitespace-nowrap` is not negotiable here
-     * (a money figure breaking after the "Rs" reads for a moment as two
-     * separate figures, which is the one thing this tile must never do).
+     * The reference puts label, figure and comparison in a column with a small
+     * chart beside the figure, and the arrangement is the point - but it is
+     * drawn against `$1,842,400` in a wide tile. Ours is `Rs 1,204,950` set
+     * bold at 24px, in a tile about 265px wide once four share a laptop grid
+     * with the 240px sidebar taken off the window first. That number needs
+     * ~190px on its own and `whitespace-nowrap` is not negotiable (a money
+     * figure breaking after the "Rs" reads for a moment as two figures), so
+     * there is not always room for both.
      *
-     * Pairing the icon with the LABEL instead fixes it at the source. The
-     * label is short and elastic, so it can give up the 48px; the figure then
-     * spans the full card and cannot collide with anything. It also keeps the
-     * borrowed look - a coloured badge in the tile's top-right corner - which
-     * was the part worth having.
-     *
-     * Caught by rendering the long-figure case, not by reading the markup:
-     * "Rs 1,603,290" happened to clear the icon by about 6px, so the ordinary
-     * dashboard looked correct while the Expenses and Reports tiles did not.
+     * So the sparkline is the part that yields. It is `hidden` until the tile
+     * has genuinely earned the width for it, at which point it appears at the
+     * figure's right - and below that threshold the tile is exactly what it
+     * was, a label over a number. Decoration must never be the reason a figure
+     * cannot be read; this is the same call the trend charts make when they
+     * drop litres from the cash-up bar at phone width.
      */
     return (
       <div className="card flex flex-col gap-2 px-4 py-4 @[62rem]:px-5 @[62rem]:py-5">
-        <div className="flex items-start justify-between gap-3">
+        <div className={`flex items-center gap-2 ${accentClass}`}>
+          {iconNode ?? (icon ? <Icon name={icon} className="h-4 w-4 shrink-0" /> : null)}
           <p className="figure-label">{label}</p>
-          <span
-            className={`-mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${ringClass}`}
-            aria-hidden="true"
-          >
-            {iconNode ?? <Icon name={icon} className="h-5 w-5" />}
-          </span>
         </div>
-        <p className={`tabular whitespace-nowrap text-xl font-bold @[62rem]:text-2xl ${valueTone}`}>
-          {value}
-        </p>
-        {/* `sub` sits below the icon+figure row, spanning the full card width
-            - not squeezed into the text column beside the ring. A long
-            description ("sales - stock bought - expenses") wrapped to three
-            cramped lines in that narrower column; the full width gives it
-            room to wrap at most once. */}
+
+        <div className="flex items-end justify-between gap-3">
+          <p
+            className={`tabular whitespace-nowrap text-xl font-bold @[62rem]:text-2xl ${valueTone}`}
+          >
+            {value}
+          </p>
+          {spark ? (
+            <span className={`hidden min-w-0 max-w-[72px] flex-1 @[68rem]:block ${sparkClass}`}>
+              <Sparkline data={spark} className="h-[34px] w-full" />
+            </span>
+          ) : null}
+        </div>
+
+        {/* `sub` spans the full card width rather than being squeezed beside
+            anything. A long description ("sales - stock bought - expenses")
+            wrapped to three cramped lines in a narrower column. */}
         {sub_}
       </div>
     );
@@ -219,11 +273,20 @@ export function StatGrid({ children, columns = 4 }) {
    * The bottom end is the same problem from the other side: two tiles across
    * a 320px phone leaves about 130px each, where the number either broke
    * after the "Rs" - two lines that read for a moment as two figures - or ran
-   * out of its tile. One per row until 24rem.
+   * out of its tile. One per row until 32rem.
+   *
+   * 32rem, not the 24rem it was. At a 392px grid two columns give each tile
+   * 188px, and `Rs 14,386,211` - an eight-figure month, which Expenses and
+   * Purchases do reach - needs about 200px even at the phone's smaller step.
+   * It ran out through the card's right edge. Measured by walking every width
+   * from 340px to 1600px and comparing each figure's box against its card's
+   * PADDING box, which is the check that catches this; a plain
+   * scrollWidth/clientWidth test does not, because the figure overflows its
+   * card without overflowing itself.
    */
   return (
     <div className="@container">
-      <div className={`grid grid-cols-1 gap-4 @[24rem]:grid-cols-2 ${columnClass}`}>{children}</div>
+      <div className={`grid grid-cols-1 gap-4 @[32rem]:grid-cols-2 ${columnClass}`}>{children}</div>
     </div>
   );
 }
