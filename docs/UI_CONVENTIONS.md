@@ -1559,12 +1559,57 @@ has stopped meaning anything.
   customer avatars that already had initials, stat rings on tiles whose icon
   already named them. Where a ring stayed coloured, the colour says something
   the icon cannot — a wallet says "expenses", the amber says "money leaving".
+- **The rule above governs where colour is _required_, not where it is
+  _forbidden_.** Read as a ban on decoration it produced a page of fourteen
+  grey blocks (Company Assets), and the owner's verdict on that was "boring" —
+  a fair verdict on a private register he opens for his own reference rather
+  than to check a figure against cash. The category hues went back, and the
+  distinction worth keeping is: **a screen someone reconciles against a drawer
+  earns its colour; a screen someone browses may simply have some.** What made
+  the restored hues safe was not that they now mean more, but that nothing on
+  those cards is knowable by colour alone — every category still carries its
+  own icon _and_ its written label. See "Where a decorative hue is allowed"
+  below for the two hues it may never spend.
 - **The one documented exception is `CashCreditChart`'s violet**, and it must
   stay. Making credit amber would have matched the stat tiles, but that pair
   was chosen with a palette validator: green/violet separates for red-green
   colour blindness where green/amber does not. **Consistency does not outrank
   being readable by the person using the app.** Check for a written reason
   before unifying a colour that looks out of place.
+
+### Where a decorative hue is allowed, and what it may never spend
+
+Company Assets is the one page carrying colour that is there to be pleasant
+rather than to say something. When another page earns the same licence, the
+constraint that made it safe there is what carries over — it is a much
+shorter list than "anything not already used":
+
+| Hue | Status | Why |
+|---|---|---|
+| blue, orange, gold | **never** | petrol, diesel, lubricant. The safety rule above; a colour spent twice has stopped meaning anything. |
+| red | **never** | "look at this". |
+| amber | **never** | "money owed, or gone". |
+| brand green | fine | it is the app's own colour. |
+| teal, violet, fuchsia | fine | owned by nothing. |
+| slate | fine, and preferred | the right answer for "uncategorised", where the absence of a hue is itself accurate. |
+
+Red and amber are barred for a sharper reason than tidiness: **every card on
+that page carries a money figure**, and an amber tile beside `Rs 132,000`
+reads as a warning about the number. A decorative hue must not be able to be
+mistaken for a status one on the same card.
+
+That leaves four usable hues and a neutral, which is a real ceiling — a
+sixth category could not be given its own colour without breaking one of the
+rows above, and the answer then is to let it fall to slate rather than to
+reach for a reserved hue.
+
+**Pale ground, dark glyph, three steps.** The icon tile takes the `100`, a
+chip carrying words takes the `50`, a stat-tile ring takes the `50` (every
+other ring in the app is a `50`, and a lone darker one on that row looks like
+a different component), and glyph and text stay at the `700` throughout.
+Tried at the `50` across the board, the tiles washed to near-white against a
+white card and the page still read as grey — the change had cost the argument
+without buying the look.
 
 ## Petrol is blue and dark; diesel is orange and light
 

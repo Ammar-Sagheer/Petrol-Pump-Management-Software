@@ -206,6 +206,31 @@ a small `out of stock` / `low` badge beside it.
 
 Same rule for created/changed/deleted, paid/pending, entered/not entered.
 
+### It is a floor, not a ceiling
+
+The rule says what colour may not be the *only* carrier of. Applied backwards —
+as "strip any hue that isn't doing a job" — it produces screens that are
+correct and unpleasant, and the owner will tell you so in one word. A register
+someone reconciles against a drawer earns its colour; a list someone browses
+may simply have some. What makes a decorative hue safe is not that you found it
+a meaning, but that **the thing it sits on is already fully identified without
+it** — an icon and a written label, not one or the other.
+
+Two hues it may never spend, in any app of this shape:
+
+- **A colour the data owns.** If blue means petrol, nothing in the chrome is
+  blue. A colour spent twice has stopped meaning anything, and the one that
+  loses is the one doing the safety job.
+- **A status colour, on a card carrying a figure.** Amber beside `132,000`
+  reads as a warning about the number, whatever you intended it to say about
+  the category. Same for red. This is what usually rules out the "obvious"
+  palette and leaves a genuine ceiling of three or four usable hues — when you
+  run out, let the next category fall to neutral rather than reaching for a
+  reserved one.
+
+Pale ground, dark glyph. A saturated fill puts the decoration above the figure,
+which is the one thing on the card that has to lead.
+
 ## The day on screen is stated once, and loudly
 
 On any page scoped to a date: one tinted banner carrying the weekday, the

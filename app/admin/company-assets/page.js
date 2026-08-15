@@ -22,33 +22,90 @@ export const metadata = { title: 'Company Assets' };
 const PER_PAGE = 9;
 
 /*
- * Icon per category. NOT a colour per category, any more.
+ * Icon and colour per category.
  *
- * Each of the five used to carry its own hue - sky for a vehicle, amber for
- * machinery, brand green for property, violet for electronics - which put five
- * more hues into an app that was trying to read as one palette, and spent two
- * of them (sky, violet) on colours the fuels use as identity elsewhere.
+ * THIS PAGE IS THE ONE PLACE A DECORATIVE HUE IS ALLOWED, and it is worth
+ * writing down why, because the five hues were removed once already (see
+ * docs/CHANGELOG.md → "What the decorative hues were actually doing: nothing")
+ * and the arguments that removed them still hold everywhere else.
  *
- * They did not need it. Every category already has a distinct SHAPE: a car, a
- * wrench, a building, a monitor, a tag. Shape is the stronger cue anyway - it
- * survives poor light and colour blindness, which is the argument Icon.js makes
- * for having icons at all - so the colour was a second, weaker copy of
- * something the icon already said. Neutral chips, distinct icons.
+ * What that audit got right: colour was not doing the TELLING-APART. Every
+ * category has a distinct shape - a car, a wrench, a building, a monitor, a
+ * tag - and a written label in the badge beside it, so a reader in poor light
+ * or with colour-vision deficiency already has two cues before any hue
+ * arrives. That has not changed, and it is what makes colour safe here rather
+ * than load-bearing: nothing on this card is knowable ONLY by its colour.
+ *
+ * What it got wrong was the conclusion that the hue should therefore be zero.
+ * Fourteen assets rendered as fourteen grey blocks, and the owner's word for
+ * the result was "boring" - which is a real verdict on a page he opens for his
+ * own reference rather than to check a figure against a drawer. A private
+ * register is the one screen in this app that can afford to be pleasant.
+ *
+ * WHAT THE OLD SET ACTUALLY BROKE, and what this one does differently: the
+ * hues it spent were sky and violet - petrol's blue and the colour lubricant
+ * wore. That is the rule in docs/UI_CONVENTIONS.md → "Two palettes, and they
+ * never overlap", and it is a safety rule, not a taste one. So:
+ *
+ *   - NOTHING here touches blue, orange or gold. Those belong to the fuels and
+ *     to nothing else, on any page.
+ *   - NOTHING here touches red or amber. Those mean "look at this" and "money
+ *     owed or gone" in the chrome, and every card on this page carries a money
+ *     figure - an amber tile beside "Rs 132,000" would read as a warning about
+ *     the number rather than as a category.
+ *
+ * That leaves teal, violet, fuchsia and the brand's own green, plus slate for
+ * `other` - which stays deliberately uncoloured, because "uncategorised" is
+ * the one value where the absence of a hue is itself accurate.
+ *
+ * Tile and badge share a hue on purpose. One coloured tile beside a grey chip
+ * read as an accident of two different systems; matching them makes the card
+ * read as one thing wearing one colour, which is the same rule the Stock
+ * page's dip cards follow (UI_CONVENTIONS → "A card that wears a colour owns
+ * the controls inside it").
+ *
+ * THREE STEPS OF THE SAME HUE, and the difference between them is not
+ * decoration. `tile` is the 100 (the icon block, which has to read as a solid
+ * object - at the 50 it washed out to near-white against a white card and the
+ * page still looked grey), `badge` is the 50 (a chip carrying words, which
+ * must not shout louder than the asset's name beside it), and `ring` is the
+ * 50 because every other stat-tile ring in the app is a 50 and a lone darker
+ * one on that row would look like a different component. The neutral `other`
+ * already paired a 200 tile with a 100 chip for the same reason; the coloured
+ * four just follow it. Glyph and text stay at the 700 throughout - dark ink on
+ * a pale ground, never a saturated fill, so the figure still leads the card.
  */
 const CATEGORY_STYLE = {
-  vehicle: { icon: 'vehicle', tile: 'bg-ink-200 text-ink-700', badge: 'bg-ink-100 text-ink-700' },
+  vehicle: {
+    icon: 'vehicle',
+    tile: 'bg-teal-100 text-teal-700',
+    badge: 'bg-teal-50 text-teal-700',
+    ring: 'bg-teal-50 text-teal-700',
+  },
   machinery: {
     icon: 'machinery',
-    tile: 'bg-ink-200 text-ink-700',
-    badge: 'bg-ink-100 text-ink-700',
+    tile: 'bg-violet-100 text-violet-700',
+    badge: 'bg-violet-50 text-violet-700',
+    ring: 'bg-violet-50 text-violet-700',
   },
-  property: { icon: 'property', tile: 'bg-ink-200 text-ink-700', badge: 'bg-ink-100 text-ink-700' },
+  property: {
+    icon: 'property',
+    tile: 'bg-brand-100 text-brand-700',
+    badge: 'bg-brand-50 text-brand-700',
+    ring: 'bg-brand-50 text-brand-700',
+  },
   electronics: {
     icon: 'electronics',
+    tile: 'bg-fuchsia-100 text-fuchsia-700',
+    badge: 'bg-fuchsia-50 text-fuchsia-700',
+    ring: 'bg-fuchsia-50 text-fuchsia-700',
+  },
+  other: {
+    icon: 'other',
     tile: 'bg-ink-200 text-ink-700',
     badge: 'bg-ink-100 text-ink-700',
+    ring: 'bg-ink-100 text-ink-600',
   },
-  other: { icon: 'other', tile: 'bg-ink-200 text-ink-700', badge: 'bg-ink-100 text-ink-700' },
 };
 
 const CATEGORY_LABEL = Object.fromEntries(
@@ -128,11 +185,22 @@ export default async function CompanyAssetsPage({ searchParams }) {
               second page existed. See getCompanyAssetsSummary(). */}
           <div className="mb-6">
             <StatGrid>
+              {/* Two of the four rings carry a colour, and two stay slate -
+                  the same test AdminStats applies everywhere: a ring is
+                  coloured only when the colour says something the icon
+                  cannot. A briefcase says "assets"; the green says "and this
+                  is money the business is holding", which is what green means
+                  in every other ring in the app. The biggest-holding ring
+                  wears its CATEGORY's hue, so the tile and the cards below it
+                  agree about what Electronics looks like. A count and a date
+                  have nothing for a colour to add, so they keep the neutral
+                  fallback rather than being tinted to even the row up. */}
               <StatTile
                 icon="assets"
                 label="Total value"
                 value={formatPKR(totalValue)}
                 sub={`${summary.asset_count} asset${summary.asset_count === 1 ? '' : 's'}`}
+                ringTone="bg-brand-50 text-brand-700"
               />
               <StatTile
                 icon="inventory"
@@ -144,6 +212,11 @@ export default async function CompanyAssetsPage({ searchParams }) {
                 label="Biggest holding"
                 value={summary.top_category ? CATEGORY_LABEL[summary.top_category] : '—'}
                 sub={summary.top_category ? `${topShare}% of total value` : null}
+                ringTone={
+                  summary.top_category
+                    ? (CATEGORY_STYLE[summary.top_category] ?? CATEGORY_STYLE.other).ring
+                    : undefined
+                }
               />
               <StatTile
                 icon="date"

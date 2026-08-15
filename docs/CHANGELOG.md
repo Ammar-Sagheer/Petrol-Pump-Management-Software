@@ -3275,3 +3275,68 @@ unstated amount is worse than none. Fuel sold and Total sales can be
 reconstructed exactly from the two trends, so those two have badges. Fixing
 the rest means widening the lubricant trend RPC — a migration, not a format
 change.
+## Company Assets get their colour back
+
+_"add some colors in these icons, they look boring right now"_ — the owner,
+looking at fourteen assets rendered as fourteen identical grey blocks.
+
+This reverses part of an earlier decision, and the earlier reasoning is worth
+keeping rather than quietly overwriting. The audit recorded above under **"What
+the decorative hues were actually doing: nothing"** stripped five hues from the
+asset categories on the grounds that a car, a wrench, a building, a monitor and
+a tag already tell the five apart, so the colour was a weaker second copy of
+what the icon said. That argument was correct and still is. What it missed is
+that **it answers a question about safety, not a question about whether a page
+is worth looking at.** Company Assets is a private register the owner opens for
+his own reference — nothing on it gets checked against cash in a drawer — and
+it was the one screen in the app that could afford to be pleasant. It was
+instead the greyest thing in it.
+
+**What the old hues actually broke, and what the new ones do differently.** The
+set that was removed spent **sky and violet** — petrol's blue, and the colour
+lubricant wears. That is the rule in `docs/UI_CONVENTIONS.md` → "Two palettes,
+and they never overlap", and it is load-bearing: the owner's father reads the
+fuel colours to know which nozzle he is entering. The restored set touches
+none of them:
+
+| | | |
+|---|---|---|
+| Vehicle | teal | |
+| Machinery | violet | |
+| Property | brand green | the app's own |
+| Electronics | fuchsia | |
+| Other | slate | uncoloured on purpose — "uncategorised" is the one value where the absence of a hue is accurate |
+
+**Red and amber are barred too**, and for a sharper reason than tidiness: every
+card on this page carries a money figure, and an amber tile beside `Rs 132,000`
+reads as a warning about the number rather than as a category. That leaves
+exactly four usable hues and a neutral — a real ceiling, and a sixth category
+should fall to slate rather than reach for a reserved colour.
+
+**Nothing here is knowable by colour alone**, which is what makes the hue
+decoration rather than a cue: every card still carries its own icon *and* its
+written category label. The rule the audit produced — colour a thing only when
+the colour adds meaning its shape does not — governs where colour is
+*required*, not where it is *forbidden*, and reading it as a ban is what
+produced the grey page.
+
+**Two of the four stat rings are now coloured, and two deliberately are not.**
+"Total value" takes brand green (a briefcase says "assets"; the green says "and
+this is money the business holds", which is what green means in every other
+ring in the app), and "Biggest holding" wears its *category's* hue via the
+`ringTone` escape hatch, so the tile and the cards below it agree about what
+Electronics looks like. "Assets recorded" is a count and "Newest addition" is a
+date — nothing for a colour to add, so they keep the neutral fallback rather
+than being tinted to even the row up.
+
+### What rendering it caught
+
+- **The `50` step was too pale for the icon tile.** Built first at `bg-*-50`
+  throughout, the teal and brand-green tiles washed to near-white against a
+  white card — the page still read as grey, so the change had cost the earlier
+  argument without buying the look. The tile is now the `100` and the chip
+  stays the `50`, which is the pairing the neutral `other` already used
+  (`bg-ink-200` tile, `bg-ink-100` chip). Only visible in a screenshot; the DOM
+  was "correct" at both.
+- Checked at 1152px, 1440px and 400px. No new wrapping, no horizontal scroll,
+  money figures still on one line at phone width.
