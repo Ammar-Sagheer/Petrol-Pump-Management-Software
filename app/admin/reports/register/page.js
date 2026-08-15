@@ -1,7 +1,6 @@
 import { Fragment } from 'react';
 
 import Chip from '@mui/material/Chip';
-import Alert from '@mui/material/Alert';
 
 import { requirePageRole, ROLES, todayISO, formatDate, formatPKR } from '@/app/_lib/helpers';
 import { getStockRegister, getRangeSummary } from '@/app/_lib/data-service';
@@ -37,7 +36,20 @@ export const metadata = { title: 'Sale & stock register' };
  * why almost none of it is a Client Component despite that.
  */
 
-/** The whole month is the default: the register's most common question. */
+/**
+ * Day 1 to TODAY in the current month; day 1 to the last day in any other.
+ *
+ * The default used to be the whole month either way, which on the 3rd of
+ * August meant a register headed "01 Aug - 31 Aug" with twenty-eight empty
+ * days hanging off the bottom of it - and a profit figure comparing three
+ * days of sales against whatever deliveries had landed, over a span the
+ * heading said was a month. A register's most common question is "how are we
+ * doing so far", and so far ends today.
+ *
+ * A PAST month still defaults to all of it, because there "so far" and "the
+ * whole month" are the same span, and clamping to today's day-of-month would
+ * cut June short at the 15th for no reason.
+ */
 function resolveRange(params) {
   const today = todayISO();
 
@@ -61,8 +73,13 @@ function resolveRange(params) {
     return n;
   };
 
+  /* `today.slice(8)` is the day-of-month in Asia/Karachi, which is what
+     todayISO() is pinned to - not the server's clock. See date-helpers.js. */
+  const isCurrentMonth = month === today.slice(0, 7);
+  const defaultToDay = isCurrentMonth ? Math.min(Number(today.slice(8, 10)), lastDay) : lastDay;
+
   let fromDay = clamp(params?.from, 1);
-  let toDay = clamp(params?.to, lastDay);
+  let toDay = clamp(params?.to, defaultToDay);
 
   // Entered backwards, they are swapped rather than refused. The reader asked
   // for the days between two numbers and that is unambiguous either way round.
@@ -128,11 +145,6 @@ export default async function RegisterPage({ searchParams }) {
       >
         <RegisterRange month={range.month} fromDay={range.fromDay} toDay={range.toDay} />
       </PageHeader>
-
-      <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-        A preview, for checking the shape of this page. The figures are real - the same readings,
-        deliveries and dips as everywhere else.
-      </Alert>
 
       {/* The range in words, once and loudly. A page whose every figure depends
           on a chosen span must state that span where the eye lands first -

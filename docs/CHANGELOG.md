@@ -3115,3 +3115,77 @@ an element overflows ITSELF, and that is not the question.**
 daily series to hand. Customers, Expenses, Banking, Lubricants, Readings and
 Reports would each need a small trend query before their tiles could carry
 one; the anatomy change reaches them all today, the charts do not.
+
+## Hover readouts, a redesigned Customers page, and the register goes live
+
+Four asks from the owner in one round.
+
+**Sparklines now show the value and date on hover.** `Sparkline.js` became a
+client component to do it, having been written deliberately server-only with a
+comment saying so. That comment was defending the right thing for the wrong
+reason: what mattered was "do not put a charting library in a stat tile", not
+"zero JavaScript". The markup is still server-rendered on first paint, so
+there is no layout shift, and the hover state is all the client adds.
+
+The readout is `fixed` and anchored to the pointer, not placed in the card.
+The sparkline sits hard against the card's right padding and there is no room
+inside for a panel beside it — and this component had just been through a
+round of things escaping their cards. A fixed overlay is outside the layout
+entirely: it cannot widen a card, push a figure, or scroll the page sideways.
+It flips to the pointer's left near the viewport edge.
+
+`tips` are formatted on the SERVER and passed as `{ v, d }` strings. A
+formatter cannot cross the server/client boundary, and re-implementing PKR and
+litre formatting inside the chart is how two parts of one app start
+disagreeing about how a number is written.
+
+### Customers, redesigned
+
+- **"Over their limit" is gone**, as asked. What replaced it asks the same
+  question without depending on a limit being set at all: how many owe
+  anything right now, and the largest single balance. Most accounts have no
+  credit limit on file, so a count of who was over one was a figure about
+  whichever rows happened to have the field filled in.
+- **Icons instead of initials on the avatars**, and they are not all the same
+  one: a customer with a vehicle on file gets the vehicle, one without gets
+  the person. That is a real distinction — fleet accounts and walk-up credit
+  are different kinds of customer — rather than decoration picked from a hat,
+  and it keeps the column from being forty identical circles. **What it costs
+  is worth recording**: the initial was a faster cue than the name for telling
+  two rows apart in a long list, and the deterministic tint is now carrying
+  more of that work alone.
+- **The vehicle moved out of its own column and under the name**, which is one
+  fewer column to fit before the table scrolls sideways, and puts the field
+  the owner scans for when two accounts share a name right beneath it.
+- **The credit limit gained a usage bar.** How close an account is to its
+  ceiling is a proportion, and a length is read faster than a number. Green
+  under, red over, nothing in between — "approaching the limit" is not a state
+  anyone acts on differently, and the word in the badge is what carries
+  "over"; the colour is the second cue.
+
+### The register is production now
+
+- **The preview banner is gone** at the owner's word: _"this is a real page in
+  production now"._
+- **The default range ends TODAY, not on the 31st.** On the 3rd of August the
+  page opened on "01 Aug – 31 Aug" with twenty-eight empty days below it, and
+  a profit figure comparing three days of sales against whatever deliveries
+  had landed, over a span the heading called a month. A past month still
+  defaults to all of it, because there "so far" and "the whole month" are the
+  same span. The day-of-month comes from `todayISO()`, so it is Asia/Karachi's
+  day and not the server's.
+- **The two fuel cards have graphs**, drawn from the per-day rows the card is
+  already handed — no second query, and no way for the line and the total
+  above it to disagree. They wear the **fuel's own colour**, which is the one
+  place on the page allowed to: the card is that fuel's card and already
+  carries its band. `onWhite` (the dark relative), because diesel's `#FDBA74`
+  as a 2px line on white is 1.6:1 and all but invisible.
+- **The four money tiles did NOT get graphs.** Only sales has a daily series;
+  stock bought and expenses have no trend function behind them, and inventing
+  one for a decoration is the wrong order to do that in. Three of four tiles
+  bare and one charted looks like a bug rather than a choice, so all four stay
+  as they are until the queries exist.
+
+**Still open:** `MoneyTile` and `FuelCard` are MUI `Paper` while the rest of
+the app is `.card`. That was justified while the page was a preview. It is not
+a preview any more, so the two systems on one page should be reduced to one.

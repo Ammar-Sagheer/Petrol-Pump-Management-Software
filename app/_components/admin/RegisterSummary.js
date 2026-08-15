@@ -1,8 +1,9 @@
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 
-import { formatNumber, formatPKR } from '@/app/_lib/helpers';
+import { formatNumber, formatPKR, formatDate } from '@/app/_lib/helpers';
 import { fuelColor } from '@/app/_lib/fuel-colors';
+import Sparkline from '@/app/_components/ui/Sparkline';
 
 /**
  * The two cards at the top of the Sale & Stock Register, drawn on Material UI
@@ -56,6 +57,24 @@ export function FuelCard({ fuelType, rows = [] }) {
 
   const tone = tones(variance);
 
+  /*
+   * THE DAILY SHAPE OF WHAT THE HEADLINE TOTALS UP, from the rows this card is
+   * already given - no second query, and no way for the line and the figure
+   * above it to disagree about a day.
+   *
+   * It wears the FUEL'S OWN colour, which is the one place on this page that
+   * is allowed to: the card is this fuel's card and already carries its band,
+   * and docs/UI_CONVENTIONS.md -> "a card that wears a colour owns the
+   * controls inside it" says everything decorative inside takes that colour or
+   * stays neutral. `onWhite` is the dark relative, because diesel's real
+   * #FDBA74 as a 2px line on a white card is 1.6:1 and all but invisible.
+   */
+  const daily = rows.map((row) => Number(row.meter_sales ?? 0));
+  const dailyTips = rows.map((row) => ({
+    v: `${formatNumber(Number(row.meter_sales ?? 0))} L`,
+    d: formatDate(row.day),
+  }));
+
   return (
     <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <div className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wide ${colors.solid}`}>
@@ -72,6 +91,18 @@ export function FuelCard({ fuelType, rows = [] }) {
         <p className="tabular mt-0.5 whitespace-nowrap text-lg font-semibold text-ink-700">
           {formatPKR(value)}
         </p>
+
+        {/* Full width under the figures rather than tucked beside them. This
+            card is half the page wide and its numbers are the largest on it,
+            so there is no width to fight over here - unlike the stat tiles,
+            where the sparkline has to yield to the figure. Two days is the
+            fewest that can show a direction; below that Sparkline draws
+            nothing and this is simply absent. */}
+        {daily.length > 1 ? (
+          <span className={`mt-3 block ${colors.onWhite}`}>
+            <Sparkline data={daily} tips={dailyTips} className="h-10 w-full" width={240} />
+          </span>
+        ) : null}
 
         <hr className="my-3 border-ink-100" />
 

@@ -1160,6 +1160,17 @@ picking one deterministic scheme is that it only needs auditing once.
   cannot shrink (`whitespace-nowrap` on money is not negotiable — a figure
   breaking after the "Rs" reads for a moment as two figures). **Decoration
   must never be the reason a figure cannot be read.**
+- **A sparkline's hover readout is `fixed` and anchored to the pointer.** Not
+  positioned in the card: the line sits hard against the card's right padding,
+  and a tooltip placed in flow there can widen the card, push a figure, or
+  scroll the page sideways. A fixed overlay is outside the layout and can do
+  none of those. Flip it to the pointer's left near the viewport edge.
+- **Anything a client chart displays is formatted on the SERVER and passed as
+  strings.** A formatter cannot cross the server/client boundary, and the
+  alternative — shipping raw numbers and re-implementing PKR or litre
+  formatting inside the chart — is how a tooltip and a table start disagreeing
+  about how a figure is written. The caller knows whether its series is money
+  or litres; it formats, the chart displays.
 - **A sparkline is hand-drawn SVG, not a chart library.** `Sparkline.js` is a
   path with no axes, tooltip or measurement, so it server-renders with no
   JavaScript and no layout shift. Four Recharts instances in a stat row would

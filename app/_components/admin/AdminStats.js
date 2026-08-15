@@ -81,6 +81,9 @@ const ACCENT_COLORS = {
   readings: 'text-violet-600',
   banking: 'text-violet-600',
   date: 'text-violet-600',
+  // The people behind the credit.
+  customers: 'text-violet-600',
+  account: 'text-violet-600',
 };
 
 const ACCENT_FALLBACK = 'text-ink-500';
@@ -129,7 +132,10 @@ const SPARK_FALLBACK = 'text-ink-400';
  * something different in context.
  *
  * `spark` is an optional array of numbers - the same figure over the last N
- * days - drawn as a sparkline to the right of the value. It is DECORATION
+ * days - drawn as a sparkline to the right of the value. `sparkTips` is the
+ * matching array of `{ v, d }` readouts, pre-formatted by the caller (see
+ * Sparkline.js on why the formatting cannot happen in there), which is what
+ * turns the line into something hoverable. It is DECORATION
  * WITH A SHAPE, not a second figure: no axis, no scale, no tooltip, and
  * aria-hidden, so nothing on it can be misread as a quantity. Pass it only
  * where a real series already exists; a tile with none simply has none, and
@@ -151,6 +157,7 @@ export function StatTile({
   icon,
   iconNode,
   spark,
+  sparkTips,
   accentTone,
 }) {
   const valueTone =
@@ -228,7 +235,7 @@ export function StatTile({
           </p>
           {spark ? (
             <span className={`hidden min-w-0 max-w-[72px] flex-1 @[68rem]:block ${sparkClass}`}>
-              <Sparkline data={spark} className="h-[34px] w-full" />
+              <Sparkline data={spark} tips={sparkTips} className="h-[34px] w-full" />
             </span>
           ) : null}
         </div>

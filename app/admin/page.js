@@ -84,6 +84,11 @@ export default async function DashboardPage({ searchParams }) {
         />
       </div>
 
+      {/* `tips` is formatted HERE, on the server, because Sparkline is a
+          client component and a formatter cannot cross that boundary - and
+          because formatPKR/formatLitres are the app's single answer to how a
+          number is written. Re-implementing either inside the chart is how a
+          tooltip and a table start disagreeing about a figure. */}
       {/* The sparklines are the SAME SERIES the charts further down already
           draw, over the same window - `trend` is fetched once and read twice.
           No extra query, and no risk of the little line and the big chart
@@ -98,6 +103,10 @@ export default async function DashboardPage({ searchParams }) {
           spark={trend.map(
             (row) => Number(row.petrol_litres ?? 0) + Number(row.diesel_litres ?? 0),
           )}
+          sparkTips={trend.map((row) => ({
+            v: formatLitres(Number(row.petrol_litres ?? 0) + Number(row.diesel_litres ?? 0)),
+            d: formatDate(row.day),
+          }))}
           sub={
             Number(lubricants.litres ?? 0) > 0
               ? `plus ${formatLitres(lubricants.litres)} of lubricants`
@@ -109,6 +118,10 @@ export default async function DashboardPage({ searchParams }) {
           label="Total sales"
           value={formatPKR(saleAmount)}
           spark={trend.map((row) => Number(row.sale_amount ?? 0))}
+          sparkTips={trend.map((row) => ({
+            v: formatPKR(row.sale_amount),
+            d: formatDate(row.day),
+          }))}
           sub={
             lubricantAmount > 0
               ? `${formatPKR(fuelAmount)} fuel · ${formatPKR(lubricantAmount)} lubricants`
@@ -120,6 +133,10 @@ export default async function DashboardPage({ searchParams }) {
           label="Cash"
           value={formatPKR(cashAmount)}
           spark={trend.map((row) => Number(row.cash_amount ?? 0))}
+          sparkTips={trend.map((row) => ({
+            v: formatPKR(row.cash_amount),
+            d: formatDate(row.day),
+          }))}
           sub={saleAmount > 0 ? `${100 - creditShare}% of takings` : null}
         />
         <StatTile
@@ -127,6 +144,10 @@ export default async function DashboardPage({ searchParams }) {
           label="On credit"
           value={formatPKR(creditAmount)}
           spark={trend.map((row) => Number(row.credit_amount ?? 0))}
+          sparkTips={trend.map((row) => ({
+            v: formatPKR(row.credit_amount),
+            d: formatDate(row.day),
+          }))}
           sub={saleAmount > 0 ? `${creditShare}% of takings` : null}
           tone={creditShare > 50 ? 'negative' : 'default'}
         />
