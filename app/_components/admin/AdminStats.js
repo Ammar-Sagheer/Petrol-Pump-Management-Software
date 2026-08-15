@@ -230,7 +230,12 @@ export function StatTile({
     return (
       <div className="card flex flex-col gap-2 px-4 py-4 @[62rem]:px-5 @[62rem]:py-5">
         <div className={`flex items-center gap-2 ${accentClass}`}>
-          {iconNode ?? (icon ? <Icon name={icon} className="h-4 w-4 shrink-0" /> : null)}
+          {/* 20px, not 16. At 16 it read as a bullet point rather than a
+              picture of the thing - the owner's word was "too small" - and it
+              was undersized against a 12px uppercase label to begin with. This
+              is the shared tile, so the size lands on every page that has a
+              stat row. */}
+          {iconNode ?? (icon ? <Icon name={icon} className="h-5 w-5 shrink-0" /> : null)}
           <p className="figure-label">{label}</p>
         </div>
 

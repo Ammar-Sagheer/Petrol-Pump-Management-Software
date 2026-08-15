@@ -47,16 +47,28 @@ function hashOf(seed) {
 }
 
 /**
- * "John Doe" -> JD. "Bilal Sons Goods Carrier" -> BC: FIRST word and LAST
- * word, not the first two, because a trading name's last word is the part
- * that distinguishes it ("Bilal Sons Goods Carrier" vs "Bilal Sons Filling
- * Station"). A single word gives its first two letters, so "Zubair" is ZU
- * rather than a lonely Z with a gap beside it.
+ * THE FIRST TWO WORDS. "Abdul Ghaffar 13 Solang 561" -> AG.
  *
- * `toUpperCase` on the whole thing, and Urdu or Arabic names simply return
- * their own characters - there is no transliteration here and there should
- * not be. A name with no letters at all falls back to "?" rather than an
- * empty circle, which would read as a broken image.
+ * This was first-word-and-LAST-word, on the reasoning that a trading name's
+ * last word is what distinguishes it ("Bilal Sons Goods Carrier" vs "Bilal
+ * Sons Filling Station"). That reasoning is fine and it was wrong here,
+ * because it was never checked against this pump's actual customer list -
+ * where names carry a ledger number on the end. "Abdul Ghaffar 13 Solang 561"
+ * came out as "A5", "Al Jadeed poultry Farm Khizer 748" as "A7", and a column
+ * of A5/A4/A7/A6 is worse than no bubble at all: it looks like a code the
+ * reader is supposed to recognise.
+ *
+ * The first two words are the person. Everything after them is filing.
+ *
+ * WORDS THAT START WITH A DIGIT ARE SKIPPED for the same reason - "Akram 447
+ * Saudi" should be AS, not A4. If nothing but digits remains there is nothing
+ * better to show, so the digits stand.
+ *
+ * A single usable word gives its first two letters, so "Zubair" is ZU rather
+ * than a lonely Z with a gap beside it. `toUpperCase` throughout; Urdu and
+ * Arabic names return their own characters, since there is no transliteration
+ * here and there should not be. A name with no letters at all falls back to
+ * "?" rather than an empty circle, which reads as a broken image.
  */
 export function customerInitials(name) {
   const words = String(name ?? '')
@@ -65,8 +77,12 @@ export function customerInitials(name) {
     .filter(Boolean);
 
   if (words.length === 0) return '?';
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+
+  const wordy = words.filter((word) => !/^\d/.test(word));
+  const usable = wordy.length > 0 ? wordy : words;
+
+  if (usable.length === 1) return usable[0].slice(0, 2).toUpperCase();
+  return (usable[0][0] + usable[1][0]).toUpperCase();
 }
 
 /** Kept for anything still asking for a single letter. */

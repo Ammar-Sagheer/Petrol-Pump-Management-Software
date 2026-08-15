@@ -3340,3 +3340,39 @@ than being tinted to even the row up.
   was "correct" at both.
 - Checked at 1152px, 1440px and 400px. No new wrapping, no horizontal scroll,
   money figures still on one line at phone width.
+
+## Bigger tile icons, and initials that survive the real customer list
+
+**The stat-tile icon went from 16px to 20px** — _"they are too small"_. It was
+undersized against its own 12px uppercase label to begin with and read as a
+bullet point rather than a picture of the thing. It is the shared tile, so the
+size lands on every page with a stat row.
+
+**The asset-category colours were cherry-picked onto this branch.** They were
+built on `claude/icon-colors-ws7dln` and the owner was looking at a build
+without them; the two branches now agree.
+
+### The initials were wrong, and only the real data showed it
+
+`customerInitials` took the first word and the LAST word, reasoning that a
+trading name's last word is what distinguishes it — "Bilal Sons Goods Carrier"
+vs "Bilal Sons Filling Station". Sound reasoning, never checked against this
+pump's actual customer list, where names carry a **ledger number** on the end:
+
+| Name | Was | Now |
+|---|---|---|
+| Abdul Ghaffar 13 Solang 561 | A5 | AG |
+| Akram Saudi Arab 447 | A4 | AS |
+| Al Jadeed poultry Farm Khizer 748 | A7 | AJ |
+| Al-Mustafa Dera Bakha 605 | A6 | AD |
+
+A column of A5 / A4 / A7 / A6 is worse than no bubble at all — it reads as a
+code the reader is meant to recognise. It is now the **first two words**, and
+words beginning with a digit are skipped, so "Akram 447 Saudi" gives AS rather
+than A4.
+
+**The lesson is not about initials.** The fixture names used to build this
+were "John Doe" and "Bilal Sons Goods Carrier", and both worked perfectly. The
+real list is names plus filing numbers, and no amount of care over the
+algorithm would have found that — only running it over the actual names did.
+When a helper derives something FROM USER DATA, test it on the user's data.
