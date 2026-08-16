@@ -3797,3 +3797,27 @@ so the reader taps twice and wonders why.
 `hover:text-red-700` rather than a red default: leaving is not destructive, so
 the button should not sit there coloured like it is. The red is a response to
 being aimed at.
+
+## The oil chart wears lubricant's colour
+
+Packed was brand green and loose was violet — two hues borrowed from the
+chrome to separate two halves of **one product**. On a chart headed "Oil
+sales" that is backwards: the reader's first question is which bars are oil,
+and neither colour answered it. Gold does, and it is what lubricant already
+wears on its badge and its stat-tile glyph.
+
+**The pair is separated by LIGHTNESS, not hue** — `#977B20` (lubricant's dark
+relative) for packed, `#D4AF37` (its vivid one) for loose, both already in
+`fuel-colors.js` and now imported rather than retyped, so the chart cannot
+drift out of step with the badge.
+
+Two reasons that is the right axis here. A second hue would be another colour
+decision inside a product that owns one. And a lightness step survives
+red-green colour blindness, where two hues of similar value do not — stacked
+in the same bar, a light block over a dark one reads as two parts of a whole,
+which is exactly what packed and loose are. The legend still names both, so
+the colour is never carrying it alone.
+
+Violet remains spent in one place only: `CashCreditChart`, where it separates
+credit from cash and was chosen with a palette validator (green/violet
+separates for red-green colour blindness where green/amber does not).
