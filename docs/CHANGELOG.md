@@ -3451,3 +3451,69 @@ yet. Each tile now says which: "No readings entered for this day", "Nothing
 sold on this day", "Nothing taken in cash", "Nothing sold on credit". There is
 also a middle case worth naming — fuel sold but no oil — which now says "fuel
 only — no oil sold" instead of falling back to the blank.
+
+## Daily readings, redesigned — nozzles as cards, and the tank's own colour
+
+_"it is the worst looking page on my website"_, with three specifics: keep the
+fuel colours the Stock page uses, stop the nozzles being "a horizontal
+container shiz", and make it obvious at a glance where each fuel's nozzles
+are.
+
+**Read the history first, as CLAUDE.md requires**, because this page has had
+three designs reverted. Nothing reverted came back: entry is still a dialog
+per nozzle (inline editing was built and reverted — _"model window was
+better"_ — and the reason still holds: the dialog's value is one nozzle on
+screen and nothing else to type into by mistake), the unit is still the card,
+the day banner and the cash-up bar are untouched.
+
+### The nozzles are cards, two across, not two full-width bands
+
+A dispenser has two nozzles side by side; the page had them as two identical
+strips running the whole width of the screen. A card each is closer to the
+physical thing and much less page to scroll — three units now occupy roughly
+what two did. `@container` rather than `sm:`, since this grid sits inside a
+card inside a 240px sidebar layout, and `items-stretch` so an un-entered
+nozzle stands the same height as its entered sibling.
+
+The figures went from four columns across a full-width row to **two by two**,
+which also puts the pair that has to agree — total sale, and cash plus credit
+beneath it — directly above one another. The chevron went: on a full-width row
+it was the only thing saying "this opens", but a card is obviously its own
+target and the chip already carries the word.
+
+### The unit band is now the Stock page's tank colour
+
+`solid`, at the owner's request, so a pump and the tank it draws from are
+unmistakably the same colour across the two screens. That gives up the
+lightness channel the header used to carry (`soft` while unfinished, `strong`
+when done). Acceptable: "finished" is still said by the check icon, the "2 of
+2 entered" chip, and the absence of the progress bar — which the earlier note
+on that bar had already observed was saying it three times over.
+
+`solid` is dark-with-white-text for petrol and light-with-dark-text for diesel,
+so everything sitting on the band needs to work on both. One pair of classes
+does it: a `bg-white/25` wash with a hairline `ring-black/10`, and
+`currentColor` for text and icons so they follow whichever the band brought.
+
+### Which fuel, said loudest
+
+Each nozzle card carries a **fuel-coloured pump glyph** — drawn, not a
+photograph. It takes its hue from `fuel-colors.js`, so it cannot drift out of
+step with the badge beside it or the band above it the way an image file
+would; it stays sharp on the tablet; it adds nothing to download. `soft` is
+the pale-tint-with-dark-text pair, which is legible for both fuels where
+`solid` would put dark on dark for petrol.
+
+It is the third statement of the fuel, never the only one: the badge says the
+word, the card carries the fuel down its left edge, and the unit band names it
+above.
+
+### What rendering it caught
+
+At 400px the icon, badge and chip took the row between them and the nozzle
+name clipped to **"Noz…"** — the one word identifying which nozzle you are
+about to type into, on the screen built entirely around not typing into the
+wrong one. Letting it wrap instead stacked "Nozzle" over "A", which is not
+hidden but is not a name read at a glance either. `whitespace-nowrap` on the
+name plus `flex-wrap` on the row sets the priority properly: the name cannot
+break, so the **chip** drops to a second line when the four things do not fit.

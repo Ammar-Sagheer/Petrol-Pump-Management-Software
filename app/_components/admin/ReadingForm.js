@@ -166,28 +166,72 @@ export default function ReadingForm({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`block w-full border-l-8 px-4 py-3.5 text-left transition
+        className={`flex h-full w-full flex-col rounded-xl border-l-4 border-t border-r border-b text-left transition
                    focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600
                    ${color.border}
-                   ${isSaved ? 'bg-brand-50/40 hover:bg-brand-50' : 'bg-white hover:bg-ink-50'}`}
+                   ${
+                     isSaved
+                       ? 'border-y-brand-200 border-r-brand-200 bg-brand-50/40 hover:bg-brand-50'
+                       : 'border-y-ink-200 border-r-ink-200 bg-white hover:border-y-ink-300 hover:border-r-ink-300 hover:bg-ink-50'
+                   }`}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <span className="text-lg font-bold text-ink-900">{rowTitle}</span>
-            <FuelBadge fuelType={row.fuel_type} />
-            {hasChainProblem ? (
-              <span className="badge bg-red-100 text-red-800">
-                <Icon name="warning" className="h-4 w-4" />
-                Check
-              </span>
-            ) : null}
-          </div>
+        {/* WRAPS RATHER THAN TRUNCATES. Built without this, at 400px the icon,
+            the badge and the Enter chip took the row between them and the name
+            was clipped to "Noz..." - the one word on the card identifying WHICH
+            nozzle you are about to type into, on the screen where typing into
+            the wrong one is the mistake everything else here is arranged to
+            prevent.
+
+            `whitespace-nowrap` on the name and `flex-wrap` on the row together
+            set the priority: the name cannot be shortened or broken, so when
+            the four things do not fit it is the CHIP that drops to a second
+            line. Without the nowrap the name simply wrapped instead, and
+            "Nozzle A" came out stacked as "Nozzle" over "A", which is not
+            hidden but is not a name anyone reads at a glance either. */}
+        <div className="flex w-full flex-wrap items-center gap-x-2.5 gap-y-2 px-3.5 pb-2 pt-3">
+          {/*
+           * WHICH FUEL, SAID A THIRD TIME AND SAID LOUDEST. The owner's brief
+           * was that it must be obvious at a glance where each fuel's nozzles
+           * are, and a word on a badge is not a glance.
+           *
+           * A drawn pump rather than a photograph: it takes the fuel's own hue
+           * from `fuel-colors.js`, so it cannot drift out of step with the
+           * badge beside it or the unit band above it the way an image file
+           * would, it stays sharp on the tablet's screen, and it adds nothing
+           * to download. `soft` is the pale-tint-with-dark-text pair, which is
+           * legible for BOTH fuels - `solid` would put dark-on-dark for petrol
+           * here.
+           *
+           * It is never the only cue: the badge still says the word, the card
+           * still carries the fuel's colour down its left edge, and the unit
+           * header above names the fuel too. Somebody who cannot separate the
+           * blue from the orange loses nothing.
+           */}
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${color.soft}`}
+            aria-hidden="true"
+          >
+            <Icon name="fuelPump" className="h-6 w-6" />
+          </span>
+          <span className="flex-1 whitespace-nowrap text-base font-bold text-ink-900">{rowTitle}</span>
+          <FuelBadge fuelType={row.fuel_type} />
+          {hasChainProblem ? (
+            <span className="badge bg-red-100 text-red-800">
+              <Icon name="warning" className="h-4 w-4" />
+              Check
+            </span>
+          ) : null}
 
           {/* Green for done, NEUTRAL for still-to-do. This chip was amber
-              until diesel became orange; a pale amber chip sitting beside an
-              orange fuel badge on the same row is two warm colours competing
-              to be noticed, and the fuel has to win that. Slate says "not
-              yet" without claiming any of the colour the fuels now own. */}
+              until diesel became orange; a pale amber chip beside an orange
+              fuel badge on the same row is two warm colours competing to be
+              noticed, and the fuel has to win that. Slate says "not yet"
+              without claiming any of the colour the fuels now own.
+
+              The chevron that used to sit after it is gone. On a full-width
+              row it pointed at the far edge and was the only thing saying
+              "this opens"; on a card the whole tile is obviously the target,
+              and the chip already carries the word. */}
           <span
             className={`badge shrink-0 ${
               isSaved ? 'bg-brand-100 text-brand-800' : 'bg-ink-200 text-ink-800'
@@ -196,42 +240,48 @@ export default function ReadingForm({
             <Icon name={isSaved ? 'check' : 'pencil'} className="h-4 w-4" />
             {isSaved ? 'Entered' : 'Enter'}
           </span>
-          <Icon name="chevronRight" className="h-5 w-5 shrink-0 text-ink-500" />
         </div>
 
         {/* Every number gets its own label. The old single line read
             "100 L · Rs 30,000 · cash Rs 30,000", which needs someone to
-            already know which figure is which - and left most of the row
-            empty. Spread across the width, each one says what it is. */}
-        {isSaved ? (
-          <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
-            <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
-            <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
-            <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
-            <RowFigure
-              label="On credit"
-              value={Number(row.credit_amount) > 0 ? showMoney(row.credit_amount) : '—'}
-              tone={Number(row.credit_amount) > 0 ? 'credit' : 'muted'}
-            />
-          </dl>
-        ) : (
-          <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
-            <RowFigure label="Meter starts at" value={meterFormat.format(openingUsed)} strong />
-            {/* "/ litre" lives in the caption, not in the figure. At the
-                readable type size "Rs 336.34 / litre" no longer fits the
-                half-width column a phone gives this, and it was truncating to
-                "Rs 336.34 / lit..." - hiding part of a number to make room for
-                a unit that never changes. */}
-            <RowFigure
-              label="Rate a litre"
-              value={row.rate ? formatRate(row.rate) : 'Not set'}
-              tone={row.rate ? undefined : 'warn'}
-            />
-            <div className="col-span-2 self-center text-sm font-medium text-ink-600 sm:col-span-2">
-              Tap to enter the closing meter reading.
-            </div>
-          </dl>
-        )}
+            already know which figure is which.
+
+            TWO COLUMNS, ALWAYS - not four across a full-width row. The nozzle
+            is a card about a third of the page wide now, so four columns would
+            give each figure ~60px and break "Rs 235,653" across two lines. Two
+            by two also puts the pair that must agree - total sale, and the cash
+            plus credit under it - directly above one another. */}
+        <dl className="grid w-full grid-cols-2 gap-x-3 gap-y-2.5 border-t border-ink-200/70 px-3.5 pb-3 pt-2.5">
+          {isSaved ? (
+            <>
+              <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />
+              <RowFigure label="Total sale" value={showMoney(row.sale_amount)} strong />
+              <RowFigure label="Cash in hand" value={showMoney(row.cash_amount)} />
+              <RowFigure
+                label="On credit"
+                value={Number(row.credit_amount) > 0 ? showMoney(row.credit_amount) : '—'}
+                tone={Number(row.credit_amount) > 0 ? 'credit' : 'muted'}
+              />
+            </>
+          ) : (
+            <>
+              <RowFigure label="Meter starts at" value={meterFormat.format(openingUsed)} strong />
+              {/* "/ litre" lives in the caption, not in the figure. At the
+                  readable type size "Rs 336.34 / litre" no longer fits the
+                  half-width column this gives it, and it was truncating to
+                  "Rs 336.34 / lit..." - hiding part of a number to make room
+                  for a unit that never changes. */}
+              <RowFigure
+                label="Rate a litre"
+                value={row.rate ? formatRate(row.rate) : 'Not set'}
+                tone={row.rate ? undefined : 'warn'}
+              />
+              <div className="col-span-2 text-sm font-medium text-ink-600">
+                Tap to enter the closing meter reading.
+              </div>
+            </>
+          )}
+        </dl>
       </button>
 
       <Dialog
@@ -345,7 +395,7 @@ function SavedReading({ row, date, creditSales, canDelete }) {
       {canDelete ? (
         <form action={formAction} className="pt-1">
           <input type="hidden" name="reading_id" value={row.reading_id} />
-          <SubmitButton variant="danger" fullWidth className="text-xs"  pendingLabel="Deleting…">
+          <SubmitButton variant="danger" fullWidth className="text-xs" pendingLabel="Deleting…">
             Delete this reading
           </SubmitButton>
         </form>
@@ -695,7 +745,7 @@ function EntryForm({ row, date, customers }) {
 
       <FormMessage state={state} />
 
-      <SubmitButton fullWidth  disabled={!canSubmit}>
+      <SubmitButton fullWidth disabled={!canSubmit}>
         Save nozzle
       </SubmitButton>
     </form>

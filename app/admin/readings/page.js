@@ -198,10 +198,19 @@ export default async function ReadingsPage({ searchParams }) {
           const percent = Math.round((entered / unit.rows.length) * 100);
 
           /*
-           * THE HEADER WEARS THE UNIT'S FUEL, quietly until the pump is
-           * finished and then filled. Hue says which fuel, lightness says
-           * whether there is anything left to do - two questions, two cues,
-           * neither borrowing the other's channel.
+           * THE HEADER WEARS THE UNIT'S FUEL IN THE SAME BAND THE STOCK PAGE
+           * PUTS ON ITS TANKS - `solid`, at the owner's request, so a pump and
+           * the tank it draws from are unmistakably the same colour when you
+           * move between the two screens.
+           *
+           * That gives up the lightness channel this header used to carry.
+           * Before, hue said which fuel and lightness said whether there was
+           * work left (`soft` while unfinished, `strong` when done). Now the
+           * band is the fuel's one canonical colour in both states, and
+           * "finished" is carried by the check icon, the "2 of 2 entered"
+           * chip, and the absence of the progress bar - which the note below
+           * already observed was saying it three times over. Nothing is lost
+           * except a fourth statement of the same fact.
            *
            * A unit is normally plumbed to one tank, so its nozzles share a
            * fuel. The schema does not require that, though, and a unit
@@ -211,7 +220,7 @@ export default async function ReadingsPage({ searchParams }) {
            */
           const fuels = new Set(unit.rows.map((row) => row.fuel_type));
           const unitColor = fuels.size === 1 ? fuelColor([...fuels][0]) : NEUTRAL_FUEL;
-          const headerClass = allDone ? unitColor.strong : unitColor.soft;
+          const headerClass = unitColor.solid;
 
           return (
             <section
@@ -228,10 +237,15 @@ export default async function ReadingsPage({ searchParams }) {
               <div
                 className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${headerClass}`}
               >
+                {/* ONE SET OF CLASSES FOR BOTH BANDS. `solid` is dark-with-
+                    white-text for petrol and light-with-dark-text for diesel,
+                    so anything sitting on it has to work on both. A white wash
+                    plus a hairline ring does: on the dark band the wash reads
+                    as a lighter chip, on the light one the ring is what gives
+                    it an edge. Text and icon are `currentColor` throughout, so
+                    they follow whichever the band brought with it. */}
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                    allDone ? 'bg-white/20' : 'bg-white/70'
-                  }`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 ring-1 ring-inset ring-black/10"
                   aria-hidden="true"
                 >
                   <Icon name={allDone ? 'check' : 'readings'} className="h-5 w-5" />
@@ -245,7 +259,7 @@ export default async function ReadingsPage({ searchParams }) {
                     skipped without reading both of its rows. The bar says the
                     same thing as the words beside it - it is the glanceable
                     half of the pair, not the only carrier. */}
-                <span className={`badge ${allDone ? 'bg-white/20' : 'bg-white/70'}`}>
+                <span className="badge bg-white/25 ring-1 ring-inset ring-black/10">
                   {entered} of {unit.rows.length} entered
                 </span>
 
@@ -261,7 +275,7 @@ export default async function ReadingsPage({ searchParams }) {
                 {allDone ? null : (
                   <div className="ml-auto min-w-[6rem] flex-1 sm:max-w-[10rem]">
                     <div
-                      className="h-1.5 overflow-hidden rounded-full bg-white/70"
+                      className="h-1.5 overflow-hidden rounded-full bg-white/40 ring-1 ring-inset ring-black/10"
                       role="img"
                       aria-label={`Unit ${unit.unitNumber} is ${percent} percent entered`}
                     >
@@ -274,18 +288,35 @@ export default async function ReadingsPage({ searchParams }) {
                 )}
               </div>
 
-              <div className="divide-y divide-ink-100 border-t border-ink-200">
-                {unit.rows.map((row) => (
-                  <ReadingForm
-                    key={row.nozzle_id}
-                    row={row}
-                    date={date}
-                    customers={customers}
-                    creditSales={creditSalesByReading[row.reading_id] ?? []}
-                    canDelete={profile.role === ROLES.SUPER_ADMIN}
-                    showUnit={false}
-                  />
-                ))}
+              {/*
+               * TWO NOZZLE CARDS SIDE BY SIDE, not two full-width strips - the
+               * owner's words were "not a horizontal container shiz", and the
+               * shape was wrong for what a unit is. A dispenser has two nozzles
+               * hanging off it, side by side, and the page had them stacked as
+               * two identical bands running the whole width of the screen. A
+               * card each is both closer to the physical thing and far less
+               * page to scroll: three units now occupy about what two did.
+               *
+               * `@container`, not `sm:` - this grid sits inside a card that is
+               * itself inside a 240px sidebar layout, so the window's width is
+               * not the width this has to work in. `items-stretch` so a nozzle
+               * still to enter stands the same height as its entered sibling
+               * and the pair reads as one unit rather than two loose tiles.
+               */}
+              <div className="@container border-t border-ink-200 bg-ink-50/50 p-3">
+                <div className="grid grid-cols-1 items-stretch gap-3 @[34rem]:grid-cols-2">
+                  {unit.rows.map((row) => (
+                    <ReadingForm
+                      key={row.nozzle_id}
+                      row={row}
+                      date={date}
+                      customers={customers}
+                      creditSales={creditSalesByReading[row.reading_id] ?? []}
+                      canDelete={profile.role === ROLES.SUPER_ADMIN}
+                      showUnit={false}
+                    />
+                  ))}
+                </div>
               </div>
             </section>
           );
