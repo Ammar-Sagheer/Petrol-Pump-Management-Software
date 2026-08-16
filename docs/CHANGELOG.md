@@ -3852,3 +3852,29 @@ Verified by counting rendered sparklines at 1120px, 900px, 560px and 400px —
 twelve at every width, where the narrow ones previously rendered none — and by
 looking at each, because a count of twelve would also be satisfied by twelve
 charts squashed into unreadable slivers.
+
+## The credit slip panel shows credit only
+
+The entry dialog put Cash beside Credit, and while slips were being typed the
+cash figure went **negative**: no closing reading has been entered yet, so the
+nozzle has sold Rs 0, and Rs 0 minus a Rs 1,541 slip is −Rs 1,541.
+Arithmetically right; on screen, "CASH −Rs 1,541" next to "CREDIT Rs 1,541"
+reads as an error the reader has just caused. Reported as confusing, and it
+was — cash going down when credit is taken is the one thing about this screen
+nobody needs telling.
+
+**Cash is gone from the panel and nothing else moved.** The dark panel above
+states what the nozzle sold, this states what went on credit, and cash is the
+subtraction of the two — which the reader is doing against the notes in the
+drawer regardless.
+
+**The guard underneath stays.** `creditExceedsSale` still fires when the slips
+genuinely come to more than the nozzle sold, and that is the real case the
+negative number was accidentally covering: it now gets stated in words instead
+of being left to infer from a minus sign. The credit figure itself turns red in
+that state, so the warning and the figure it is about are connected.
+
+The help line changed with it — "Cash is worked out for you" described a figure
+that is no longer there. It now reads "Whatever is not on credit is cash. Check
+the notes in the drawer before saving," which keeps the instruction that
+mattered.

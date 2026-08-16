@@ -755,22 +755,35 @@ function EntryForm({ row, date, customers }) {
       </div>
 
       {/* ---- the split ---- */}
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-ink-200 p-3">
-        <div>
-          <p className="figure-label">Cash</p>
-          <p
-            className={[
-              'tabular mt-0.5 text-lg font-bold',
-              creditExceedsSale ? 'text-red-700' : 'text-ink-900',
-            ].join(' ')}
-          >
-            {showMoney(cashAmount)}
-          </p>
-        </div>
-        <div>
-          <p className="figure-label">Credit</p>
-          <p className="tabular mt-0.5 text-lg font-bold text-ink-900">{showMoney(creditTotal)}</p>
-        </div>
+      {/*
+       * CREDIT ONLY. The cash figure sat beside it and went NEGATIVE while the
+       * slips were being typed - a closing reading has not been entered yet, so
+       * the nozzle has sold Rs 0, and Rs 0 minus a Rs 1,541 slip is -Rs 1,541.
+       * Arithmetically right and, on screen, "CASH -Rs 1,541" next to "CREDIT
+       * Rs 1,541" reads as an error the reader has caused. The owner's word was
+       * "confusing", and it is: cash going down when credit is taken is the one
+       * thing about this screen nobody needs telling.
+       *
+       * Removing it loses nothing that is not already here. The dark panel
+       * above states what the nozzle SOLD, this states what went on credit, and
+       * cash is the subtraction of the two - which the reader is doing against
+       * the notes in the drawer anyway.
+       *
+       * WHAT IS NOT REMOVED is the guard underneath. `creditExceedsSale` still
+       * fires when the slips genuinely come to more than the nozzle sold, and
+       * that is the case the negative number was accidentally covering. It is
+       * now stated in words instead of left to be inferred from a minus sign.
+       */}
+      <div className="rounded-lg border border-ink-200 p-3">
+        <p className="figure-label">On credit</p>
+        <p
+          className={[
+            'tabular mt-0.5 text-lg font-bold',
+            creditExceedsSale ? 'text-red-700' : 'text-ink-900',
+          ].join(' ')}
+        >
+          {showMoney(creditTotal)}
+        </p>
       </div>
 
       {creditExceedsSale ? (
@@ -779,7 +792,7 @@ function EntryForm({ row, date, customers }) {
         </p>
       ) : (
         <p className="text-sm text-ink-600">
-          Cash is worked out for you. Check it against the notes in the drawer before saving.
+          Whatever is not on credit is cash. Check the notes in the drawer before saving.
         </p>
       )}
 
