@@ -173,6 +173,12 @@ export const FUEL_COLORS = {
     /** A chosen option inside a form on this fuel's card. */
     selected: 'border-[#977B20] bg-[#D4AF37]/20 text-[#655216]',
     onWhite: 'text-[#655216]',
+    /** The same darkest gold as `onWhite`, as a bare hex for a chart fill.
+        Charts take colours, not classes, and a chart that retypes a hex is a
+        chart that drifts out of step with the badge. Used by
+        LubricantTrendChart to put packed oil as far from loose as the family
+        allows while both stay unmistakably gold. */
+    deepHex: '#655216',
     hex: '#977B20',
     raw: '#D4AF37',
   },

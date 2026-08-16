@@ -47,8 +47,12 @@ import { fuelColor } from '@/app/_lib/fuel-colors';
  * oil, and neither colour answered it. Gold does, and it is the colour
  * lubricant already wears on its badge and its stat-tile glyph.
  *
- * THE PAIR IS SEPARATED BY LIGHTNESS, NOT HUE - `#977B20` is lubricant's dark
- * relative and `#D4AF37` its vivid one, both already in fuel-colors.js. That
+ * THE PAIR IS SEPARATED BY LIGHTNESS, NOT HUE, and it is separated as far as
+ * the family allows: `#655216` is lubricant's DARKEST gold (the one its text
+ * on white uses) against `#D4AF37`, its vivid one. The first pass used the
+ * middle `#977B20` and the two blocks sat too close to tell apart in a
+ * stacked bar; this is the widest lightness gap available without leaving the
+ * hue. Both are in fuel-colors.js. That
  * is deliberate: two hues would have been a second colour decision inside a
  * product that owns one, and a lightness step survives red-green colour
  * blindness where two hues of similar value do not. Stacked one on top of the
@@ -58,7 +62,7 @@ import { fuelColor } from '@/app/_lib/fuel-colors';
  * The legend still names both, so the colour is never carrying it alone.
  */
 const LUBRICANT = fuelColor('lubricant');
-const PACK_COLOR = LUBRICANT.hex;
+const PACK_COLOR = LUBRICANT.deepHex;
 const LOOSE_COLOR = LUBRICANT.raw;
 const SURFACE = '#ffffff';
 

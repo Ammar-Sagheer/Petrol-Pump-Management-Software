@@ -3806,10 +3806,16 @@ sales" that is backwards: the reader's first question is which bars are oil,
 and neither colour answered it. Gold does, and it is what lubricant already
 wears on its badge and its stat-tile glyph.
 
-**The pair is separated by LIGHTNESS, not hue** — `#977B20` (lubricant's dark
-relative) for packed, `#D4AF37` (its vivid one) for loose, both already in
-`fuel-colors.js` and now imported rather than retyped, so the chart cannot
-drift out of step with the badge.
+**The pair is separated by LIGHTNESS, not hue** — and as far apart as the
+family allows: `#655216`, lubricant's darkest gold (the one its text on white
+uses), against `#D4AF37`, its vivid one. Both come from `fuel-colors.js` and
+are imported rather than retyped, so the chart cannot drift out of step with
+the badge.
+
+The first pass used the middle `#977B20` for packed and the two blocks sat too
+close to separate in a stacked bar. `deepHex` was added to lubricant for this:
+charts take colours, not classes, and `onWhite` only existed as a Tailwind
+class — a chart that retypes the hex is a chart that drifts.
 
 Two reasons that is the right axis here. A second hue would be another colour
 decision inside a product that owns one. And a lightness step survives
