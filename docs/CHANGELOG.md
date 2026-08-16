@@ -3769,3 +3769,31 @@ litres empty rather than producing a value.
 The placeholders moved with the boxes. Swapping two identical-looking number
 inputs without swapping their labels is exactly how a rupee figure ends up in
 the litres column.
+
+## Modals: the background blurs, and the way out looks like a button
+
+**The backdrop went from `ink-900/50` to `ink-900/60` plus `backdrop-blur-sm`.**
+A flat wash darkens the page behind but leaves every edge on it sharp, so the
+eye keeps finding the cards underneath; blurring destroys the detail the eye
+was catching on, and the dialog reads as the only thing in focus. Applied
+**wherever a modal appears** — the shared `Dialog` (which `ConfirmAction` and
+every entry dialog already route through) and `AdminSidebar`'s mobile nav
+drawer, which owns its own `<dialog>` and would otherwise have been the one
+that still looked flat.
+
+**The close button is a real control now.** It was a bare `✕` glyph in
+`ink-500` with no edge until hover, which on a white header reads as
+decoration — and this dialog is the only way out of the entry task, so the way
+out has to look like one. It is a bordered circle with a drawn stroke rather
+than a text glyph, so it renders identically whatever font is loaded.
+
+**And it is a TARGET.** 44×44, measured rather than eyeballed, which clears the
+tap-target floor the app holds everywhere else; the old one was about 28px. On
+a tablet held one-handed at the pump that is a miss waiting to happen — and a
+miss here lands on the backdrop, which deliberately does nothing (dialogs
+holding a form do not close on click-outside; see "No click-outside-to-close"),
+so the reader taps twice and wonders why.
+
+`hover:text-red-700` rather than a red default: leaving is not destructive, so
+the button should not sit there coloured like it is. The red is a response to
+being aimed at.

@@ -306,7 +306,7 @@ export default function AdminSidebar({ profile }) {
           if (event.target === drawerRef.current) drawerRef.current.close();
         }}
         className="m-0 mr-auto h-dvh max-h-none w-[19rem] max-w-none bg-transparent p-0
-                   backdrop:bg-ink-900/50 lg:hidden"
+                   backdrop:bg-ink-900/60 backdrop:backdrop-blur-sm lg:hidden"
       >
         <div className="flex h-full flex-col bg-white">
           {/* The close button is taken out of the flow rather than sitting
