@@ -198,10 +198,18 @@ export default async function ReadingsPage({ searchParams }) {
           const percent = Math.round((entered / unit.rows.length) * 100);
 
           /*
-           * THE HEADER WEARS THE UNIT'S FUEL IN THE SAME BAND THE STOCK PAGE
-           * PUTS ON ITS TANKS - `solid`, at the owner's request, so a pump and
-           * the tank it draws from are unmistakably the same colour when you
-           * move between the two screens.
+           * THE HEADER WEARS THE UNIT'S FUEL IN THE SAME COLOUR THE STOCK PAGE
+           * PUTS ON ITS TANKS, at the owner's request, so a pump and the tank
+           * it draws from are unmistakably the same colour when you move
+           * between the two screens.
+           *
+           * `band` rather than `solid`: the same colour with a shallow
+           * left-to-right gradient, both stops drawn from hues this fuel
+           * already owns. One step of lightness and no change of hue, because
+           * the band's job is still to be read as "diesel" at a glance from
+           * across the office - a gradient wide enough to be admired is one
+           * wide enough to make the far end a different colour from the badge
+           * beside it.
            *
            * That gives up the lightness channel this header used to carry.
            * Before, hue said which fuel and lightness said whether there was
@@ -220,7 +228,7 @@ export default async function ReadingsPage({ searchParams }) {
            */
           const fuels = new Set(unit.rows.map((row) => row.fuel_type));
           const unitColor = fuels.size === 1 ? fuelColor([...fuels][0]) : NEUTRAL_FUEL;
-          const headerClass = unitColor.solid;
+          const headerClass = unitColor.band;
 
           return (
             <section

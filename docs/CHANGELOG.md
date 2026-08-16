@@ -3547,3 +3547,24 @@ Two things had to move with it, both because the card is no longer white:
   the fuel's tint. Tinted-on-tinted is nothing — orange-100 on orange-100
   disappears. The divider inside the card became `border-black/10` for the
   same reason: a fixed slate hairline goes muddy over orange.
+
+## The unit header band gets a shallow gradient
+
+A `band` token in `fuel-colors.js`: the same colour as `solid`, given a
+left-to-right gradient so the strip has some depth without becoming a second
+hue.
+
+**Both stops are colours the fuel already owns**, taken from the tokens listed
+above them in the same file — petrol `#075985 → #0369A1`, diesel
+`#FDBA74 → #FB923C`. That is the constraint that keeps this safe: the band
+cannot drift away from the badge beside it or the tank card on the Stock page
+wearing the flat version, because there is no new colour in it.
+
+**One step of lightness and no change of hue.** The band's job is still to be
+read as "diesel" at a glance from across the office; a gradient wide enough to
+be admired is one wide enough to make its far end a different colour from the
+badge next to it. The darker stop is the one to check if either is ever
+changed — it is where the text contrast is tightest.
+
+Rendered across all four cases before committing: diesel, petrol, lubricant,
+and the neutral fallback a mixed-fuel unit gets.
