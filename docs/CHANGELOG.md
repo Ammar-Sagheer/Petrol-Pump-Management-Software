@@ -3605,3 +3605,44 @@ changed — it is where the text contrast is tightest.
 
 Rendered across all four cases before committing: diesel, petrol, lubricant,
 and the neutral fallback a mixed-fuel unit gets.
+
+## The texture hurt: high-frequency out, low-frequency in — and the whole unit lifted
+
+_"it hurts my eyes, some nice texture for 40 + clients"_, then _"where is the
+whole unit 3D look man"_. Two corrections to the pass above, and the first is
+the one worth keeping.
+
+**Grain and 1px hairlines were the wrong kind of texture for this reader.**
+They were genuinely "grainy" and "patterned" — and both are HIGH-FREQUENCY
+detail, at the scale of one or two pixels. On a cheap tablet that shimmers as
+the panel scrolls, can moiré against the screen's own pixel grid, and gives a
+40-plus eye something to keep trying to focus on that is not there. This app's
+entire type and contrast floor exists for that reader; putting sandpaper
+behind his headings undoes it.
+
+**Nothing in the band is now smaller than the band.** Every layer is a wide,
+soft wash measured in hundreds of pixels — a broad sheen from the top-left, a
+matching falloff at the bottom-right, and one ~300px diagonal sweep at 5%
+white. It still reads as a lit, slightly curved surface, which was the actual
+ask, but at a scale the eye takes in without working. The only fine detail
+left is the 1px bevel, and an edge is read once rather than scanned.
+
+**The whole unit card is the 3D object now, not just its band.** A lit strip
+on a flat sheet did not read as one thing. `.unit-card` stacks **four**
+shadows, which is the entire trick: a contact shadow at 1px where the object
+meets the page, a mid shadow at 8–16px for the body of the lift, an ambient
+one at 44px for the room's light, and a white hairline inset along the top
+edge as the highlight on its upper lip. The eye reads the combination as
+height and any one of them as a blur.
+
+`.card` keeps its own quiet shadow everywhere else in the app. Only the unit
+is lifted this far, because it is a physical pump on the forecourt and the one
+thing on the page worth making solid — if everything were raised, nothing
+would read as raised.
+
+The shadows are tinted with the app's own slate rather than pure black, which
+over an `ink-100` page goes grey and dead.
+
+**The colours did not change** and have not changed through any of this:
+diesel's orange and petrol's blue, flat `solid`, straight from
+`fuel-colors.js`. Every layer added here is white or black at a low alpha.

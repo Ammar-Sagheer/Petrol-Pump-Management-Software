@@ -124,64 +124,100 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   /*
-   * THE READINGS UNIT HEADER'S TEXTURE - grain, a hairline weave, and a lit
-   * edge, layered over whatever background-colour the element already has.
+   * THE READINGS UNIT HEADER'S SURFACE - soft, low-frequency depth over
+   * whatever background-colour the element already has.
    *
-   * IT ADDS NO COLOUR. Every layer here is white or black at a low alpha, so
-   * the band renders as "the fuel's colour, textured" rather than as a new
-   * hue - which is the only way a decorative treatment is allowed anywhere
-   * near the fuels (docs/UI_CONVENTIONS.md -> "Two palettes, and they never
-   * overlap"). `fuel-colors.js` still owns every hue in the app; this class
-   * does not know or care which fuel it is sitting on, and that is why it can
-   * sit on all of them. It works unchanged on diesel's light orange and
-   * petrol's dark blue, which is the pair that would break any treatment
-   * built from a fixed colour.
+   * THIS IS THE SECOND ATTEMPT AND THE FIRST ONE IS THE LESSON. It layered
+   * fractal-noise grain and 1px 45-degree hairlines over the band - genuinely
+   * "grainy" and "patterned", and the owner's verdict was that it hurt his
+   * eyes. It would. Both of those are HIGH-FREQUENCY texture: detail at the
+   * scale of one or two pixels, which on a cheap tablet shimmers as the panel
+   * scrolls, can moire against the screen's own pixel grid, and gives an eye
+   * that is 40-plus something to keep trying to focus on that is not there.
+   * The app's whole type and contrast floor exists for that reader; putting
+   * sandpaper behind his headings undoes it.
    *
-   * FOUR LAYERS, TOP TO BOTTOM:
-   *   1. GRAIN - fractal noise from an inline SVG filter. Data URI rather
-   *      than a file so there is no second request and nothing to lose track
-   *      of; `overlay` blending is what makes it darken the dark parts and
-   *      lighten the light ones instead of dusting the whole strip grey.
-   *   2. WEAVE - 45-degree hairlines at 4% white. Barely visible on its own
-   *      and that is the intent: it gives the surface a direction, so the
-   *      band reads as a material rather than as a fill.
-   *   3. SHEEN - a wide radial highlight up in the top-left, the single cue
-   *      doing most of the "3D" work. Light comes from one place, so the
-   *      strip reads as a curved surface lit from above rather than a flat
-   *      rectangle with a gradient on it.
-   *   4. LIFT - inset hairlines, white along the top edge and black along the
-   *      bottom, which is the same trick a physical bevel plays: a lit top
-   *      and a shaded underside.
+   * SO: NOTHING HERE IS SMALLER THAN THE BAND ITSELF. Every layer is a wide,
+   * soft wash measured in hundreds of pixels, so there is no edge fine enough
+   * to shimmer and nothing to resolve. It still reads as a lit, slightly
+   * curved surface rather than a flat rectangle - which was the actual ask -
+   * but at a scale the eye takes in without working.
    *
-   * KEPT LOW ON PURPOSE. This band carries the unit's name and its "2 of 2
-   * entered" chip, and it is read on a cheap tablet in poor light. Every
-   * alpha here is under 12% so nothing competes with the text; the treatment
-   * has to survive being looked past, not looked at.
+   *   1. SHEEN - a broad highlight up in the top-left. One light source, so
+   *      the strip reads as curved rather than as a colour with a gradient.
+   *   2. FALLOFF - a matching shadow easing in at the bottom-right, which is
+   *      what makes the sheen read as light on a surface instead of a pale
+   *      patch.
+   *   3. SWEEP - one very wide diagonal band at 5% white, around 300px
+   *      across. This is the "pattern": at that scale it is a sheen across
+   *      the material, not a stripe, and it cannot shimmer because there is
+   *      no repeat small enough to.
+   *   4. BEVEL - inset hairlines, light along the top edge and dark along the
+   *      bottom. The only fine detail left, and it is static: a 1px line ON
+   *      the border is an edge the eye reads once, not a field it has to
+   *      scan.
+   *
+   * IT ADDS NO COLOUR. Every layer is white or black at a low alpha, so the
+   * band is "the fuel's colour, lit" and never a new hue - the only terms on
+   * which a decorative treatment may go near the fuels
+   * (docs/UI_CONVENTIONS.md -> "Two palettes, and they never overlap").
+   * `fuel-colors.js` still owns every hue in the app; this class does not know
+   * which fuel it is sitting on, which is exactly why it works unchanged on
+   * diesel's light orange and petrol's dark blue - the pair that breaks any
+   * treatment built from a fixed colour.
    */
   .fuel-band {
     background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      repeating-linear-gradient(
-        45deg,
-        rgb(255 255 255 / 0.04) 0px,
-        rgb(255 255 255 / 0.04) 1px,
-        transparent 1px,
-        transparent 7px
+      radial-gradient(
+        140% 180% at 8% -40%,
+        rgb(255 255 255 / 0.26) 0%,
+        rgb(255 255 255 / 0.08) 38%,
+        rgb(255 255 255 / 0) 68%
       ),
-      radial-gradient(120% 160% at 12% -30%, rgb(255 255 255 / 0.22) 0%, rgb(255 255 255 / 0) 60%),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.06) 0%, rgb(0 0 0 / 0.08) 100%);
-    background-size:
-      140px 140px,
-      auto,
-      auto,
-      auto;
-    /* Only the noise blends; the rest are plain washes stacked over the
-       colour. A blend mode on all four would let the sheen invert itself on
-       a light band. */
-    background-blend-mode: overlay, normal, normal, normal;
+      radial-gradient(120% 150% at 96% 140%, rgb(0 0 0 / 0.14) 0%, rgb(0 0 0 / 0) 62%),
+      linear-gradient(
+        104deg,
+        rgb(255 255 255 / 0) 0%,
+        rgb(255 255 255 / 0.05) 44%,
+        rgb(255 255 255 / 0.05) 56%,
+        rgb(255 255 255 / 0) 100%
+      );
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.28),
-      inset 0 -1px 0 rgb(0 0 0 / 0.16);
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      inset 0 -1px 0 rgb(0 0 0 / 0.14);
+  }
+
+  /*
+   * THE WHOLE UNIT CARD AS A RAISED OBJECT - "where is the whole unit 3D look".
+   *
+   * The band had depth and the card under it did not, so a lit strip sat on a
+   * flat sheet and the two did not read as one thing.
+   *
+   * FOUR SHADOWS, NOT ONE, AND THAT IS THE ENTIRE TRICK. A single blur reads
+   * as a drop shadow no matter how big it gets; real depth comes from stacking
+   * a CONTACT shadow (1px, tight, where the object meets the page), a MID
+   * shadow (8-16px, the body of the lift) and an AMBIENT one (40px, very
+   * soft, the room's own light) - plus a white hairline inset along the top
+   * edge, which is the highlight on the object's own upper lip. The eye reads
+   * the combination as height; it reads any one of them as a blur.
+   *
+   * `.card` keeps its own quiet shadow for every other block in the app -
+   * stat tiles, tables, chart panels. This is deliberately only for the unit,
+   * which is a physical pump on the forecourt and the one thing on the page
+   * worth making a solid object. If everything were lifted this far, nothing
+   * would read as lifted at all.
+   *
+   * The alphas are slate rather than pure black. Black shadows over this
+   * page's ink-100 background go grey and dead; tinting them with the same
+   * ink the app is built from keeps the shadow the same family as the page.
+   */
+  .unit-card {
+    border: 1px solid rgb(15 23 42 / 0.06);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 2px rgb(15 23 42 / 0.07),
+      0 8px 16px -6px rgb(15 23 42 / 0.12),
+      0 28px 44px -16px rgb(15 23 42 / 0.18);
   }
 
   .label {

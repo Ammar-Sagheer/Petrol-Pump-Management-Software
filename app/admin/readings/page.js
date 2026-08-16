@@ -233,7 +233,7 @@ export default async function ReadingsPage({ searchParams }) {
             <section
               key={unit.unitNumber}
               aria-label={`Unit ${unit.unitNumber}`}
-              className="card overflow-hidden"
+              className="card unit-card overflow-hidden"
             >
               {/* Everything inside the header takes its colour from the band
                   rather than being coloured on its own - `currentColor` for
