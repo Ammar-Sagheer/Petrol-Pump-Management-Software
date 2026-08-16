@@ -70,15 +70,6 @@ export const FUEL_COLORS = {
     /** THE DARK ONE, filled, with WHITE text - 7.6:1. Petrol being the dark
         half of the pair is the point: see the header. */
     solid: 'bg-[#075985] text-white',
-    /** THE UNIT HEADER'S BAND - the same colour as `solid`, given a shallow
-        gradient so the strip has some depth without becoming a second hue.
-        Both stops are colours this fuel ALREADY owns, listed above, so the
-        band cannot drift away from the badge and the tank card wearing the
-        flat version. Left to right and only one step of lightness: the point
-        is that the fuel is still read instantly, not that the header is
-        decorated. Text colour comes with it, and both stops clear AA against
-        it - the darker stop is the one to check when changing either. */
-    band: 'bg-gradient-to-r from-[#075985] to-[#0369A1] text-white',
     /** Muted text on that band - captions, capacities. */
     solidMuted: 'text-sky-100',
     /** A QUIET filled band - the pale tint of the hue behind its own dark
@@ -125,15 +116,6 @@ export const FUEL_COLORS = {
     /** THE LIGHT ONE, filled, with DARK text - 10.6:1. The mirror of petrol on
         every axis: lighter fill, darker letters. */
     solid: 'bg-[#FDBA74] text-ink-900',
-    /** THE UNIT HEADER'S BAND - the same colour as `solid`, given a shallow
-        gradient so the strip has some depth without becoming a second hue.
-        Both stops are colours this fuel ALREADY owns, listed above, so the
-        band cannot drift away from the badge and the tank card wearing the
-        flat version. Left to right and only one step of lightness: the point
-        is that the fuel is still read instantly, not that the header is
-        decorated. Text colour comes with it, and both stops clear AA against
-        it - the darker stop is the one to check when changing either. */
-    band: 'bg-gradient-to-r from-[#FDBA74] to-[#FB923C] text-ink-900',
     solidMuted: 'text-ink-800',
     /** 6.4:1. */
     soft: 'bg-orange-100 text-[#9A3412]',
@@ -171,15 +153,6 @@ export const FUEL_COLORS = {
   lubricant: {
     label: 'Lubricant',
     solid: 'bg-[#D4AF37] text-ink-900',
-    /** THE UNIT HEADER'S BAND - the same colour as `solid`, given a shallow
-        gradient so the strip has some depth without becoming a second hue.
-        Both stops are colours this fuel ALREADY owns, listed above, so the
-        band cannot drift away from the badge and the tank card wearing the
-        flat version. Left to right and only one step of lightness: the point
-        is that the fuel is still read instantly, not that the header is
-        decorated. Text colour comes with it, and both stops clear AA against
-        it - the darker stop is the one to check when changing either. */
-    band: 'bg-gradient-to-r from-[#D4AF37] to-[#C9A227] text-ink-900',
     solidMuted: 'text-ink-800',
     /** 6.5:1. */
     soft: 'bg-[#D4AF37]/20 text-[#655216]',
@@ -208,7 +181,6 @@ export const FUEL_COLORS = {
 export const NEUTRAL_FUEL = {
   label: '',
   solid: 'bg-ink-700 text-white',
-  band: 'bg-gradient-to-r from-ink-700 to-ink-600 text-white',
   solidMuted: 'text-ink-100',
   /** What a MIXED unit wears - one dispenser plumbed to two different tanks.
       Neutral rather than either fuel's colour, because picking one would

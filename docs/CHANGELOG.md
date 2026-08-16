@@ -3548,11 +3548,48 @@ Two things had to move with it, both because the card is no longer white:
   disappears. The divider inside the card became `border-black/10` for the
   same reason: a fixed slate hairline goes muddy over orange.
 
-## The unit header band gets a shallow gradient
+## The unit header band gets a texture
 
-A `band` token in `fuel-colors.js`: the same colour as `solid`, given a
-left-to-right gradient so the strip has some depth without becoming a second
-hue.
+_"patterned, grainy with 3D look"_ — and, when a plain two-stop gradient was
+tried first, _"no no nooo"_. The colours were never the problem: diesel stays
+orange and petrol stays blue, flat `solid`, exactly as before. What was
+missing was surface.
+
+`.fuel-band` in `globals.css` layers four things over whatever
+background-colour the element already carries:
+
+1. **Grain** — fractal noise from an inline SVG filter, as a data URI so there
+   is no second request. `overlay` blending is what makes it darken the dark
+   parts and lighten the light ones rather than dusting the whole strip grey.
+2. **Weave** — 45° hairlines at 4% white. Barely visible alone, which is the
+   intent: it gives the surface a direction, so the band reads as a material
+   rather than a fill.
+3. **Sheen** — a wide radial highlight in the top-left, doing most of the "3D"
+   work. Light comes from one place, so the strip reads as a curved surface
+   lit from above rather than a rectangle with a gradient on it.
+4. **Lift** — inset hairlines, white along the top edge and black along the
+   bottom: the same trick a physical bevel plays.
+
+**IT ADDS NO COLOUR.** Every layer is white or black at a low alpha, so the
+band is "the fuel's colour, textured" and never a new hue — the only terms on
+which a decorative treatment may go near the fuels. `fuel-colors.js` still
+owns every hue in the app, and this class does not know which fuel it sits on,
+which is exactly why it can sit on all of them: it works unchanged on diesel's
+light orange and petrol's dark blue, the pair that breaks any treatment built
+from a fixed colour.
+
+Every alpha is under 12%. The band carries the unit name and its "2 of 2
+entered" chip and is read on a cheap tablet in poor light, so the texture has
+to survive being looked past, not looked at.
+
+Rendered over diesel, petrol, lubricant and the mixed-unit neutral before
+committing.
+
+### Rejected first: a flat gradient
+
+A `band` token was added first — the same colour as `solid` with a
+left-to-right gradient — and turned down. Recorded because the reasoning still
+holds for the constraint, if not for the result:
 
 **Both stops are colours the fuel already owns**, taken from the tokens listed
 above them in the same file — petrol `#075985 → #0369A1`, diesel

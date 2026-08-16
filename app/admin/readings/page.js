@@ -203,13 +203,12 @@ export default async function ReadingsPage({ searchParams }) {
            * it draws from are unmistakably the same colour when you move
            * between the two screens.
            *
-           * `band` rather than `solid`: the same colour with a shallow
-           * left-to-right gradient, both stops drawn from hues this fuel
-           * already owns. One step of lightness and no change of hue, because
-           * the band's job is still to be read as "diesel" at a glance from
-           * across the office - a gradient wide enough to be admired is one
-           * wide enough to make the far end a different colour from the badge
-           * beside it.
+           * The colour is the fuel's flat `solid`; the TEXTURE comes from
+           * `.fuel-band` in globals.css, which layers grain and a lit sheen
+           * over whatever background-colour it is given. Keeping those apart
+           * is what stops the texture from ever becoming a colour decision:
+           * fuel-colors.js still owns every hue in the app, and the CSS class
+           * knows nothing about which fuel it is sitting on.
            *
            * That gives up the lightness channel this header used to carry.
            * Before, hue said which fuel and lightness said whether there was
@@ -228,7 +227,7 @@ export default async function ReadingsPage({ searchParams }) {
            */
           const fuels = new Set(unit.rows.map((row) => row.fuel_type));
           const unitColor = fuels.size === 1 ? fuelColor([...fuels][0]) : NEUTRAL_FUEL;
-          const headerClass = unitColor.band;
+          const headerClass = unitColor.solid;
 
           return (
             <section
@@ -243,7 +242,7 @@ export default async function ReadingsPage({ searchParams }) {
                   dark text and a dark band with white text: nothing in here
                   has to know which it is sitting on. */}
               <div
-                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${headerClass}`}
+                className={`fuel-band flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 ${headerClass}`}
               >
                 {/* ONE SET OF CLASSES FOR BOTH BANDS. `solid` is dark-with-
                     white-text for petrol and light-with-dark-text for diesel,
