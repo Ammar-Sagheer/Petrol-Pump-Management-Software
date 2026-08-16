@@ -149,11 +149,58 @@ for (const width of widths) {
         text: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 44),
       }));
 
+    /*
+     * ESCAPES: children that sit outside their CONTAINER's padding box.
+     *
+     * The `clipped` pass above asks whether an element overflows ITSELF, and
+     * that is not the same question. A figure or a chart can sit entirely
+     * inside its own box while hanging out through the side of the card
+     * holding it - `scrollWidth` reports clean and the page still looks
+     * broken. This was found for real: a sparkline carrying `width={72}` as
+     * an SVG attribute stayed 72px however narrow its tile got and pushed
+     * straight out through the card's right edge, past a check that said
+     * nothing was wrong.
+     *
+     * Containers are whatever the app calls a card; adjust the selector to
+     * match. Half a pixel of tolerance, because subpixel layout puts a child
+     * a hair past its parent all the time without anything being wrong.
+     */
+    const containers = document.querySelectorAll('.card, [data-card]');
+    const escaped = [];
+    containers.forEach((card) => {
+      const cs = getComputedStyle(card);
+      const box = card.getBoundingClientRect();
+      const padLeft = box.left + parseFloat(cs.paddingLeft || 0);
+      const padRight = box.right - parseFloat(cs.paddingRight || 0);
+
+      card.querySelectorAll('p, svg, span, dd, td, img').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0) return;
+        const overRight = r.right - padRight;
+        const overLeft = padLeft - r.left;
+        if (overRight <= 0.5 && overLeft <= 0.5) return;
+        escaped.push({
+          tag: el.tagName.toLowerCase(),
+          by: `${Math.max(overRight, overLeft).toFixed(1)}px`,
+          text: (el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 44),
+        });
+      });
+    });
+
     return {
       pageOverflows: doc.scrollWidth > doc.clientWidth,
       clipped,
+      escaped,
     };
   });
+
+  if (report.escaped?.length) {
+    anyProblem = true;
+    console.log(`  ESCAPED its card (${report.escaped.length}):`);
+    for (const e of report.escaped.slice(0, 8)) {
+      console.log(`    ${e.tag} by ${e.by} - ${e.text}`);
+    }
+  }
 
   const file = join(outDir, `w${width}.png`);
   await page.screenshot({ path: file, fullPage: true });

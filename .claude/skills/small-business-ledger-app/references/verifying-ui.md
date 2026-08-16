@@ -75,6 +75,28 @@ classes so you can judge intent. Triage:
   the negative-margin trick that lets a table reach the screen edges on a
   phone. Confirm the *page* does not scroll sideways; that is the real test.
 
+## The other clipping question: does it escape its CARD?
+
+`scrollWidth > clientWidth` asks whether an element overflows **itself**, and
+that is not the same question. A figure or a chart can sit entirely inside its
+own box while hanging out through the side of the card holding it — the check
+reports clean and the page still looks broken.
+
+The script runs a second pass for this: every child's rect against its
+container's **padding box**, at every width. Two real finds from one sitting,
+both invisible to the first pass:
+
+- A sparkline carrying `width={72}` as an **SVG attribute** stayed 72px
+  however narrow its tile became and pushed out through the card's right edge.
+  An SVG sized by attribute does not shrink; size it with a class and let the
+  viewBox scale.
+- A seven-figure money value escaping at 440px, because the grid went
+  two-up while each tile was still too narrow for the number.
+
+**Adjust the container selector to whatever the app calls a card.** And keep
+half a pixel of tolerance: subpixel layout puts a child a hair past its parent
+constantly without anything being wrong.
+
 ## Verify state changes with a before/after table, not a screenshot
 
 For logic — which rows get a warning badge, which of two conditions fires —

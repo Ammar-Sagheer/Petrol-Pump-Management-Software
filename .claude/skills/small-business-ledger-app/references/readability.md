@@ -91,6 +91,25 @@ the difference becomes shape as well.
 - hand-drawn inline SVG on one grid beats an icon package for a set this small,
   and keeps every icon on the same stroke weight
 
+## Texture: nothing smaller than the thing it sits on
+
+Decoration on a surface an older reader looks past all day has a frequency
+limit. Fractal grain and 1px hairlines are **high-frequency** detail — at the
+scale of a pixel or two — and on a cheap tablet they shimmer as the panel
+scrolls, can moiré against the screen's own pixel grid, and give a 40-plus eye
+something to keep trying to focus on that is not there. A type and contrast
+floor built for that reader is undone by sandpaper behind his headings.
+
+If a surface wants depth, use washes measured in **hundreds** of pixels — a
+broad sheen, a matching falloff, one very wide sweep. Keep the only fine
+detail on the **edge** (a 1px bevel), which is read once rather than scanned.
+
+**Depth is stacked shadows, not one big one**: a tight contact shadow where the
+object meets the page, a mid one for the body of the lift, a wide ambient one,
+and a light hairline inset along the top edge. The eye reads the combination
+as height and any single one as a blur. Lift one thing on a page — if
+everything is raised, nothing reads as raised.
+
 ## Say which day is on screen, once and loudly
 
 Any screen where data is entered *against a date* needs the date stated
