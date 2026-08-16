@@ -154,15 +154,15 @@ export function MoneyTile({
           chart side and `flex-1 max-w-[72px]`, so it is the sparkline that
           gives way when a seven-figure total needs the width, never the
           number. */}
-      <div className="mt-1 flex items-end justify-between gap-3">
+      <div className="mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <p className={`tabular whitespace-nowrap text-xl font-bold @[50rem]:text-2xl ${valueTone}`}>
           {value}
         </p>
         {spark ? (
           <span
-            className={`hidden min-w-0 max-w-[72px] flex-1 @[62rem]:block ${sparkTone ?? 'text-ink-400'}`}
+            className={`block w-full @[62rem]:w-auto @[62rem]:max-w-[72px] @[62rem]:flex-1 ${sparkTone ?? 'text-ink-400'}`}
           >
-            <Sparkline data={spark} tips={sparkTips} className="h-[34px] w-full" />
+            <Sparkline data={spark} tips={sparkTips} className="h-8 w-full @[62rem]:h-[34px]" />
           </span>
         ) : null}
       </div>

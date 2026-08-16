@@ -240,12 +240,21 @@ export function StatTile({
      * figure breaking after the "Rs" reads for a moment as two figures), so
      * there is not always room for both.
      *
-     * So the sparkline is the part that yields. It is `hidden` until the tile
-     * has genuinely earned the width for it, at which point it appears at the
-     * figure's right - and below that threshold the tile is exactly what it
-     * was, a label over a number. Decoration must never be the reason a figure
-     * cannot be read; this is the same call the trend charts make when they
-     * drop litres from the cash-up bar at phone width.
+     * SO THE SPARKLINE YIELDS THE LINE, NOT THE PAGE. It used to be `hidden`
+     * below the threshold entirely, and the owner reported the obvious
+     * consequence: "the graphs disappear when screen size reduced". They did -
+     * on a 1360px window the sidebar takes 240px and the grid never reaches
+     * the threshold, so the charts were missing on the screen the app is
+     * actually used on.
+     *
+     * Yielding the ROW is enough. The row wraps, so when the figure and the
+     * chart cannot share a line the chart takes its own underneath at full
+     * width - which is a better chart anyway, four times as wide as the 72px
+     * it gets when squeezed in beside. The rule the old code was serving
+     * ("decoration must never be the reason a figure cannot be read") is
+     * untouched: the figure still owns its line and never shrinks. What
+     * changed is that the alternative to competing is now moving, not
+     * vanishing.
      */
     return (
       <div className="card flex flex-col gap-2 px-4 py-4 @[62rem]:px-5 @[62rem]:py-5">
@@ -259,15 +268,17 @@ export function StatTile({
           <p className="figure-label">{label}</p>
         </div>
 
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <p
             className={`tabular whitespace-nowrap text-xl font-bold @[62rem]:text-2xl ${valueTone}`}
           >
             {value}
           </p>
           {spark ? (
-            <span className={`hidden min-w-0 max-w-[72px] flex-1 @[68rem]:block ${sparkClass}`}>
-              <Sparkline data={spark} tips={sparkTips} className="h-[34px] w-full" />
+            <span
+              className={`block w-full @[68rem]:w-auto @[68rem]:max-w-[72px] @[68rem]:flex-1 ${sparkClass}`}
+            >
+              <Sparkline data={spark} tips={sparkTips} className="h-8 w-full @[68rem]:h-[34px]" />
             </span>
           ) : null}
         </div>

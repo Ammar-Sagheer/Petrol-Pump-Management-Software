@@ -3827,3 +3827,28 @@ the colour is never carrying it alone.
 Violet remains spent in one place only: `CashCreditChart`, where it separates
 credit from cash and was chosen with a palette validator (green/violet
 separates for red-green colour blindness where green/amber does not).
+
+## The sparklines stopped disappearing on a real window
+
+_"the graphs disappear when screen size reduced"._ They did, and on the size
+the app is actually used at: the tile grid hid its sparkline below `@[68rem]`,
+and on a 1360px window the 240px sidebar leaves the grid around 1090px — just
+under the line. The charts were missing on the owner's own screen.
+
+**The rule was right and the mechanism was wrong.** "Decoration must never be
+the reason a figure cannot be read" still holds — the money figure is
+`whitespace-nowrap`, cannot shrink, and must own its line. But the alternative
+to competing for that line was never *vanishing*; it was **moving**.
+
+The figure's row now wraps. Where the two fit side by side they still do; where
+they do not, the chart takes its own line underneath at **full card width** —
+which is a better chart than the squeezed one, roughly four times wider than
+the 72px it gets when it shares. The figure is untouched either way.
+
+Applied to `StatTile` and to the register's `MoneyTile`, which had the same
+`hidden … @[62rem]:block` treatment.
+
+Verified by counting rendered sparklines at 1120px, 900px, 560px and 400px —
+twelve at every width, where the narrow ones previously rendered none — and by
+looking at each, because a count of twelve would also be satisfied by twelve
+charts squashed into unreadable slivers.
