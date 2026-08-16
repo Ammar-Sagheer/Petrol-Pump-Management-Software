@@ -3738,3 +3738,34 @@ was learned by getting it wrong first, and each is written up in full in
 - **When a helper derives something from user data, test it on the user's
   data.** The initials helper passed every fixture and produced "A5" for a real
   customer.
+
+## Credit slips: type the amount, the litres follow
+
+_"right now entering amount calculates the amount, do the opposite, client
+should enter the amount and litres calculated itself, and move the amount
+input box in place of litre and vice versa"._
+
+The slip row ran litres-in, amount-out. It now runs the other way, and the
+input order was swapped to match: **Amount first, Litres second.**
+
+**This matches how the slip is actually written at the pump.** A customer asks
+for "two thousand rupees of diesel", the attendant serves it and writes the
+rupees down. The litres are the consequence, not the input — the old direction
+asked the person filling the form to do the division in their head first.
+
+**Both fields stay editable.** The derived side is filled in and can then be
+overwritten, because a slip is occasionally rounded off by hand, and the paper
+in the drawer is what the books have to agree with — not what the rate says it
+should have been. That was true of the amount before and is true of the litres
+now.
+
+**The rate is guarded rather than divided by blindly.** `rate` is null until
+the day's price is set, and a bare `amount / rate` would put `Infinity` into a
+field that goes to the database. No rate means the litres are left for the
+reader to type. Checked across a rate of null, `0` and `undefined`, an empty
+amount, a zero amount and a non-numeric one — every one of them leaves the
+litres empty rather than producing a value.
+
+The placeholders moved with the boxes. Swapping two identical-looking number
+inputs without swapping their labels is exactly how a rupee figure ends up in
+the litres column.

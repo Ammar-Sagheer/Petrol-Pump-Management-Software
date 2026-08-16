@@ -531,13 +531,29 @@ function EntryForm({ row, date, customers }) {
     setLines((current) => current.filter((line) => line.key !== key));
   }
 
-  /* Typing litres fills the amount in at today's rate; the amount stays
-     editable, because a slip is occasionally rounded off by hand. */
-  function onLitresChange(key, value) {
+  /*
+   * THE AMOUNT IS TYPED; THE LITRES ARE WORKED OUT. This used to run the other
+   * way - litres in, amount computed - and the owner had it turned round,
+   * which matches how the slip is actually written at the pump: a customer
+   * asks for "two thousand rupees of diesel", the attendant serves it and
+   * writes the rupees down. The litres are the consequence, not the input.
+   *
+   * BOTH STAY EDITABLE. The derived side is filled in for you and can then be
+   * overwritten, because a slip is occasionally rounded off by hand and the
+   * paper in the drawer is what the books have to agree with - not what the
+   * rate says it should have been.
+   *
+   * A guard on the rate rather than a bare divide: `rate` is null until the
+   * day's price is set, and dividing by it would put `Infinity` in a field
+   * that goes to the database. No rate means the litres are simply left for
+   * the reader to type.
+   */
+  function onAmountChange(key, value) {
     const asNumber = Number(value);
+    const canDerive = Number.isFinite(asNumber) && value !== '' && Number(rate) > 0;
     updateLine(key, {
-      litres: value,
-      amount: Number.isFinite(asNumber) && value !== '' ? String(round2(asNumber * rate)) : '',
+      amount: value,
+      litres: canDerive ? String(round2(asNumber / Number(rate))) : '',
     });
   }
 
@@ -705,17 +721,12 @@ function EntryForm({ row, date, customers }) {
                     ✕
                   </Button>
                 </div>
+                {/* AMOUNT FIRST, LITRES SECOND - the typed field leads and the
+                    derived one follows it, so the pair reads in the order it
+                    is filled in. The placeholders say which is which; swapping
+                    two identical-looking number boxes without swapping their
+                    labels is how a rupee figure ends up in the litres column. */}
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <NumberInput
-                    step="0.01"
-                    min="0"
-                    required
-                    aria-label="Litres"
-                    placeholder="Litres"
-                    value={line.litres}
-                    onChange={(event) => onLitresChange(line.key, event.target.value)}
-                    className="input tabular py-2 text-sm"
-                  />
                   <NumberInput
                     step="0.01"
                     min="0"
@@ -723,7 +734,17 @@ function EntryForm({ row, date, customers }) {
                     aria-label="Amount"
                     placeholder="Amount"
                     value={line.amount}
-                    onChange={(event) => updateLine(line.key, { amount: event.target.value })}
+                    onChange={(event) => onAmountChange(line.key, event.target.value)}
+                    className="input tabular py-2 text-sm"
+                  />
+                  <NumberInput
+                    step="0.01"
+                    min="0"
+                    required
+                    aria-label="Litres"
+                    placeholder="Litres"
+                    value={line.litres}
+                    onChange={(event) => updateLine(line.key, { litres: event.target.value })}
                     className="input tabular py-2 text-sm"
                   />
                 </div>
