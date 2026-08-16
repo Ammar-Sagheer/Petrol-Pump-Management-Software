@@ -158,10 +158,26 @@ export default function ReadingForm({
        * amber wash on the rows still to enter was right when the fuels were
        * teal and yellow, but diesel is orange now and an amber row behind an
        * orange rail is mud - the colour budget on this row belongs to the
-       * fuel. So state moved to the quieter cue: a finished row settles into
-       * a faint green, matching the check in its unit header, and a row still
-       * to enter stays plain white and stands out against them. The Enter
-       * chip still carries the word.
+       * fuel.
+       *
+       * ENTERED IS NOW THE FUEL'S OWN TINT, not a faint green. The green was
+       * too close to white to read as a state at all - the owner's report was
+       * "no clear differentiation whether reading entered or not" - and it
+       * spent a second colour on a card that already had one. Washing an
+       * entered card in its own fuel colour says both things with one cue: a
+       * finished diesel nozzle is unmistakably diesel AND unmistakably done,
+       * and an un-entered one stays white and stands out against its filled
+       * neighbours.
+       *
+       * This inverts which state is loud. That is deliberate and it is the
+       * owner's call: he wants to SEE at a glance that a day has been
+       * entered. The white cards still read as the odd ones out on a
+       * part-finished day, so nothing is lost for the person working down the
+       * page - the Enter chip and the border still carry the word and the
+       * edge.
+       *
+       * `tint` and not `soft`: soft brings a text colour with it, and every
+       * money figure in this card has to stay near-black.
        */}
       <button
         type="button"
@@ -171,7 +187,7 @@ export default function ReadingForm({
                    ${color.border}
                    ${
                      isSaved
-                       ? 'border-y-brand-200 border-r-brand-200 bg-brand-50/40 hover:bg-brand-50'
+                       ? `${color.tint} ${color.border} hover:brightness-[0.97]`
                        : 'border-y-ink-200 border-r-ink-200 bg-white hover:border-y-ink-300 hover:border-r-ink-300 hover:bg-ink-50'
                    }`}
       >
@@ -208,10 +224,10 @@ export default function ReadingForm({
            * blue from the orange loses nothing.
            */}
           <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${color.soft}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/70 ring-1 ring-inset ring-black/5"
             aria-hidden="true"
           >
-            <Icon name="fuelPump" className="h-6 w-6" />
+            <Icon name="fuelPump" className={`h-6 w-6 ${color.onWhite}`} />
           </span>
           <span className="flex-1 whitespace-nowrap text-base font-bold text-ink-900">{rowTitle}</span>
           <FuelBadge fuelType={row.fuel_type} />
@@ -251,7 +267,10 @@ export default function ReadingForm({
             give each figure ~60px and break "Rs 235,653" across two lines. Two
             by two also puts the pair that must agree - total sale, and the cash
             plus credit under it - directly above one another. */}
-        <dl className="grid w-full grid-cols-2 gap-x-3 gap-y-2.5 border-t border-ink-200/70 px-3.5 pb-3 pt-2.5">
+        {/* `border-black/10`, not an ink token: this rule has to sit on white
+            AND on whichever fuel tint an entered card is wearing, and a fixed
+            slate hairline goes muddy over orange. */}
+        <dl className="grid w-full grid-cols-2 gap-x-3 gap-y-2.5 border-t border-black/10 px-3.5 pb-3 pt-2.5">
           {isSaved ? (
             <>
               <RowFigure label="Fuel sold" value={showLitres(row.litres_sold)} strong />

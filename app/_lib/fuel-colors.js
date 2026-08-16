@@ -76,6 +76,13 @@ export const FUEL_COLORS = {
         relative, 6.6:1. For a header that should say which fuel without
         shouting. */
     soft: 'bg-sky-100 text-[#075985]',
+    /** JUST THE BACKGROUND, no text colour with it - the fuel's tint under
+        content that keeps its own ink. `soft` cannot do this job: it carries a
+        text colour so the whole subtree inherits the fuel's dark relative,
+        which is right for a header band and wrong for a card full of money
+        figures that must stay near-black. Used by the Readings nozzle card to
+        show, in the fuel's own colour, that a nozzle has been entered. */
+    tint: 'bg-sky-100',
     /** THE SAME BAND, EMPHASISED - the dark relative filled, white text,
         7.6:1. `soft` and `strong` are a pair: same hue, one quiet and one
         loud, so a surface can use lightness to say something of its own
@@ -112,6 +119,13 @@ export const FUEL_COLORS = {
     solidMuted: 'text-ink-800',
     /** 6.4:1. */
     soft: 'bg-orange-100 text-[#9A3412]',
+    /** JUST THE BACKGROUND, no text colour with it - the fuel's tint under
+        content that keeps its own ink. `soft` cannot do this job: it carries a
+        text colour so the whole subtree inherits the fuel's dark relative,
+        which is right for a header band and wrong for a card full of money
+        figures that must stay near-black. Used by the Readings nozzle card to
+        show, in the fuel's own colour, that a nozzle has been entered. */
+    tint: 'bg-orange-100',
     /** 7.3:1. NOT `solid` - diesel's band is the light one, so the emphasised
         version has to come from the dark relative instead, or a "loud" header
         would be paler than the quiet one. */
@@ -142,6 +156,13 @@ export const FUEL_COLORS = {
     solidMuted: 'text-ink-800',
     /** 6.5:1. */
     soft: 'bg-[#D4AF37]/20 text-[#655216]',
+    /** JUST THE BACKGROUND, no text colour with it - the fuel's tint under
+        content that keeps its own ink. `soft` cannot do this job: it carries a
+        text colour so the whole subtree inherits the fuel's dark relative,
+        which is right for a header band and wrong for a card full of money
+        figures that must stay near-black. Used by the Readings nozzle card to
+        show, in the fuel's own colour, that a nozzle has been entered. */
+    tint: 'bg-[#D4AF37]/20',
     /** 7.6:1. */
     strong: 'bg-[#655216] text-white',
     /** Dark relative behind white text, 7.6:1 - a badge is small and bold and
@@ -165,6 +186,7 @@ export const NEUTRAL_FUEL = {
       Neutral rather than either fuel's colour, because picking one would
       label the whole unit as a fuel only half of it sells. */
   soft: 'bg-ink-100 text-ink-700',
+  tint: 'bg-ink-100',
   strong: 'bg-ink-700 text-white',
   badge: 'bg-ink-700 text-white',
   border: 'border-ink-300',

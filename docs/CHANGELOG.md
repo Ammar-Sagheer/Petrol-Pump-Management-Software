@@ -3517,3 +3517,33 @@ wrong one. Letting it wrap instead stacked "Nozzle" over "A", which is not
 hidden but is not a name read at a glance either. `whitespace-nowrap` on the
 name plus `flex-wrap` on the row sets the priority properly: the name cannot
 break, so the **chip** drops to a second line when the four things do not fit.
+
+### Entered is now the fuel's own colour
+
+Reported straight after the redesign: _"no clear differentiation whether
+reading entered or not"_. It was fair — an entered card was `brand-50/40`,
+which is four parts white to one part green, and beside a plain white card at
+a glance they were the same card.
+
+An entered nozzle now wears **its own fuel's tint**, at the owner's request.
+One cue says both things: a finished diesel nozzle is unmistakably diesel and
+unmistakably done, and an un-entered one stays white and stands out against
+its filled neighbours. It also stops spending a second colour on a card that
+already had one.
+
+**This inverts which state is loud**, and that is the point rather than a side
+effect — the ask was to *see* that a day has been entered. On a part-finished
+day the white cards still read as the odd ones out, so nothing is lost for
+someone working down the page; the Enter chip and the fuel edge still carry
+the word and the border.
+
+Two things had to move with it, both because the card is no longer white:
+
+- **A new `tint` token in `fuel-colors.js`** — background only. `soft` could
+  not do this job: it carries a text colour, so the whole subtree inherits the
+  fuel's dark relative, which is right for a header band and wrong for a card
+  full of money figures that must stay near-black.
+- **The pump glyph sits on a white tile with a fuel-coloured icon**, not on
+  the fuel's tint. Tinted-on-tinted is nothing — orange-100 on orange-100
+  disappears. The divider inside the card became `border-black/10` for the
+  same reason: a fixed slate hairline goes muddy over orange.
