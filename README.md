@@ -308,6 +308,7 @@ app/
     company-assets/        what the pump has bought and kept - owner only
     reports/               monthly profit, charts, Excel export
       daily/               every trading day, newest first, paged
+      register/            petrol and diesel day by day, with running gain/loss
     settings/              prices, tanks, nozzle wiring
       fuel-prices/         the full rate history, paged
     account/               your own login, and staff logins for the owner
@@ -328,8 +329,10 @@ app/
     brand.js               business name; the logo is public/logo.png
     guide-content.js       the guide's text, both languages, as data
     asset-categories.js    the five company-asset categories, as data
+    customer-avatar.js     a customer's initials and their stable tint
+    fuel-colors.js         the single definition of petrol, diesel and lubricant
     excel-report.js        builds the monthly workbook from the template
-  _styles/globals.css
+  _styles/globals.css        tokens, .card, .fuel-band, .unit-card
 proxy.js                   session refresh + signed-in gate
 scripts/                   build-report-template.py, build-icons.py
 supabase/migrations/       the schema, in order
@@ -475,6 +478,8 @@ Applied in order:
 | `039_dip_belongs_to_the_day_it_closes.sql` | A dip is a moment, not a day: `taken` + generated `books_date`, so a morning dip closes yesterday. And `expected_stock` recalculated from history by trigger instead of frozen at insert |
 | `040_company_assets_in_the_export.sql` | Company Assets reach the monthly workbook: the whole register plus the month's own purchases |
 | `041_stock_register.sql` | The Daily Sale & Stock Register — a day-by-day row per tank with sales and gain/loss accumulated across a chosen run of days — and profit over an arbitrary run of days rather than a whole month |
+| `042_customer_phone_on_the_list.sql` | `get_customer_balances` and `get_retired_customers` return `phone`. No schema change — the column has existed since 001 and the dialog always wrote to it; nothing ever read it back |
+| `043_lubricant_trend_cash_and_credit.sql` | `get_lubricant_trend` returns the per-day cash/credit split. No schema change — `lubricant_sales` has carried both columns since 024 |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

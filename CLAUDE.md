@@ -69,6 +69,27 @@ laptop width, is a real regression even though nothing "broke".
   even though the app is plain JavaScript (JSDoc-driven checks in a few
   places), and it's the fastest way to catch a typo'd import.
 
+## The shared pieces to reach for first
+
+Most of the app's look comes from a handful of shared things. Check these
+before writing a new component or a new class:
+
+- **`StatTile` / `StatGrid`** (`_components/admin/AdminStats.js`) — the
+  headline figures on eight pages. Takes an optional `spark` + `sparkTips`
+  (sparkline), `delta` (percent badge) and `sub`.
+- **`Sparkline`** (`_components/ui/Sparkline.js`) — decoration with a shape,
+  never a figure to read. Its `tips` are formatted by the CALLER, on the
+  server.
+- **`DeltaBadge`** (`_components/ui/DeltaBadge.js`) — arrow is direction,
+  colour is whether it is good news. Pass `higherIsBetter: false` where a rise
+  is bad.
+- **`.card`, `.fuel-band`, `.unit-card`** in `globals.css`.
+- **`fuel-colors.js`** owns every fuel hue, including `tint` (background only)
+  and `solid` (the band the Stock page and the Readings unit header share).
+
+**`StatTile` and `.card` are the app-wide blast radius** — a change to either
+lands on nearly every page, so render more than the page you are working on.
+
 ## Docs stay current
 
 If a change introduces a new recurring pattern (a new shared component, a

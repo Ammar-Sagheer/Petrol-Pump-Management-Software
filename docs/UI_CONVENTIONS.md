@@ -1047,13 +1047,36 @@ Two things this pattern always needs:
   customer owes, and money the pump owes them. Before adding this pattern to a
   third screen, ask what disappears from a total when the row leaves the list.
 
-## A name in a list gets a coloured initial, not a photo
+## A name in a list gets its initials, not a photo and not an icon
 
-The Customers table puts a small coloured circle carrying the first letter of
-the name in front of every row, on both the active and the Removed tables.
-`app/_lib/customer-avatar.js` exports `customerInitial(name)` and
-`customerAvatarColor(seed)` — the colour is a small hash of the customer's
-id against a fixed palette, **not `Math.random()`**. A name that changed
+The Customers table puts a small coloured circle carrying **two letters** in
+front of every row, on both the active and the Removed tables.
+`app/_lib/customer-avatar.js` exports `customerInitials(name)`,
+`customerAvatarColor(seed)` and `customerAvatar(customer)` — the colour is a
+small hash of the customer's id against a fixed palette, **not
+`Math.random()`**.
+
+**This has been a single letter, then a person/vehicle icon, then two
+letters,** and the round trip is the useful part. The icon version was asked
+for and lost something visible immediately: forty identical circles tell you
+nothing about which row you are on. **Initials are the strongest cue available
+in a list because they differ per row**, which neither a colour nor an icon
+manages. Two letters separate "Ahmad Ali" from "Ahmad Iqbal" where one does
+not.
+
+**The letters come from the FIRST TWO WORDS**, and words starting with a digit
+are skipped. This started as first-word-and-last-word — sound reasoning for a
+trading name, never checked against this pump's list, where names carry a
+ledger number on the end. "Abdul Ghaffar 13 Solang 561" came out as **A5**, and
+a column of A5/A4/A7/A6 reads as codes you are meant to recognise. **When a
+helper derives something from user data, test it on the user's data** — the
+fixtures it was built against were "John Doe" and "Bilal Sons Goods Carrier",
+and both worked perfectly.
+
+**Six tints, and none is a fuel's.** The reference the owner supplied used
+lavender, pink, blue, peach and mint; blue and peach are the two this app
+cannot spend. Violet, fuchsia, teal, rose, green and slate give the same soft
+look with nothing borrowed from petrol or diesel. A name that changed
 colour on every reload would read as a bug, and a stable colour is one more
 thing that helps the owner recognise a regular in a long list, the same way
 `customerEmoji` (an earlier version of this, replaced once initials were
@@ -1172,8 +1195,12 @@ picking one deterministic scheme is that it only needs auditing once.
   about how a figure is written. The caller knows whether its series is money
   or litres; it formats, the chart displays.
 - **A sparkline is hand-drawn SVG, not a chart library.** `Sparkline.js` is a
-  path with no axes, tooltip or measurement, so it server-renders with no
-  JavaScript and no layout shift. Four Recharts instances in a stat row would
+  path plus about forty lines of pointer maths. It became a `'use client'`
+  component when the hover readout was added, having been written server-only
+  with a comment saying so — and what that comment was defending was never
+  "zero JavaScript", it was **"do not put a charting library in a stat tile"**,
+  which still holds. The markup is still server-rendered on first paint, so
+  there is no layout shift; the hover state is all the client adds. Four Recharts instances in a stat row would
   each ship a client bundle and measure-then-paint, so the row the owner looks
   at first would land empty and pop in a beat later. It is also `aria-hidden`
   and carries no scale: it says "rising", "falling", "steady", and the figure
@@ -1727,18 +1754,29 @@ it - checked the computed `border-top-color` on hover, not just the class list.
 ## Cards float on shadow, not on a border
 
 `.card` used to be `border border-ink-200 bg-white shadow-sm`. The border is
-gone and the shadow is `shadow-md`: a white card on the page's pale slate
+gone and the shadow is a single wide, faint drop — `0 20px 27px 0 rgb(0 0 0 /
+0.05)` at `rounded-2xl`, replacing the `shadow-md` this carried for a while:
+a white card on the page's pale slate
 background (`--color-ink-100`, `#f1f5f9`) now reads as a raised object rather
 than a bounded region. `shadow-sm` was nearly invisible against that
 background, so the border had quietly become the thing actually defining a
 card's edge — the shadow was decorative, not structural. It is structural now.
+
+**`shadow-md` was the wrong kind of structural, though.** It is a tight
+contact shadow — two layers at 10% black within 6px of the edge — which reads
+as cards pressed flat against the page and gives a grid of them a ruled,
+gritty look. The current one is a single 27px blur at 5%, dropped 20px, so
+cards separate from the canvas by **height** rather than by contrast. It has
+to stay faint: on a cheap tablet in poor light a heavier shadow becomes a grey
+band along every card edge and starts competing with the hairlines inside the
+card.
 
 This is the shared `.card` primitive nearly 70 places read from, so the change
 is sitewide in one edit rather than a per-page pass. The Stock page's dip
 cards additionally lost the coloured ring that used to run round the whole
 card (`border-2 ${color.border}`) — redundant once the header band is already
 the fuel's colour, and it read as a picture frame rather than a raised card.
-They keep `shadow-xl`, a step above the app-wide `shadow-md`: it is the one
+They keep `shadow-xl`, a step above the app-wide card shadow: it is the one
 surface where a wrong figure corrupts every later day's numbers, and gets the
 strongest lift on the page for it.
 
@@ -1979,3 +2017,85 @@ constraint that keeps it from being clutter.
   correctly covered by it, backdrop and all. Verified rather than assumed, by
   asking `document.elementFromPoint` what is actually painted at the bar's
   position while a dialog is open: the answer is the dialog.
+
+## The shared pieces added in the redesign round
+
+Four components and three CSS classes carry most of the app's current look.
+Reach for these before writing a new one.
+
+| Piece | What it is | Where |
+|---|---|---|
+| `StatTile` / `StatGrid` | The headline figures. Small icon beside the label, figure below, optional sparkline at its right, then `delta` and `sub`. | `_components/admin/AdminStats.js` |
+| `Sparkline` | Hand-drawn SVG trend line with a hover readout. Decoration with a shape, never a figure to read. | `_components/ui/Sparkline.js` |
+| `DeltaBadge` | The percent pill. Arrow = direction, colour = whether it is good news. | `_components/ui/DeltaBadge.js` |
+| `CustomerSearch` | Debounced query-string search over a table. | `_components/admin/CustomerSearch.js` |
+| `.card` | Every block in the app. Wide faint shadow, `rounded-2xl`. | `globals.css` |
+| `.fuel-band` | Soft lit surface for a fuel-coloured header. Adds no colour. | `globals.css` |
+| `.unit-card` | Four stacked shadows. The Readings unit only. | `globals.css` |
+
+### The stat tile's anatomy, and why it is that order
+
+Label with a small icon, figure, comparison, description — reading order
+matching importance. Taken from the Ramtabs dashboard the owner supplied, with
+one change forced by this app's numbers: **the sparkline yields, the figure
+never does.** `Rs 1,204,950` bold at 24px needs ~190px in a tile about 265px
+wide, and `whitespace-nowrap` on money is not negotiable — a figure breaking
+after the "Rs" reads for a moment as two figures. So the chart is `hidden`
+until the tile has genuinely earned the width. **Decoration must never be the
+reason a figure cannot be read.**
+
+### `DeltaBadge`: two axes, not one
+
+**The arrow is direction; the colour is whether it is good news.** Expenses up
+is an up arrow and a RED pill; sales up is an up arrow and a green one.
+Colouring by direction alone would paint "expenses rose 40%" the same green as
+"sales rose 40%" — the one mistake a money app cannot make. Callers pass
+`higherIsBetter`.
+
+**No baseline means no badge.** A zero previous and an absent previous arrive
+identically from a summary RPC, and "rose from nothing" and "there is no
+earlier period" are different sentences. A card with no comparison shows none;
+the figure above it is unaffected. (Live proof: the pump's records begin
+01 Aug 2026, so every August range on the register compares against an empty
+July and briefly showed "New" on all four tiles.)
+
+**The badge is the pill alone.** It shipped with "up from Rs 655,595
+yesterday" beside it and that was removed: on a card already carrying a label,
+a figure and a sparkline it was the fourth thing and the only prose, and it
+made every tile taller.
+
+### Anything a client chart displays is formatted on the SERVER
+
+A formatter cannot cross the server/client boundary, and shipping raw numbers
+so the chart can re-implement PKR or litre formatting is how a tooltip and a
+table start disagreeing about how a figure is written. Pass pre-formatted
+strings (`Sparkline`'s `tips` are `{ v, d }`).
+
+### Test containment against the card's PADDING box
+
+A `scrollWidth > clientWidth` check asks whether an element overflows **itself**,
+which is not the question — a figure or a chart can sit entirely inside its own
+box while hanging out of the card. Walk every width and compare each child's
+rect against its card's padding box. That is what caught the sparkline leaking
+(it carried `width={72}` as an SVG attribute, so it stayed 72px however narrow
+the tile got) and `Rs 14,386,211` escaping at 440px.
+
+### Texture: nothing smaller than the thing it sits on
+
+`.fuel-band` was first built with fractal grain and 1px 45° hairlines —
+genuinely "grainy" and "patterned", and it hurt to look at. **Both are
+high-frequency detail**, at the scale of a pixel or two: on a cheap tablet
+that shimmers while scrolling, can moiré against the screen's pixel grid, and
+gives a 40-plus eye something to keep trying to focus on that is not there.
+This app's whole type and contrast floor exists for that reader.
+
+Everything in it is now a wide soft wash measured in hundreds of pixels — a
+sheen, a falloff, one ~300px diagonal sweep — plus a 1px bevel, which is an
+edge read once rather than a field to scan.
+
+**Depth comes from stacking shadows, not enlarging one.** `.unit-card` uses
+four: a 1px contact shadow where the object meets the page, a mid shadow for
+the body of the lift, a wide ambient one, and a white hairline inset along the
+top edge as the highlight on its upper lip. The eye reads the combination as
+height and any single one as a blur. Only the Readings unit is lifted this
+far — if everything were raised, nothing would read as raised.

@@ -3646,3 +3646,95 @@ over an `ink-100` page goes grey and dead.
 **The colours did not change** and have not changed through any of this:
 diesel's orange and petrol's blue, flat `solid`, straight from
 `fuel-colors.js`. Every layer added here is white or black at a low alpha.
+
+---
+
+# Porting this round to the offline (Electron) build
+
+The desktop build tracks this repo. This section is the catch-up list for it —
+everything from the redesign round, sorted by what a port actually has to do
+with it, rather than by the order it happened in.
+
+## 1. Database — two migrations, both function-only
+
+**Neither changes a table.** Both widen the return of an existing read
+function, so an older client talking to a newer database just receives a field
+it ignores. If the desktop build ships its own Postgres, run these against it;
+if it reimplements the queries in SQLite or similar, mirror the two extra
+columns.
+
+| Migration | Change |
+|---|---|
+| `042_customer_phone_on_the_list.sql` | `get_customer_balances`, `get_retired_customers` → add `phone` |
+| `043_lubricant_trend_cash_and_credit.sql` | `get_lubricant_trend` → add `cash_amount`, `credit_amount` |
+
+**Both DROP and recreate rather than `ALTER`.** Postgres will not change a
+function's return type in place — `create or replace` fails with "cannot
+change return type of existing function" — and **dropping a function takes its
+grants with it**, so the `revoke`/`grant` pair is restated underneath each
+one. Leaving those out ships a function every signed-in user is refused by.
+
+Both are applied to the live Supabase project. Neither backfills anything;
+`customers.phone` has existed since `001` and `lubricant_sales.cash_amount` /
+`credit_amount` since `024` — the data was always there and simply never came
+back out.
+
+## 2. New shared files
+
+| File | Purpose |
+|---|---|
+| `_components/ui/Sparkline.js` | `'use client'`. SVG trend line + hover readout |
+| `_components/ui/DeltaBadge.js` | Percent pill; server component |
+| `_components/admin/CustomerSearch.js` | `'use client'`. Debounced query-string search |
+
+## 3. Changed shared files — these reach every page
+
+- **`_styles/globals.css`** — `.card` shadow and radius; new `.fuel-band` and
+  `.unit-card`.
+- **`_components/admin/AdminStats.js`** — `StatTile` rebuilt (icon beside
+  label, figure, optional `spark`/`sparkTips`/`delta`, then `sub`);
+  `RING_COLORS` → `ACCENT_COLORS` + `SPARK_COLORS`; `ringTone` → `accentTone`;
+  grid and type thresholds moved to `@[32rem]` / `@[54rem]` / `@[62rem]`.
+- **`_lib/fuel-colors.js`** — new `tint` token (background only).
+- **`_lib/customer-avatar.js`** — `customerInitials()` (first two words) and
+  `customerAvatar()`; `customerInitial()` kept for anything still on one
+  letter.
+- **`_lib/data-service.js`** — `getPurchaseTotalsByDay`,
+  `getExpenseTotalsByDay`.
+
+**`StatTile` is on eight pages and `.card` on nearly every block**, so those
+two are the whole-app blast radius. If the desktop build has diverged in
+either, reconcile them before the page-level changes.
+
+## 4. Page changes
+
+| Page | Change |
+|---|---|
+| Dashboard | Sparklines + day-over-day badges on all four tiles; empty-day messages |
+| Customers | Ruled table, initials avatars, phone column, search, Add moved into the table header, over-limit tile removed |
+| Reports → Register | Preview banner removed; default range ends **today**; fuel cards get sparklines; money tiles get sparklines + prior-period badges |
+| Readings | Nozzle cards two-across; unit band = Stock page tank colour + `.fuel-band`; entered nozzle wears its fuel's `tint`; `.unit-card` depth |
+| Company Assets | Category icons coloured (teal / violet / brand / fuchsia / slate) |
+
+## 5. The rules worth carrying over, not just the diffs
+
+If the desktop build only takes one thing from this round, take these — each
+was learned by getting it wrong first, and each is written up in full in
+`docs/UI_CONVENTIONS.md`:
+
+- **Check a chrome colour against `fuel-colors.js` by HUE before saturating
+  it.** `amber-600` is 33°, diesel's swatch is 27°. Six degrees is not a
+  distinction. Caught twice in one sitting — once as a filled ring, once as a
+  sparkline — because the second felt too small to matter.
+- **The test is AREA, not size.** A 16px amber glyph is fine; a 72×34px amber
+  sparkline is more of the hue than the filled circle already rejected.
+- **Test containment against the card's PADDING box.** `scrollWidth` asks
+  whether an element overflows *itself*, which is not the question.
+- **Decoration yields; the figure never does.** Money is `whitespace-nowrap`
+  and cannot shrink, so the sparkline hides instead.
+- **Nothing textured smaller than the thing it sits on.** High-frequency grain
+  shimmers on a tablet and tires a 40-plus eye.
+- **Depth is stacked shadows, not one big one.**
+- **When a helper derives something from user data, test it on the user's
+  data.** The initials helper passed every fixture and produced "A5" for a real
+  customer.

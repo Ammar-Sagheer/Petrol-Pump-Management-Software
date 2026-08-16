@@ -231,6 +231,58 @@ Two hues it may never spend, in any app of this shape:
 Pale ground, dark glyph. A saturated fill puts the decoration above the figure,
 which is the one thing on the card that has to lead.
 
+## Decoration yields; the figure never does
+
+A sparkline, a chart, an icon — anything decorative on a tile shares its width
+with a number that cannot shrink. Money is `nowrap` (a figure breaking after
+the currency reads for a moment as two figures), so when they do not both fit
+it is the decoration that hides. **Never let decoration be the reason a figure
+cannot be read.**
+
+Two measurement traps behind that, both hit for real:
+
+- **Test containment against the card's PADDING box, not `scrollWidth`.**
+  `scrollWidth > clientWidth` asks whether an element overflows *itself*,
+  which is not the question — a figure can sit entirely inside its own box
+  while hanging out of the card. Walk every width in steps and compare each
+  child's rect against its card's padding box.
+- **An SVG with a `width` attribute does not shrink.** Size charts with a
+  class and let the viewBox scale, or the thing pushes out through the card's
+  edge on a narrow tile.
+
+## A change against nothing is not a percentage
+
+A zero baseline and an absent one usually arrive identically from a summary
+query, and "rose from nothing" and "there is no earlier period" are different
+sentences. Given the choice between a label that is sometimes wrong and no
+label, **show no comparison** — the figure it sits under is unaffected and
+still true. "+100%" is an invention, not a measurement.
+
+And keep two axes apart on any delta: **the arrow is direction, the colour is
+whether it is good news.** Expenses up is an up arrow and a red pill. Colouring
+by direction alone paints "expenses rose 40%" the same green as "sales rose
+40%", which is the one mistake a money app cannot make.
+
+## Texture: nothing smaller than the thing it sits on
+
+High-frequency detail — noise, 1px hairlines — shimmers as a panel scrolls on
+a cheap screen, can moiré against the pixel grid, and gives an older eye
+something to keep trying to focus on that is not there. If a surface wants
+depth, use washes measured in hundreds of pixels, and keep the only fine
+detail on the *edge*, where it is read once instead of scanned.
+
+**Depth is stacked shadows, not one big one**: a tight contact shadow, a mid
+one for the body of the lift, a wide ambient one, and a light hairline inset
+along the top edge. The eye reads the combination as height and any single one
+as a blur. Lift one thing on a page, not everything.
+
+## Derive from user data? Test on the user's data
+
+A helper that turns a name into initials, or a label into a code, will pass
+every fixture you invent and still be wrong, because real records carry things
+fixtures do not — ledger numbers, trailing codes, punctuation. One real list
+found in a moment what careful reasoning about the algorithm did not.
+
 ## The day on screen is stated once, and loudly
 
 On any page scoped to a date: one tinted banner carrying the weekday, the
