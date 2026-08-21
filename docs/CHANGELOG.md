@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **041**.
+logins, one pump. Migrations run to **045**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -3852,3 +3852,130 @@ Verified by counting rendered sparklines at 1120px, 900px, 560px and 400px —
 twelve at every width, where the narrow ones previously rendered none — and by
 looking at each, because a count of twelve would also be satisfied by twelve
 charts squashed into unreadable slivers.
+
+## Treasury: the cash in the safe on site
+
+The owner keeps cash on the pump site, in notes, in a safe — the day's takings
+before they are banked, money lent to people and taken back, cash handed to a
+supplier against a purchase code, and a float for whatever needs paying that
+hour. **None of it is in the banking system**, so nothing in this app knew
+about it. The record was an Excel sheet called "Tajori" with five columns —
+Date, Cash In, Cash out, Balance, Details — and a balance nobody could check
+without opening the file.
+
+`/admin/treasury` is that sheet, owner-only, with the real 36 entries from
+14–21 Aug 2026 seeded in (migrations 044, 045). The closing balance on screen
+is **Rs 8,364**, which is the figure at the bottom of his own Balance column;
+every intermediate balance was checked against the spreadsheet row by row
+before this shipped, and the seed migration asserts the total and rolls itself
+back if it does not match.
+
+### Standalone, on purpose
+
+Nothing else in the app writes here and nothing reads from it. "Cash of shift
+closing" is typed by hand even though Readings knows the day's cash figure, and
+cash deposited into a bank is typed into Banking separately. That was the
+owner's call and it is the right one for a first cut: **the safe is reconciled
+against notes in a drawer, not against another screen**, so an entry that
+appeared in it by itself would be an entry nobody counted. The obvious next
+step — offering a one-click "Cash of shift closing" when a day's readings are
+saved — is deliberately not built yet.
+
+### What the database enforces
+
+- **The safe may never hold less than nothing**, judged over the *whole chain*
+  rather than one balance. An entry inserted or deleted in the middle moves
+  every balance after it, so a row that is fine where it lands can still push a
+  later day below zero — and deleting an early cash-in is refused for the same
+  reason. It is a **deferred constraint trigger**, so a multi-row change is
+  judged on where it leaves the sheet, not on each row as it lands. The message
+  names the line it breaks on: _"On 17 Aug 2026, after "PSO Zamzam PS 118014"
+  (Rs 1,593,990 out), the safe would be at minus Rs 812,080."_
+- **One opening entry, ever** — "Already in the safe" is a single moment, and a
+  second one always means a miscategorised cash-in.
+- **A category belongs to one direction.** "Deposited in a bank" is not a way
+  cash arrives; "Cash of shift closing" is not a way it leaves.
+
+Both of the last two surface as raw Postgres constraint names, so `describe()`
+in `actions.js` maps them; the balance rule raises its own sentence and needs
+no entry there.
+
+### Order without times
+
+Two entries on one day have no clock reading behind them — the owner writes a
+line when the cash moves. So `seq` (an identity column) is the sheet's row
+order, and the chain is ordered `(entry_date, seq)` everywhere: in the view, in
+the balance rule, and on screen. A back-dated entry lands at the end of its own
+date, which is the only honest place for it. `created_at` could not do this
+job: a line typed in later for the same day would sort by when it was *typed*.
+
+The running balance is a window function in the `treasury_ledger` view, not
+JavaScript — the page shows 25 rows at a time and a balance worked out from the
+rows on screen would be the balance of a page rather than of the safe.
+
+### Two things the DOM check did not catch, and a screenshot did
+
+Both are the failure CLAUDE.md warns about: `hasScroll: false` and "no clipped
+text" while the screen is wrong.
+
+**The form beside the table hid the balance column.** Built first as a standing
+form in the 22rem column — right for a page opened five or six times a day to
+write a line — the six-column table got 504px of the 736px it needs, and the
+**Balance column was off the right-hand edge**, inside the table's own
+scroller. That is the one column the page exists to show. The form moved behind
+a dialog and the table took the full width, which is what "Layout: form beside
+a table" already said to do, and what Readings arrived at independently.
+
+**Then the pinned balance lost its last digit.** Pinning the balance right
+(the register's pattern) needs `right: <width of everything right of it>`, and
+the delete button's column is 3rem of button *plus* `.td` padding — 68px, not
+the 3rem it was offset by. Every figure was painted 8px under the action
+column: `Rs 1,781,910` lost its last digit on a phone, and the text was not
+overflowing its own box so nothing measured it. **The balance and the delete
+button now share one pinned cell at `right: 0`**, which has no offset to get
+wrong — and which also keeps the button reachable, since a balance pinned
+alone at `right: 0` would sit over it at every scroll position.
+
+Only the right-hand end is pinned; the date scrolls. The register pins both
+ends, but its middle is eight columns and this one's is four — two pinned ends
+would leave ~140px of scrollport at 400px, which is the "the pinned columns are
+very nearly the whole table" failure the register recorded, reached from the
+other direction.
+
+### A hand-drawn icon, the first since the set moved to Material UI
+
+Material UI has no safe. Every money glyph it offers says the opposite of what
+this page means or says nothing: `Savings` is a piggy bank (the owner's verdict
+was immediate), `Lock` reads as security settings in a list of nav items,
+`Payments` is a stack of notes sitting one row under `AccountBalance` saying
+much the same thing. So `treasury` is drawn in `Icon.js` — a box on feet with a
+combination dial and a handle — and registered there like any other name, so
+call sites are unchanged.
+
+**Four marks, not six, and that was measured.** The first draft drew the door
+as a second rectangle inside the body with a small dial on it; at 16px the two
+nested rectangles closed up and read as a little screen or a banknote — exactly
+the confusion the icon exists to avoid. Dropping the inner rectangle and making
+the dial big enough to be seen as a dial is what makes it legible small. Four
+variants were rendered side by side at 16/20/24/48px before choosing.
+
+### Smaller notes
+
+- The stat tile's ring for `treasury` is **teal**, the "things the pump holds"
+  group — cash in a safe is a level in a container, like fuel in a tank, not
+  money arriving. The two movement tiles beside it use `moneyIn` / `moneyOut`
+  and keep green and amber.
+- The chart is one `ComposedChart`: bars for the day's movements in the app's
+  validated green/violet pair, and the closing balance as a **slate line**,
+  deliberately not a third hue — it is the level the two movements add up to,
+  not a third kind of movement. One Y axis, because both are rupees.
+- `CategoryBreakdown` gained an optional `title`; Treasury renders two of them,
+  "Where it came from" and "Where it went", and one heading could not serve
+  both. Expenses is untouched.
+- The category picker is a `<select>`, which is the convention rather than an
+  exception to it — tiles are for options with an obvious symbol, and "Cash of
+  shift closing", "Entry" and "Money returned" have none.
+- The daily series **carries the balance forward** across days with nothing
+  recorded. A safe with nothing happening to it still holds what it held
+  yesterday; a line dropping to zero on a quiet Sunday would be a lie told by a
+  gap.

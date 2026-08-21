@@ -6,6 +6,62 @@ import PropaneTankOutlined from '@mui/icons-material/PropaneTankOutlined';
 import GroupOutlined from '@mui/icons-material/GroupOutlined';
 import AccountBalanceOutlined from '@mui/icons-material/AccountBalanceOutlined';
 import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
+
+/**
+ * A strongbox: the one icon in this set that is drawn here rather than
+ * imported, because Material UI does not have it.
+ *
+ * The Treasury page is about cash locked in a safe ON SITE, and the whole
+ * point of it is that this money is NOT in the banking system. Every money
+ * glyph MUI offers says the opposite or says nothing: `Savings` is a piggy
+ * bank (childlike, and the owner's verdict on it was immediate), `Lock` is a
+ * padlock that says "security settings" in a list of nav items, `Payments` is
+ * a stack of notes that would sit one row under `AccountBalance` saying much
+ * the same thing, and `Shield`, `Toll` and `PointOfSale` are none of it.
+ *
+ * So: a box on feet, with a combination dial and a handle. It is a SHAPE
+ * first - a squat rectangle among a column of round and pointed glyphs -
+ * which is what has to survive at 20px in a dim office, and it is the shape of
+ * the thing itself.
+ *
+ * FOUR MARKS, NOT SIX, and that was measured rather than guessed. The first
+ * draft drew the door as a second rectangle inside the body with a small dial
+ * on it, and rendered at 16px the two nested rectangles closed up and read as
+ * a little screen or a banknote - which is exactly the confusion the icon
+ * exists to avoid, sitting one row under Banking. Dropping the inner
+ * rectangle and making the dial big enough to be seen as a dial is what makes
+ * it legible small: body, dial, handle, feet.
+ *
+ * Drawn as strokes rather than MUI's filled outlines because at this size a
+ * dial drawn as a fill is a dot. `vectorEffect` is deliberately NOT set: the
+ * icon is only ever rendered at 16-24px, so the stroke does not need to resist
+ * scaling, and leaving it off keeps the weight matched to the imported set at
+ * the sizes actually used.
+ *
+ * It takes the same props MUI's icons take, so `Icon` treats it identically -
+ * that is the contract COMPONENTS below depends on.
+ */
+function TreasurySafeOutlined(props) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      {/* The body. */}
+      <rect x="3" y="4" width="18" height="15" rx="2" />
+      {/* The combination dial, and the handle beside it. */}
+      <circle cx="10.5" cy="11.5" r="3" />
+      <path d="M15 11.5h2.5" />
+      {/* Feet, so it reads as standing on the floor rather than hanging. */}
+      <path d="M6.5 19v1.5M17.5 19v1.5" />
+    </svg>
+  );
+}
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
@@ -86,6 +142,9 @@ const COMPONENTS = {
   customers: GroupOutlined,
   // Banking: the pillared front of a bank.
   banking: AccountBalanceOutlined,
+  // Treasury: a strongbox. Hand-drawn above - see the note there for why this
+  // one is not a Material UI import.
+  treasury: TreasurySafeOutlined,
   // Expenses: a wallet - money going out.
   expenses: AccountBalanceWalletOutlined,
   // Reports: a bar chart.

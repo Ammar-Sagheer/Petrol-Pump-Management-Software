@@ -80,6 +80,7 @@ Fuel prices** and set petrol and diesel.
 | See sales totals, profit, reports | yes | **no** |
 | Record and see expenses | yes | **no** |
 | See the bank accounts and their balances | yes | **no** |
+| See and record the cash in the safe (Treasury) | yes | **no** |
 | See and manage company assets | yes | **no** |
 | Change prices, tanks, nozzles | yes | **no** |
 | Add or remove a lubricant from the shelf | yes | **no** |
@@ -121,6 +122,29 @@ the lubricant shelf, both sit under **Stock**.
 Every screen with a date has arrows either side of a date box; picking a date in
 the box goes straight to that day. If a day was entered against the wrong date,
 the owner can wipe it with **Clear this day** on Readings and type it again.
+
+### The safe on site
+
+Separate from all of the above, and owner-only: **Treasury** is the cash
+physically kept in the safe at the pump — the day's takings before they are
+banked, money lent to people and taken back, cash handed to a supplier against
+a purchase code, and a float for whatever needs paying that hour. None of it is
+in the banking system, which is exactly why it has its own page rather than a
+tab on Banking.
+
+It is the owner's own "Tajori" spreadsheet, in the app: one line per movement,
+in the order it happened, with a running balance beside each. **Press Record
+cash**, say whether it came in or went out, type the amount, pick what it was
+for, and add the same free-text detail he would have typed in the sheet
+("Munir sb by Hamza saqib", "Zamzam code transfer 118014"). The reasons are a
+fixed list per direction so a month's cash can be broken down without anyone
+reading thirty lines of prose.
+
+**Nothing else in the app writes to it or reads from it**, deliberately. The
+day's cash is entered here by hand even though Readings already knows the
+figure, because the safe is reconciled against the notes in the drawer, not
+against another screen — an entry that appeared in it by itself would be an
+entry nobody counted.
 
 ---
 
@@ -209,6 +233,18 @@ amount of application code can get around them.
   moment; an evening dip on the 10th and a morning dip on the 11th measure the
   same one, and counting both would double a month's gain or loss.
 - **A tank cannot be given more opening stock than it holds.**
+- **The safe may never hold less than nothing.** The treasury's running
+  balance is checked over the *whole chain*, not just at the end: an entry
+  added or removed in the middle moves every balance after it, so a row that
+  is fine where it lands can still push a later day below zero, and deleting
+  an early cash-in is refused for the same reason. The message names the line
+  it breaks on and how far short it falls. A *future* date is allowed — there
+  is nothing dishonest about one — but the app warns before saving it.
+- **The safe has one opening entry, ever.** "Already in the safe" is the single
+  moment before the sheet started; a second one is always a miscategorised
+  cash-in.
+- **A treasury category belongs to one direction.** "Deposited in a bank" is
+  not a way cash arrives, and "Cash of shift closing" is not a way it leaves.
 - **No bank account may go below zero** — checked per account, not across the
   total. A payment too large for one account is split across the others the
   owner picks, computed in the database from real balances.
@@ -304,6 +340,7 @@ app/
     stock-checks/          dip readings, gain/loss, and lubricant stock
     customers/             list and [id] detail with ledger; adding is a dialog
     banking/               the owner's bank accounts - owner only
+    treasury/              the cash in the safe on site - owner only
     expenses/              what the pump spends, by month - owner only
     company-assets/        what the pump has bought and kept - owner only
     reports/               monthly profit, charts, Excel export
@@ -480,6 +517,8 @@ Applied in order:
 | `041_stock_register.sql` | The Daily Sale & Stock Register — a day-by-day row per tank with sales and gain/loss accumulated across a chosen run of days — and profit over an arbitrary run of days rather than a whole month |
 | `042_customer_phone_on_the_list.sql` | `get_customer_balances` and `get_retired_customers` return `phone`. No schema change — the column has existed since 001 and the dialog always wrote to it; nothing ever read it back |
 | `043_lubricant_trend_cash_and_credit.sql` | `get_lubricant_trend` returns the per-day cash/credit split. No schema change — `lubricant_sales` has carried both columns since 024 |
+| `044_treasury.sql` | Treasury: the cash in the safe on site. `treasury_entries` ordered by `(entry_date, seq)`, a `treasury_ledger` view carrying the running balance as a window function, a **deferred** constraint trigger refusing anything that drives that balance below zero at any point in the chain, one-opening-entry and category-fits-direction constraints, owner-only RLS, and an eighteenth table on the activity-log trigger |
+| `045_treasury_opening_entries.sql` | The owner's Tajori sheet as it stood on 21 Aug 2026 — 36 movements over eight days, closing at Rs 8,364. Asserts that total at the end and rolls itself back if the rows do not add up to it |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

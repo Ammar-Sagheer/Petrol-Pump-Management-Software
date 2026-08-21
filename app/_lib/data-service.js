@@ -751,3 +751,66 @@ export async function getCompanyAssetsSummary() {
     }
   );
 }
+
+// ---------------------------------------------------------------------------
+// Treasury
+//
+// The cash in the safe on the pump site - the owner's "Tajori" sheet. Owner
+// only; the RLS policy on treasury_entries refuses a data_entry caller
+// outright, so these throw rather than quietly returning nothing for staff.
+// See migration 044.
+// ---------------------------------------------------------------------------
+
+/**
+ * The balance, the lifetime totals, and the day-by-day series behind the
+ * chart, in one call.
+ *
+ * Straight through to the RPC rather than summed here, so the figure in the
+ * tile, the point the chart ends on and the balance on the last row of the
+ * table are all the same arithmetic done once. `p_days` only moves the window
+ * figures - the balance is the balance.
+ */
+export async function getTreasuryOverview(days = 30) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('treasury_overview', { p_days: days });
+
+  if (error) {
+    throw new Error(`Could not load the treasury summary: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * One page of the sheet, newest first, plus how many entries there are.
+ *
+ * Read from `treasury_ledger` rather than the table, because the running
+ * balance is the whole point of the row and it has to be computed over every
+ * entry rather than over the twenty-five on screen. `count: 'exact'` rides
+ * along on the same request - the pager needs the total and asking separately
+ * would be a second round trip for a number the database already has.
+ *
+ * Newest first on screen; the balance behind each row is still the balance
+ * after it in real (oldest-first) order, which is what the view guarantees.
+ */
+export async function getTreasuryLedgerPage({ page = 1, perPage = 25, category = null } = {}) {
+  const supabase = await createClient();
+  const from = (page - 1) * perPage;
+
+  let query = supabase
+    .from('treasury_ledger')
+    .select('*', { count: 'exact' })
+    .order('entry_date', { ascending: false })
+    .order('seq', { ascending: false })
+    .range(from, from + perPage - 1);
+
+  if (category) query = query.eq('category', category);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    throw new Error(`Could not load the treasury entries: ${error.message}`);
+  }
+
+  return { entries: data ?? [], total: count ?? 0 };
+}

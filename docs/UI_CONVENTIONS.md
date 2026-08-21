@@ -2099,3 +2099,90 @@ the body of the lift, a wide ambient one, and a white hairline inset along the
 top edge as the highlight on its upper lip. The eye reads the combination as
 height and any single one as a blur. Only the Readings unit is lifted this
 far — if everything were raised, nothing would read as raised.
+
+## Pinning one end, and why a pinned pair shares a cell
+
+"A table too wide to read: pin the ends, scroll the middle" (above) is the
+pattern; the Treasury table is the second table to use it and it deviates
+twice, both times for a reason worth copying.
+
+**Pin one end when the middle is narrow.** The register pins both ends because
+its middle is eight columns. Treasury's middle is four, and at 400px a second
+pinned column leaves about 140px of scrollport for a reason, an amount in and
+an amount out — which is the register's own "at 400px the pinned columns are
+very nearly the whole table" failure, reached from the other direction. So the
+balance end is pinned and the date scrolls: the balance is what the page exists
+to show, and the date is the first thing on screen at rest anyway.
+
+**A pinned figure and its row action share ONE cell.** As two pinned cells the
+outer one needs `right: <the width of everything to its right>`, and that
+number is easy to get wrong — the action column is 3rem of button *plus* the
+`.td` padding, so it renders at 68px, and offsetting the balance by `3rem`
+painted the last 8px of every figure underneath it. `Rs 1,781,910` lost its
+last digit on a phone. **The DOM check reported nothing**, because the text was
+not overflowing its own box; another cell was simply on top of it.
+
+One cell at `right: 0` has no offset to get wrong:
+
+```jsx
+const PIN_RIGHT = 'pinned pinned-right';
+const BALANCE_PIN = { right: 0, width: '11rem', minWidth: '11rem', backgroundColor: '#fff' };
+…
+<td className={`td-num ${PIN_RIGHT}`} style={BALANCE_PIN}>
+  <span className="flex items-center justify-end gap-1">
+    <span className="font-bold">{formatPKR(balanceAfter)}</span>
+    <DeleteEntryButton … />
+  </span>
+</td>
+```
+
+It is also the only arrangement where the button stays reachable: a balance
+pinned alone at `right: 0` sits over the action column at every scroll
+position, and the button can never be tapped.
+
+Still true from the register: `.pinned` carries the stacking and
+`.pinned-right` carries the edge shadow, so only the leftmost cell of a pinned
+group gets the shadow; the cell must be opaque; and `.has-pinned-columns` goes
+beside `.table-scroll`.
+
+## An icon the set does not have is drawn IN `Icon.js`, not inline
+
+The set is Material UI throughout and "adding a name means adding an import and
+a line in `COMPONENTS`". `treasury` is the first exception and it stays inside
+that contract: it is a local component in `Icon.js`, registered under a name
+like any other, so every call site is still `<Icon name="treasury" … />` and
+swapping it later costs that file only. **A one-off inline SVG at a call site
+is still wrong** — that rule (under "Icons" above) is untouched.
+
+Reach for this only when nothing in the package means the thing. Treasury did:
+the page is about cash that is deliberately **not** in the banking system, and
+`Savings` is a piggy bank, `Lock` reads as security settings among nav items,
+`Payments` is a note stack sitting one row under `AccountBalance`.
+
+Two things a drawn icon owes the set:
+
+- **Take the same props MUI's icons take** (spread `...props` onto the `<svg>`)
+  so `Icon`'s sizing wrapper treats it identically.
+- **Be designed at the size it is read, and rendered to check.** Four variants
+  of this one were laid out at 16 / 20 / 24 / 48px before choosing. The first
+  draft had six marks — a body, an inner door rectangle, a small dial, a
+  handle and two feet — and at 16px the nested rectangles closed up into
+  something that read as a screen or a banknote. Four marks (body, a dial big
+  enough to read as a dial, handle, feet) survive. Strokes rather than MUI's
+  filled outlines, because a small dial drawn as a fill is a dot.
+
+## The `<select>` side of the category question
+
+"Picking one of a handful of categories: icon tiles, not a dropdown" (above)
+names the test — tiles when every option has an obvious symbol, `<select>` when
+they do not. `TreasuryEntryForm` is the worked example of the second half:
+"Cash of shift closing", "Entry", "Money returned" and "Already in the safe"
+have no symbols between them, and as tiles they would be five identical boxes
+with a generic glyph in each.
+
+What replaces the icon is a **hint line under the select that changes with the
+choice** ("Cash carried into the office during the day"), so the reader can
+check they picked the one they meant without knowing the list by heart. The
+list itself is `{ value, label, hint }` in `app/_lib/treasury-categories.js` —
+a plain data module outside the client boundary, same rule as
+`asset-categories.js`.
