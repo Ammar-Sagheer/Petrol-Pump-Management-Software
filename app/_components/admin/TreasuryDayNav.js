@@ -64,7 +64,7 @@ export default function TreasuryDayNav({
         {/* `carried` is the chart's window. Without it, stepping a day would
             silently reset the chart to its default - the same reason DateNav
             carries extraParams through its own arrows. */}
-        <DateJump date={day} basePath="/admin/treasury" extraParams={carried} />
+        <DateJump date={day} basePath="/admin/treasury" extraParams={carried} scroll={false} />
 
         <DayLink
           href={nextDay ? hrefForDay(nextDay) : null}
@@ -94,7 +94,20 @@ function DayLink({ href, label, children }) {
   }
 
   return (
-    <Button variant="secondary" href={href} pending aria-label={label}>
+    /*
+     * STAY WHERE THE READER IS. A Link resets the scroll to the top by
+     * default, which is right when the whole page changes and wrong here: the
+     * sheet is the last thing on this page, so stepping a day threw the reader
+     * back up past the tiles, the chart and both breakdowns to look at a table
+     * they were already looking at. Same reasoning, and the same one-word fix,
+     * as <TrendRange> above the chart.
+     *
+     * `scroll` is not a prop `Button` knows about; MUI forwards what it does
+     * not recognise to the component it renders as, which here is PendingLink,
+     * which spreads onto Next's Link, which consumes it. It never reaches the
+     * DOM, so there is no unknown-attribute warning.
+     */
+    <Button variant="secondary" href={href} pending scroll={false} aria-label={label}>
       {children}
     </Button>
   );

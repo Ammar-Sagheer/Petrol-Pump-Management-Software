@@ -2274,3 +2274,30 @@ Here that was 190px for "Fuel or code transfer" on one line, 146px for the
 widest In with its arrow, 164px for the widest Out, and a fixed 176px for the
 pinned balance block — **676px, so 43rem**. Note the icon inside a money cell
 counts, and a fixed pinned column counts at its declared width, not its text's.
+
+## Which navigations keep the scroll position
+
+`<TrendRange>` documents the rule; Treasury's day arrows and date box are the
+second and third places it applies, so it is worth stating in general terms.
+
+**Scroll to the top when the whole page becomes a different screen** — Readings
+or the Dashboard moving to another day. **Stay put when the control sits below
+the fold and only the block above it changes** — a chart's window, a day step on
+a ledger whose table is the last thing on the page. Getting this wrong sends the
+reader back up past everything to look at the thing they were already looking
+at.
+
+`scroll={false}` on a `<Link>` or `<Button href>`, and `router.push(url, {
+scroll: false })` for a programmatic one. A shared component that navigates
+should take it as a **prop defaulting to the behaviour its existing callers
+already have** rather than switching them all — `<DateJump>` defaults to
+`scroll: true` and Treasury passes `false`.
+
+`scroll` passes cleanly through `<Button href pending>`: MUI forwards props it
+does not recognise to the component it renders as, which is `<PendingLink>`,
+which spreads onto Next's `Link`, which consumes it. It never reaches the DOM.
+
+**Measure it both ways.** A fix that happens to match the default is
+indistinguishable from a working one if you only test after applying it. Record
+`window.scrollY` before and after the click, with the fix and without: here it
+was 479 → 0 without and 479 → 479 with, on all three controls.

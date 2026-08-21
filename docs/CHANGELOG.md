@@ -4121,3 +4121,32 @@ Verified by inserting an entry inside a transaction that then aborts: the log
 row reads *"Cash out of the safe | Rs 4,000 · Given — …"*, `pg_trigger` now
 reports eighteen tables, and afterwards the table still holds its 36 rows and
 Rs 8,364 with no stray log rows left behind.
+
+## Stepping a day stopped throwing the reader to the top
+
+Reported: pressing Earlier or Later on Treasury jumped the page back to the
+top every time. It did — a Next `Link` resets the scroll by default, and the
+sheet is the last thing on that page, so stepping one day threw the reader up
+past the tiles, the chart and both breakdowns to look at a table they were
+already looking at.
+
+`<TrendRange>` hit this first and its fix is one word, so this is the same one
+word in two more places: `scroll={false}` on the day arrows, and a `scroll`
+prop on `<DateJump>` so the date box beside them does not do it either.
+
+`<DateJump>` defaults to `scroll: true`, which is what every existing caller
+had. The rule for which to pass: **scroll to the top when the whole page
+changes** (Readings, the Dashboard — a different day is a different screen),
+**stay put when the control sits at the bottom and only the block above it
+changes**, as here.
+
+Worth noting `scroll` is not a prop `Button` knows about. MUI forwards what it
+does not recognise to the component it renders as — `PendingLink`, which
+spreads onto Next's `Link`, which consumes it. It never reaches the DOM, so
+there is no unknown-attribute warning.
+
+**Measured both ways rather than assumed**, because a fix that is already the
+default behaviour is indistinguishable from a working one if you only test
+after. Without it, `scrollY` went 479 → 0 on Earlier, on Later and on the date
+box. With it, 479 on all three, with the day and the day counter changing
+underneath — and the chart's `days=14` window carried through each.
