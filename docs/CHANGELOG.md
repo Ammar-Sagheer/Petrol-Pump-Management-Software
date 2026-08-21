@@ -4002,3 +4002,32 @@ fixes that too.
 
 Verified at 1152px and 400px: `text-align: left`, `white-space: normal`, no
 horizontal scroll on the panel or the dialog, nothing clipped.
+
+## The treasury chart stops where the entries stop
+
+044 ran the day-by-day window to `greatest(pump_today(), max(entry_date))` and
+carried the balance forward across days with nothing recorded, on the reasoning
+that a safe nobody touched still holds what it held yesterday. That is right
+for a **gap** — a quiet Tuesday between two busy days is a real day the safe sat
+there — and wrong for the **end of the sheet**, where it was also being applied.
+
+The difference is what the last point means. In the middle, a carried-forward
+day is a day that happened and had no movement. At the end it is a day nothing
+has been entered for *yet*, and drawing it says "the safe closed today at
+Rs 8,364" when the truth is "nobody has written today down". With entries to
+21 Aug and a pump day of 22 Aug the chart ran a flat line out to 22/08.
+
+The owner's spreadsheet does carry its last balance past the last entry — a
+spreadsheet needs somewhere to put the formula. The app computes the balance
+from the rows, so it has nothing to gain by inventing a day.
+
+Migration 046 ends the window at the last entry. The carry-forward *inside* the
+window is untouched, because that part was right.
+
+**The two movement tiles read from the same window**, so "the last 14 days" now
+means the fourteen days up to the last entry. Rather than leave a window that
+has quietly stopped moving described as though it had not, they name the day it
+ends on: **"14 days to 21 Aug 2026"**. On a day the sheet is up to date that
+reads as today's date, which is what it is. It costs four words and cannot go
+stale — the general form of a lesson this file already has more than one entry
+about.

@@ -129,6 +129,20 @@ export default async function TreasuryPage({ searchParams }) {
   const windowIn = Number(overview?.window_in ?? 0);
   const windowOut = Number(overview?.window_out ?? 0);
 
+  /*
+   * "14 days to 21 Aug 2026", not "over the last 14 days".
+   *
+   * The window ends at the LAST ENTRY rather than at today (migration 046), so
+   * on any day nothing has been written down yet the two are different dates -
+   * and "the last 14 days" would be describing a window that had quietly
+   * stopped moving. Naming the day it ends on costs four words and cannot go
+   * stale. On a day the sheet is up to date it reads as today's date, which is
+   * what it is.
+   */
+  const windowLabel = overview?.window_to
+    ? `${days} days to ${formatDate(overview.window_to)}`
+    : `Over the last ${days} days`;
+
   /* The window control and the pager share a URL, so each has to carry the
      other's parameter or pressing one would silently reset the other. */
   const hrefWith = (next) => {
@@ -173,13 +187,13 @@ export default async function TreasuryPage({ searchParams }) {
                 icon="moneyIn"
                 label="Cash in"
                 value={formatPKR(windowIn)}
-                sub={`Over the last ${days} days`}
+                sub={windowLabel}
               />
               <StatTile
                 icon="moneyOut"
                 label="Cash out"
                 value={formatPKR(windowOut)}
-                sub={`Over the last ${days} days`}
+                sub={windowLabel}
               />
               <StatTile
                 icon="list"
