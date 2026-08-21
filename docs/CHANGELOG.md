@@ -3979,3 +3979,26 @@ variants were rendered side by side at 16/20/24/48px before choosing.
   recorded. A safe with nothing happening to it still holds what it held
   yesterday; a line dropping to zero on a quiet Sunday would be a lie told by a
   gap.
+
+## A dialog was inheriting the table cell that opened it
+
+Reported from the Treasury page: the delete confirmation came up with its
+explaining sentence right-aligned, unwrapped, running off the panel and
+scrolling sideways inside the dialog — so the line saying *what deleting
+actually does* was half off screen.
+
+`<dialog>` + `showModal()` paints in the top layer, so its position and size
+owe nothing to where it sits in the DOM. **Inherited properties are a different
+matter**, and every `ConfirmAction` renders its dialog inside the table cell its
+trash icon lives in. Treasury's sits in a `.td-num` cell, which is `text-right`
+and `whitespace-nowrap` so the balance beside it cannot break — and the
+confirmation took both.
+
+`Dialog`'s panel now carries `whitespace-normal text-left` as a reset. Fixed
+there rather than at the call site because the panel is what is wrong: a
+modal's typography must not depend on which cell opened it. **Banking's delete
+dialog had been inheriting `text-right` from its own cell all along** and this
+fixes that too.
+
+Verified at 1152px and 400px: `text-align: left`, `white-space: normal`, no
+horizontal scroll on the panel or the dialog, nothing clipped.

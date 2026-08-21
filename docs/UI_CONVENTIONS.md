@@ -2186,3 +2186,29 @@ check they picked the one they meant without knowing the list by heart. The
 list itself is `{ value, label, hint }` in `app/_lib/treasury-categories.js` —
 a plain data module outside the client boundary, same rule as
 `asset-categories.js`.
+
+## A dialog does not inherit the cell that opened it
+
+`<dialog>` + `showModal()` paints in the browser's **top layer**, so nothing
+about where the element sits in the DOM constrains its position or its size.
+That is easy to read as "nothing about where it sits affects it at all", and it
+is not: **inherited properties still come down the DOM ancestry as normal**,
+and every `ConfirmAction` in this app renders its dialog inside the table cell
+its trash icon lives in.
+
+The Treasury ledger is where it finally bit. Its delete trigger sits in a
+`.td-num` cell — `text-right`, and `whitespace-nowrap` so the balance beside it
+cannot break. The confirmation inherited both: the sentence explaining what
+deleting would do was right-aligned, could not wrap, ran off the side of the
+panel and put a **horizontal scrollbar inside the dialog**, with half the
+sentence off screen. Banking's delete dialog had been quietly inheriting
+`text-right` from its own cell for as long as it has existed.
+
+`Dialog`'s panel therefore carries `whitespace-normal text-left` as a **reset**,
+not as styling. Fixed there rather than at the call site because it is the
+panel that is wrong — a modal's typography must not depend on which cell opened
+it. Anything else a cell can pass down (`text-sm`, `uppercase`, `tabular-nums`,
+`leading-*`) is a candidate for the same treatment if it ever shows up.
+
+The general rule: **treat the top layer as isolated for layout and inherited
+for typography.**
