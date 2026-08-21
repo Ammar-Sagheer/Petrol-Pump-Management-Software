@@ -782,35 +782,21 @@ export async function getTreasuryOverview(days = 30) {
 }
 
 /**
- * One page of the sheet, newest first, plus how many entries there are.
+ * One day of the safe's sheet: its entries with running balances, the day's
+ * own opening and closing, and which days sit either side of it.
  *
- * Read from `treasury_ledger` rather than the table, because the running
- * balance is the whole point of the row and it has to be computed over every
- * entry rather than over the twenty-five on screen. `count: 'exact'` rides
- * along on the same request - the pager needs the total and asking separately
- * would be a second round trip for a number the database already has.
- *
- * Newest first on screen; the balance behind each row is still the balance
- * after it in real (oldest-first) order, which is what the view guarantees.
+ * The unit of a page here is a DAY rather than a row count - see migration
+ * 047. `date` may be anything, including a day with no entries; the RPC
+ * resolves it to the nearest day that has some, so this never returns a page
+ * with nothing on it. Pass nothing for the most recent day.
  */
-export async function getTreasuryLedgerPage({ page = 1, perPage = 25, category = null } = {}) {
+export async function getTreasuryDay(date = null) {
   const supabase = await createClient();
-  const from = (page - 1) * perPage;
-
-  let query = supabase
-    .from('treasury_ledger')
-    .select('*', { count: 'exact' })
-    .order('entry_date', { ascending: false })
-    .order('seq', { ascending: false })
-    .range(from, from + perPage - 1);
-
-  if (category) query = query.eq('category', category);
-
-  const { data, error, count } = await query;
+  const { data, error } = await supabase.rpc('treasury_day', { p_date: date });
 
   if (error) {
-    throw new Error(`Could not load the treasury entries: ${error.message}`);
+    throw new Error(`Could not load the treasury day: ${error.message}`);
   }
 
-  return { entries: data ?? [], total: count ?? 0 };
+  return data;
 }

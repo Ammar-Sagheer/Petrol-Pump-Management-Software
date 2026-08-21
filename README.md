@@ -146,6 +146,13 @@ figure, because the safe is reconciled against the notes in the drawer, not
 against another screen — an entry that appeared in it by itself would be an
 entry nobody counted.
 
+**It is read one day at a time.** A page is a day, not a fixed number of rows,
+so the screen holds the three to six lines of one evening with the day's own
+opening and closing figures above them — which is what actually gets checked
+against the notes in the safe. The arrows step to the previous and next days
+that *have* entries, skipping any with nothing on them, and the date box jumps
+straight to a day.
+
 ---
 
 ## What the database will not let you do
@@ -520,6 +527,7 @@ Applied in order:
 | `044_treasury.sql` | Treasury: the cash in the safe on site. `treasury_entries` ordered by `(entry_date, seq)`, a `treasury_ledger` view carrying the running balance as a window function, a **deferred** constraint trigger refusing anything that drives that balance below zero at any point in the chain, one-opening-entry and category-fits-direction constraints, owner-only RLS, and an eighteenth table on the activity-log trigger |
 | `045_treasury_opening_entries.sql` | The owner's Tajori sheet as it stood on 21 Aug 2026 — 36 movements over eight days, closing at Rs 8,364. Asserts that total at the end and rolls itself back if the rows do not add up to it |
 | `046_treasury_series_ends_at_the_last_entry.sql` | The treasury chart stops where the entries stop. 044 ran the window to `pump_today()` and carried the balance forward into it, drawing a flat tail across days nothing had been written down for yet |
+| `047_treasury_a_page_is_a_day.sql` | `treasury_day()` — one day of the sheet per page, addressed by date rather than page number, with the day's own opening and closing and the neighbouring days that HAVE entries, so paging skips days with nothing on them and never lands on an empty page |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

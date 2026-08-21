@@ -4031,3 +4031,62 @@ ends on: **"14 days to 21 Aug 2026"**. On a day the sheet is up to date that
 reads as today's date, which is what it is. It costs four words and cannot go
 stale — the general form of a lesson this file already has more than one entry
 about.
+
+## A treasury page is a day, not 25 rows
+
+25 rows is the app's default page size and it was the wrong unit here. A pump
+writes three to six treasury lines a day, so a 25-row page held four and a bit
+days, **cut mid-day at both ends**, and was tall enough to hit the
+`.table-scroll` 70vh cap — a scrollbar inside a card, inside a page that also
+scrolls. Nothing about "25" means anything to the person reading it.
+
+A day means something: it is the unit the owner counts in, closing the safe on
+an evening and checking that evening's figure against the notes in it.
+Migration 047 adds `treasury_day()`, and the page now shows one day at a time.
+Three things fell out of that:
+
+- **The date column left the table.** Every row on a page shares the date, so
+  it belongs in the heading — which bought back about 110px of width and is why
+  the reason column can afford to scroll on a phone.
+- **The day's own opening and closing are on screen**, with its cash in and
+  cash out. The 25-row view could not show these at all: its rows started and
+  stopped mid-day, so there was no such figure to print. This is the number
+  actually checked against the drawer.
+- **Both scrollbars are gone** at laptop width, on the busiest day the sheet
+  has (17 Aug, seven entries) as well as a typical three-entry one.
+
+**Addressed by date, not by page number.** `?date=2026-08-21` rather than
+`?page=3`, for two reasons. A page index is not stable — back-fill one older
+entry and every page number after it means a different day, so a bookmarked or
+reloaded page 3 quietly becomes page 4's contents. And a date is what the app's
+existing `<DateJump>` box already navigates by, so jumping to a day cost
+nothing new.
+
+**Days with nothing recorded are skipped**, which is the point of paging by day
+rather than stepping a calendar. `prev_day` and `next_day` are the neighbouring
+days that *have* entries, not yesterday and tomorrow, so the arrows never land
+on an empty page. That is deliberately the opposite of the carry-forward the
+chart does inside its window (046): a chart draws a continuous quantity and a
+gap in it is a real day the safe sat there, whereas a page is a thing to read
+and an empty one is a dead end.
+
+**A requested date always resolves to a day that exists** — the nearest at or
+before it, falling back to the earliest. Type a day with nothing on it into the
+date box and the page lands on the nearest real one *and says so*, because a
+page that quietly shows a different day than the one asked for is a page that
+will be misread as the day asked for.
+
+`<TreasuryDayNav>` replaces `<Pager>` here and borrows from both it and
+`<DateNav>`: the disabled-button-not-dead-link rule from the first, the date box
+from the second, and `hrefForDay` so the chart's window survives stepping a day.
+
+### The min-width that looked ample and was not
+
+Dropping the date column, the table's `min-w` came down from 46rem to 36rem —
+which seemed generous for four columns. It was 100px short. Measured, the
+columns need 190px for "Fuel or code transfer" on one line, 146px for the
+widest In with its arrow, 164px for the widest Out, and a fixed 176px for the
+pinned balance block: **676px, not 576px**. The browser took the shortfall out
+of the `whitespace-nowrap` money cells, clipping `Rs 135,000` to `Rs 135,0` and
+breaking the reason column one word to a line on a phone. Now 43rem, from the
+measurement rather than from how roomy four columns sounded.

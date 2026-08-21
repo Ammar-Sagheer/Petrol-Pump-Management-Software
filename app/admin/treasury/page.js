@@ -5,18 +5,18 @@ import {
   formatPKR,
   formatNumber,
 } from '@/app/_lib/helpers';
-import { getTreasuryOverview, getTreasuryLedgerPage } from '@/app/_lib/data-service';
+import { getTreasuryOverview, getTreasuryDay } from '@/app/_lib/data-service';
 import { treasuryCategoryLabel } from '@/app/_lib/treasury-categories';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import EmptyState from '@/app/_components/ui/EmptyState';
 import Icon from '@/app/_components/ui/Icon';
-import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import CategoryBreakdown from '@/app/_components/admin/CategoryBreakdown';
 import TrendRange, { trendDaysFrom } from '@/app/_components/admin/TrendRange';
 import TreasuryBalanceChart from '@/app/_components/admin/TreasuryBalanceChart';
 import TreasuryEntryForm from '@/app/_components/admin/TreasuryEntryForm';
 import DeleteTreasuryEntryButton from '@/app/_components/admin/DeleteTreasuryEntryButton';
+import TreasuryDayNav from '@/app/_components/admin/TreasuryDayNav';
 
 export const metadata = { title: 'Treasury' };
 
@@ -41,10 +41,8 @@ export const metadata = { title: 'Treasury' };
  *
  * Owner only, like Banking and Expenses. This is his own cash.
  */
-const PER_PAGE = 25;
-
 /*
- * THE BALANCE COLUMN IS PINNED, AND THE DATE COLUMN IS NOT.
+ * THE BALANCE COLUMN IS PINNED.
  *
  * `RegisterTable` established the pattern (see "A table too wide to read: pin
  * the ends, scroll the middle" in docs/UI_CONVENTIONS.md) and pins BOTH ends.
@@ -55,10 +53,13 @@ const PER_PAGE = 25;
  * "at 400px the pinned columns are very nearly the whole table" failure the
  * register wrote down, arrived at from the other direction.
  *
- * So the right-hand end is pinned and the date scrolls. The balance is what
- * this page exists to show — it is the column the owner kept the spreadsheet
- * for — and it was off the right-hand edge on a phone before this. The date is
- * the first thing on screen at rest, and the rows are tall and few.
+ * So the right-hand end is pinned and the reason column scrolls. The balance
+ * is what this page exists to show — it is the column the owner kept the
+ * spreadsheet for — and it was off the right-hand edge on a phone before this.
+ *
+ * (The DATE column that used to lead this table is gone entirely: a page is
+ * one day now, so every row shared it and it belonged in the heading. That
+ * bought back about 110px, which is why the middle can afford to scroll.)
  *
  * THE BALANCE AND THE DELETE BUTTON SHARE ONE CELL, and that is not tidiness.
  * As two pinned cells the outer one needs `right: <width of everything right
@@ -91,17 +92,34 @@ export default async function TreasuryPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
 
   const params = await searchParams;
-  const page = pageFrom(params);
   const days = trendDaysFrom(params);
 
-  const [overview, ledger] = await Promise.all([
+  /*
+   * `?date=` picks the day, and anything at all is safe to pass: the RPC
+   * resolves a day with no entries to the nearest one that has some, so the
+   * page can never render an empty table. Only the shape is checked here -
+   * whether that date exists is the database's question, not this one's.
+   */
+  const askedFor = /^\d{4}-\d{2}-\d{2}$/.test(params?.date ?? '') ? params.date : null;
+
+  const [overview, dayPage] = await Promise.all([
     getTreasuryOverview(days),
-    getTreasuryLedgerPage({ page, perPage: PER_PAGE }),
+    getTreasuryDay(askedFor),
   ]);
 
   const balance = Number(overview?.balance ?? 0);
   const daily = overview?.daily ?? [];
-  const { entries, total } = ledger;
+
+  const entries = dayPage?.entries ?? [];
+  const day = dayPage?.day ?? null;
+  const dayOpening = Number(dayPage?.opening ?? 0);
+  const dayIn = Number(dayPage?.cash_in ?? 0);
+  const dayOut = Number(dayPage?.cash_out ?? 0);
+  const dayClosing = Number(dayPage?.closing ?? 0);
+
+  // Asked for one day and landed on another - because the day asked for has
+  // nothing on it. Said out loud rather than silently showing a different day.
+  const landedElsewhere = askedFor !== null && day !== null && askedFor !== day;
 
   /*
    * The sparkline is the safe's closing balance day by day - the same series
@@ -143,14 +161,23 @@ export default async function TreasuryPage({ searchParams }) {
     ? `${days} days to ${formatDate(overview.window_to)}`
     : `Over the last ${days} days`;
 
-  /* The window control and the pager share a URL, so each has to carry the
-     other's parameter or pressing one would silently reset the other. */
-  const hrefWith = (next) => {
-    const query = new URLSearchParams({ page: String(page), days: String(days), ...next });
+  /* The chart's window control and the day being read share a URL, so each has
+     to carry the other's parameter or pressing one would silently reset the
+     other - send the reader back to the newest day for changing the chart to
+     30 days, or redraw the chart for stepping back a day. */
+  const hrefWith = (next = {}) => {
+    // The day currently on screen is the default; anything passed in wins, so
+    // the day arrows can point somewhere else while the chart's window rides
+    // along untouched.
+    const query = new URLSearchParams({
+      days: String(days),
+      ...(day ? { date: day } : {}),
+      ...next,
+    });
     return `/admin/treasury?${query.toString()}`;
   };
 
-  const isEmpty = total === 0 && Number(overview?.entry_count ?? 0) === 0;
+  const isEmpty = Number(overview?.entry_count ?? 0) === 0;
 
   return (
     <>
@@ -244,24 +271,100 @@ export default async function TreasuryPage({ searchParams }) {
             </div>
           ) : null}
 
-          {/* The table gets the whole page. Six columns, three of them money
-              that must not wrap, is more than the 1fr track of a form-beside-a-
-              table split can hold at this app's max-w-6xl cap. */}
+          {/* The table gets the whole page: five columns, three of them money
+              that must not wrap, is more than the 1fr track of a
+              form-beside-a-table split can hold at this app's max-w-6xl cap. */}
           <div>
             <div>
-              <h2 className="section-heading">Entries</h2>
+              {/* The day IS the heading, because the day is the page. Every row
+                  below shares it, which is exactly why it is no longer a
+                  column. */}
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 className="text-lg font-bold text-ink-900">
+                  {day ? formatDate(day) : 'Entries'}
+                </h2>
+                <p className="text-sm text-ink-600">
+                  {entries.length} {entries.length === 1 ? 'entry' : 'entries'} on this day
+                </p>
+              </div>
+
+              {/* Picked a day with nothing on it and landed on the nearest one
+                  that has something. Said out loud - a page that quietly shows
+                  a different day than the one asked for is a page that will be
+                  misread as the day asked for. */}
+              {landedElsewhere ? (
+                <p className="mb-3 rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-700">
+                  Nothing was recorded on{' '}
+                  <span className="font-semibold text-ink-900">{formatDate(askedFor)}</span>. This
+                  is the nearest day before it that has entries.
+                </p>
+              ) : null}
+
+              {/* WHAT THE DAY OPENED AND CLOSED ON, which the 25-row view could
+                  not show at all: its rows started and stopped mid-day, so
+                  there was no such figure to print. It is the number the owner
+                  actually checks - he counts the notes in the safe at the end
+                  of the evening and compares. Opening and closing are the same
+                  ink as the balance column they belong to; the two movements
+                  keep the green and amber they wear everywhere else. */}
+              <dl className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border border-ink-200 bg-white px-3 py-2">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-600">
+                    Opened with
+                  </dt>
+                  <dd className="tabular whitespace-nowrap text-base font-bold text-ink-900">
+                    {formatPKR(dayOpening)}
+                  </dd>
+                </div>
+                <div className="rounded-lg bg-brand-50 px-3 py-2">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-brand-800">
+                    Cash in
+                  </dt>
+                  <dd className="tabular whitespace-nowrap text-base font-bold text-brand-700">
+                    {formatPKR(dayIn)}
+                  </dd>
+                </div>
+                <div className="rounded-lg bg-amber-50 px-3 py-2">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+                    Cash out
+                  </dt>
+                  <dd className="tabular whitespace-nowrap text-base font-bold text-amber-800">
+                    {formatPKR(dayOut)}
+                  </dd>
+                </div>
+                <div className="rounded-lg border border-ink-300 bg-ink-50 px-3 py-2">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-700">
+                    Closed at
+                  </dt>
+                  <dd
+                    className={`tabular whitespace-nowrap text-base font-bold ${
+                      dayClosing < 0 ? 'text-red-700' : 'text-ink-900'
+                    }`}
+                  >
+                    {formatPKR(dayClosing)}
+                  </dd>
+                </div>
+              </dl>
 
               {entries.length === 0 ? (
                 <EmptyState
-                  title="Nothing on this page"
-                  description="Go back a page, or record the first entry using the form."
+                  title="Nothing recorded on this day"
+                  description="Use Record cash to add the first entry."
                 />
               ) : (
+                /* 43rem is the sum of what the four columns actually need,
+                   measured rather than guessed: "Fuel or code transfer" on one
+                   line is 190px, the widest In is 146px with its arrow, the
+                   widest Out 164px, and the pinned balance block is a fixed
+                   176px. At 36rem - which looked ample, since the date column
+                   had just left - the total fell 100px short of that and the
+                   browser took it out of the nowrap money cells, clipping
+                   "Rs 135,000" to "Rs 135,0" and breaking the reason column one
+                   word to a line on a phone. */
                 <div className="card table-scroll has-pinned-columns">
-                  <table className="w-full min-w-[46rem]">
+                  <table className="w-full min-w-[43rem]">
                     <thead className="border-b border-ink-200 bg-ink-50">
                       <tr>
-                        <th className="th">Date</th>
                         <th className="th">What for</th>
                         <th className="th text-right">In</th>
                         <th className="th text-right">Out</th>
@@ -278,7 +381,6 @@ export default async function TreasuryPage({ searchParams }) {
 
                         return (
                           <tr key={entry.id}>
-                            <td className="td whitespace-nowrap">{formatDate(entry.entry_date)}</td>
                             <td className="td">
                               <span>{label}</span>
                               {/* The owner's own words, under the reason he
@@ -343,12 +445,14 @@ export default async function TreasuryPage({ searchParams }) {
                 </div>
               )}
 
-              <Pager
-                page={page}
-                perPage={PER_PAGE}
-                total={total}
-                hrefFor={(n) => hrefWith({ page: String(n) })}
-                label="Treasury pages"
+              <TreasuryDayNav
+                day={day}
+                prevDay={dayPage?.prev_day ?? null}
+                nextDay={dayPage?.next_day ?? null}
+                dayIndex={Number(dayPage?.day_index ?? 0)}
+                dayCount={Number(dayPage?.day_count ?? 0)}
+                hrefForDay={(date) => hrefWith({ date })}
+                carried={{ days: String(days) }}
               />
             </div>
           </div>
