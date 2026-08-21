@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **045**.
+logins, one pump. Migrations run to **048**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -42,13 +42,14 @@ logins, one pump. Migrations run to **045**.
 | Company Assets   | A new owner-only page for what the pump has bought and kept — vehicles, machinery, property, electronics. Card grid, icon-tile category picker, figures from a summary RPC. Migration 036.                                                                                                                                                                              |
 | Readings         | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC.                                                                                                               |
 | Stock            | **A dip taken in the morning closes yesterday.** The maths assumed the opposite and reported a whole day's sales as a loss, every day. `taken` + generated `books_date`; `expected_stock` recalculated from history rather than frozen at insert; the dashboard's tank card stopped ignoring the date on screen; and the owner can clear a mistyped dip. Migration 039. |
+| Treasury         | **The cash in the safe on site** — the owner's "Tajori" sheet, owner-only, seeded with his real 36 movements. A page is a DAY, not 25 rows, addressed by date and skipping days with nothing on them. The safe may never hold less than nothing, judged over the whole chain. Migrations 044–048. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Thirty-nine
+almost none of the important logic is in the JavaScript. Forty-eight
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
-seventeen tables that diffs `jsonb` and writes an English sentence. Decide
+eighteen tables that diffs `jsonb` and writes an English sentence. Decide
 early whether a single-user offline build needs it at all.
 
 **Five things that are load-bearing and easy to break:**
@@ -4090,3 +4091,33 @@ pinned balance block: **676px, not 576px**. The browser took the shortfall out
 of the `whitespace-nowrap` money cells, clipping `Rs 135,000` to `Rs 135,0` and
 breaking the reason column one word to a line on a phone. Now 43rem, from the
 measurement rather than from how roomy four columns sounded.
+
+## The eighteenth table was never attached, and a documentation audit found it
+
+044 wires `treasury_entries` into the activity log. The copy of 044 that was
+applied to the live Supabase project did not include that half — the function
+body and the `create trigger` at the end of the file were left off — so on the
+live database the trigger covered seventeen tables, not eighteen, and **every
+movement of cash in and out of the safe went unlogged**. The repo migration was
+right; the applied one was short.
+
+**How it was found is the point.** Not a test, and not the app — nothing looks
+wrong when a log is silently not written. It came out of updating the docs
+before merging: `README.md` says the activity trigger covers seventeen tables
+and 044 claimed an eighteenth, so the number was checked against `pg_trigger`
+before the sentence was changed. The database said seventeen.
+
+That is what a count in a doc is *for*. A number a future session will read and
+believe has to be checkable, and checking one before rewriting it is cheap. The
+lesson generalises past this bug: **when a doc states a count, verify it against
+the system rather than against the diff that was supposed to change it.**
+
+Migration 048 applies the missing half. It is a new numbered file rather than an
+edit to 044, because a migration that has run is never edited — a fresh database
+gets the wiring from 044 and then again from 048, which is harmless since
+`create or replace function` and `drop trigger if exists` are both idempotent.
+
+Verified by inserting an entry inside a transaction that then aborts: the log
+row reads *"Cash out of the safe | Rs 4,000 · Given — …"*, `pg_trigger` now
+reports eighteen tables, and afterwards the table still holds its 36 rows and
+Rs 8,364 with no stray log rows left behind.

@@ -259,7 +259,7 @@ amount of application code can get around them.
   generated from it. The amount on the note is the fact - see "Things worth
   knowing".
 - **Every change is logged, by the database, and the log cannot be edited.**
-  A trigger on seventeen tables writes one readable line into `activity_log` for
+  A trigger on eighteen tables writes one readable line into `activity_log` for
   each insert, update and delete: who did it, when, what it was, and — on an
   edit — which fields moved and what they moved from. Only the owner can read
   it (`/admin/activity`), and *nobody* can write to it by hand or change a line
@@ -413,7 +413,7 @@ Everything else — the balanced-day check, the append-only ledger, the overlap
 rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
 translation at all.
 
-**The database is not a passive store.** Thirty-eight migrations of triggers,
+**The database is not a passive store.** Forty-eight migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -423,7 +423,7 @@ only ever the courtesy. The list to work through is "What the database will
 not let you do" above; the files are in `supabase/migrations/`.
 
 **The activity log is the hardest single thing to port** (`035`, extended by
-`036`). One trigger function on seventeen tables, written in PL/pgSQL, that
+`036`). One trigger function on eighteen tables, written in PL/pgSQL, that
 reads the changed row as
 `jsonb`, diffs old against new, builds an English sentence, and inserts it into
 an append-only table. Nothing in that paragraph exists in SQLite: no `to_jsonb`
@@ -528,6 +528,7 @@ Applied in order:
 | `045_treasury_opening_entries.sql` | The owner's Tajori sheet as it stood on 21 Aug 2026 — 36 movements over eight days, closing at Rs 8,364. Asserts that total at the end and rolls itself back if the rows do not add up to it |
 | `046_treasury_series_ends_at_the_last_entry.sql` | The treasury chart stops where the entries stop. 044 ran the window to `pump_today()` and carried the balance forward into it, drawing a flat tail across days nothing had been written down for yet |
 | `047_treasury_a_page_is_a_day.sql` | `treasury_day()` — one day of the sheet per page, addressed by date rather than page number, with the day's own opening and closing and the neighbouring days that HAVE entries, so paging skips days with nothing on them and never lands on an empty page |
+| `048_treasury_in_the_activity_log.sql` | Repair: 044 wires `treasury_entries` into the activity log and the copy applied to the live project did not include that half, so cash moving in and out of the safe went unlogged there. Found by checking a number in this file against `pg_trigger` before updating it |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

@@ -2212,3 +2212,65 @@ it. Anything else a cell can pass down (`text-sm`, `uppercase`, `tabular-nums`,
 
 The general rule: **treat the top layer as isolated for layout and inherited
 for typography.**
+
+## When the page size should be a day rather than a row count
+
+`<Pager>` counts rows and is right nearly everywhere: Purchases, the ledger,
+the fuel rates, Activity. Treasury is the exception, and the test is whether
+**the data has a natural unit the reader already counts in**.
+
+It does here. The owner closes the safe on an evening and checks that evening's
+figure against the notes in it, so a day is a thing; "25 rows" is not. Paged by
+rows, a page held four and a bit days cut mid-day at both ends, was tall enough
+to hit the `.table-scroll` 70vh cap, and could not show a day's opening or
+closing figure at all — its rows started and stopped mid-day, so there was no
+such figure to print.
+
+Three rules if you reach for this again:
+
+- **Address the page by the unit, not by an index.** `?date=2026-08-21`, not
+  `?page=3`. A page index is not stable — back-fill one older row and every
+  index after it means a different day, so a bookmarked page 3 quietly becomes
+  page 4's contents. It also lets `<DateJump>` work unchanged.
+- **Skip empty units, and let the database decide which are empty.** The
+  "previous" and "next" links go to the neighbouring days that *have* rows, so
+  an arrow never lands on a dead page. Note this is the opposite of what a
+  chart does with a gap (`treasury_overview` carries the balance forward across
+  quiet days): a chart draws a continuous quantity and a gap in it is real,
+  while a page is a thing to read and an empty one is a dead end.
+- **Resolve any requested unit to one that exists, and say when you did.** Ask
+  for a day with nothing on it and the RPC answers with the nearest that has
+  something; the page then says so. A page that quietly shows a different day
+  than the one asked for will be read as the day asked for.
+
+The shared column that falls out of it: **whatever every row on the page has in
+common stops being a column and becomes the heading.** The date left this table
+entirely, which bought back about 110px of width.
+
+`<TreasuryDayNav>` is the component, and it borrows rather than invents — the
+disabled-button-not-a-dead-link rule from `<Pager>`, the date box from
+`<DateNav>`, and an `hrefForDay(date)` callback for the same reason `<Pager>`
+takes `hrefFor`: the page carries other query parameters and a link that
+rebuilt the URL from scratch would drop them.
+
+## A table's min-width is measured, not estimated
+
+Treasury's table lost its date column and its `min-w` came down from 46rem to
+36rem, which sounded generous for the four columns left. It was 100px short,
+and the browser spent the shortfall on the `whitespace-nowrap` money cells —
+`Rs 135,000` rendered as `Rs 135,0`, and the reason column broke one word to a
+line on a phone.
+
+Add up what the columns actually need, in the browser, with real content:
+
+```js
+// widest single line per column, at a width where nothing is squeezed
+probe.style.font = getComputedStyle(cell).font;
+probe.textContent = cell.textContent.trim();
+needs = probe.offsetWidth + horizontalPadding;
+```
+
+Here that was 190px for "Fuel or code transfer" on one line, 146px for the
+widest In with its arrow, 164px for the widest Out, and a fixed 176px for the
+pinned balance block — **676px, so 43rem**. Note the icon inside a money cell
+counts, and a fixed pinned column counts at its declared width, not its text's.

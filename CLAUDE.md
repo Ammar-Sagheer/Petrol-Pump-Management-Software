@@ -75,7 +75,7 @@ Most of the app's look comes from a handful of shared things. Check these
 before writing a new component or a new class:
 
 - **`StatTile` / `StatGrid`** (`_components/admin/AdminStats.js`) — the
-  headline figures on eight pages. Takes an optional `spark` + `sparkTips`
+  headline figures on nine pages. Takes an optional `spark` + `sparkTips`
   (sparkline), `delta` (percent badge) and `sub`.
 - **`Sparkline`** (`_components/ui/Sparkline.js`) — decoration with a shape,
   never a figure to read. Its `tips` are formatted by the CALLER, on the

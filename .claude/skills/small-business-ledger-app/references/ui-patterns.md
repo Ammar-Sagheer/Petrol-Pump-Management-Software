@@ -50,6 +50,27 @@ and is indistinguishable from a backdrop click. That silently threw away a
 half-typed entry. Escape, a header ✕ and Cancel are enough. A nav drawer holds
 no input and may close on its backdrop.
 
+### A modal inherits typography from whatever opened it
+
+`<dialog>` + `showModal()` paints in the browser's **top layer**, so nothing
+about where the element sits in the DOM constrains its position or its size.
+That is easy to over-read as "where it sits does not matter at all". Inherited
+properties still come down the DOM ancestry as normal — and a confirm dialog is
+usually rendered inside the table cell its trash icon lives in.
+
+A right-aligned, `whitespace-nowrap` money cell passed both down to the
+confirmation inside it. The sentence explaining what deleting would do came up
+right-aligned, could not wrap, ran off the panel and put a **horizontal
+scrollbar inside the dialog**. Neither the DOM clipping check nor a glance at
+the row showed anything.
+
+Put `white-space: normal; text-align: left` on the dialog panel as a **reset**,
+in the shared component, not at the call site — the panel is what is wrong. Any
+other inherited property a cell might carry (`font-size`, `text-transform`,
+`font-variant-numeric`, `line-height`) is a candidate the moment it appears.
+
+**Treat the top layer as isolated for layout and inherited for typography.**
+
 ## Dialogs for what is set up once, forms for what is done daily
 
 A form standing open on a page is a claim that it will be used every time the
@@ -71,6 +92,36 @@ for something else.**
 - **Page by whatever the data is really counted in.** Rows, usually. But a
   daily series that fills in empty days pages by *date window*, or the page
   count comes out wrong.
+
+### When the page size should be a unit rather than a count
+
+Ask whether the data has a unit **the reader already counts in**. A cash safe
+written up three to six lines a day has one: the day. Paged by rows, a page
+held four and a bit days cut mid-day at both ends, was tall enough to grow its
+own scrollbar, and could not show a day's opening or closing figure at all —
+the rows started and stopped mid-day, so no such figure existed to print.
+
+If the unit is real, page by it:
+
+- **Address the page by the unit, not by an index.** `?date=2026-08-21`, not
+  `?page=3`. An index is not stable: back-fill one older row and every index
+  after it means a different day, so a bookmarked page quietly becomes the next
+  one's contents.
+- **Skip empty units, and let the database say which are empty.** "Previous"
+  and "next" go to the neighbouring units that *have* rows, so an arrow never
+  lands on a dead page. This is the opposite of what a chart does with a gap —
+  a chart draws a continuous quantity and a quiet day in it is real, while a
+  page is a thing to read and an empty one is a dead end.
+- **Resolve any requested unit to one that exists, and say when you did.** A
+  page that quietly shows a different day than the one asked for is read as the
+  day asked for.
+- **Whatever every row on the page now has in common stops being a column and
+  becomes the heading**, and the width it frees is usually what the remaining
+  columns were short of.
+
+The unit also gives you figures a row-paged view cannot have — the day's
+opening and closing — and those are often the ones actually checked against
+cash in a drawer.
 - **A dead pager button is a `<span>`, not a link styled to look disabled.** A
   disabled-looking link still takes focus and still navigates.
 

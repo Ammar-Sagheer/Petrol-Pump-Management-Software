@@ -97,6 +97,36 @@ both invisible to the first pass:
 half a pixel of tolerance: subpixel layout puts a child a hair past its parent
 constantly without anything being wrong.
 
+## The third clipping question: is something sitting ON TOP of it?
+
+The two passes above ask whether an element overflows itself and whether it
+escapes its card. Both can come back clean while a figure is half invisible,
+because **another element is painted over it**. Sticky and pinned cells,
+sticky headers and anything in the top layer all do this, and nothing about the
+covered element's own geometry changes when it happens.
+
+Two real ones, from one page:
+
+- A balance column pinned to the right of a scrolling table, offset by
+  `right: 3rem` to clear the action column beside it. That column is 3rem of
+  button **plus the cell's own padding** — 68px, not 48px — so the last 8px of
+  every figure was painted underneath it. `Rs 1,781,910` lost its final digit
+  on a phone and every automated check passed.
+- A confirm dialog inheriting `text-align: right` and `white-space: nowrap`
+  from the table cell that opened it, and running off its own panel.
+
+Two habits that catch it:
+
+- **A sticky offset is a number, so prefer an arrangement with no number to
+  get wrong.** A pinned figure and its row action in *one* cell at `right: 0`
+  cannot be misaligned; two cells with a computed offset can. It also keeps the
+  action reachable — a figure pinned alone at `right: 0` sits over the action
+  at every scroll position.
+- **Compare rects between siblings, not just within one element.** For each
+  pinned cell, assert that its text's right edge is left of the next pinned
+  cell's left edge. And screenshot it, because the arithmetic can be right and
+  the result still ugly.
+
 ## Verify state changes with a before/after table, not a screenshot
 
 For logic — which rows get a warning badge, which of two conditions fires —
