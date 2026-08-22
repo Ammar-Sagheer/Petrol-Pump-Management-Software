@@ -150,3 +150,77 @@ migration table that stops two releases back. Commit the `.sql`, add the row to
 whatever table the project keeps, and add the rule to the human-readable "what
 the database will not let you do" list — that list is what someone reads
 *before* hitting the refusal.
+
+## Profit subtracts what was SOLD, never what was bought
+
+The single most damaging arithmetic bug this project has had, and it shipped
+looking reasonable for months.
+
+```
+-- wrong, and it reads fine
+profit = sales - purchases - expenses
+
+-- right
+profit = sales - cost of goods sold - expenses
+cost of goods sold = opening stock + purchases - closing stock
+```
+
+The wrong one charges a period for every unit that *arrived* in it. A pump that
+took two 5,000 L loads six days before month end showed a **loss of
+Rs 1,464,581 in a month that made Rs 566,307** — the fuel was in the ground,
+paid for, and would sell next month.
+
+**It does not come right at month end**, which is the argument for fixing it
+rather than explaining it. The two agree only when units bought equal units sold
+at the same rate, which is no real period. A period closing with stock on hand
+is understated; one that runs stock down is *overstated*. They cancel over
+years and never within the period anyone actually reads.
+
+**Warning signs in any ledger app**: a profit figure computed from a purchases
+table; a report whose explanatory note apologises for the number ("a big
+delivery near month end makes it look low" — that note is a bug report); a
+"stock bought" figure and a "profit" figure that move in lockstep.
+
+### Valuing stock on hand
+
+Something has to put a price on a unit sitting in a tank or on a shelf. Value it
+at **the weighted average cost of the deliveries it is actually made of** —
+walk purchases newest-first until the quantity on hand is accounted for.
+
+**Do not use a flat average over every purchase ever.** In a rising market it
+values current stock below what it cost, which reintroduces a smaller version
+of the same understatement, permanently. Weighting by what is physically left
+has no such drift, and for a tank it is also just true: what is in there is the
+last few loads.
+
+Quantities older than any recorded delivery — an opening balance typed in when
+the business joined the app — have no cost on record. Value them at the
+all-time average, **document that it is an estimate**, and note that it only
+affects the first period with purchases.
+
+### Keep the arithmetic in one function
+
+Put cost-of-goods-sold in a single database function and have every report call
+it. This project had three RPCs with the same expression copy-pasted — a monthly
+report, an Excel export and an arbitrary date range — and a fix applied to two
+of three is a business where two screens disagree about whether the month was
+profitable. Verify they return identical figures for identical days.
+
+### Fixing an expression inside several large functions
+
+When the same wrong expression sits in several functions of a few thousand
+characters each, and nothing else in them changes, reproducing all of them by
+hand is several chances to silently drop a line from a report nobody re-reads.
+Read each back with `pg_get_functiondef`, swap the known expression, re-declare
+it — and **raise if the expected text is not found**, so a migration that cannot
+do its job fails instead of reporting success over a still-wrong number.
+
+### Anything derived from the fix has to move with it
+
+A per-period breakdown computed in the application from the *old* formula
+becomes actively worse once the headline is fixed: the total says one thing and
+the chart under it says another. This project's daily profit sparkline
+subtracted stock bought per day; it now apportions the cost of goods sold
+across days **by units sold**, which is exact at the total and an apportionment
+within it. Grep for every place the old formula was re-implemented before
+calling the fix done.

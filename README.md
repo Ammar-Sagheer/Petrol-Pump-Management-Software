@@ -273,6 +273,47 @@ If the app and the database ever disagree, the database is right.
 
 ---
 
+## How profit is worked out
+
+```
+profit = all sales − cost of stock SOLD − expenses
+
+cost of stock sold = opening stock + everything bought − closing stock
+```
+
+Both trades are in it: fuel and lubricants, sales and purchases alike.
+
+**It counts stock SOLD, not stock bought**, and the difference is the whole
+point. Until migration 049 it subtracted what was bought, which meant a
+delivery still sitting in the tank on the last of the month was charged
+against that month — August 2026 showed a loss of Rs 1,464,581 for a month
+that actually made Rs 566,307, because 10,000 L of petrol arrived on the 21st
+and had not been sold yet. A month that instead ran the tanks *down* was
+overstated for the mirror-image reason. The errors cancel over years and never
+within a month, which is the only period anybody reads.
+
+**Stock on hand is valued at the weighted average cost of the deliveries it is
+actually made of** — walk that tank's purchases newest-first until its litres
+are accounted for. For a tank this is also literally true: the fuel in there is
+the last few loads. A single flat average over every purchase ever was
+rejected because in a rising market it values a full tank below what it cost,
+which reintroduces a smaller version of the same bug.
+
+Stock older than any recorded delivery — the opening quantity typed into
+**Settings → Tanks** when the pump joined the app — is valued at that tank's
+all-time average purchase rate. That is an estimate, and it only affects the
+first month that has purchases; every month after opens on stock the app
+watched arrive.
+
+**"Stock bought" is still its own figure on the Reports page.** It is real, it
+is what is owed to suppliers against, and it is what the Treasury and Banking
+pages move. It is simply not what profit subtracts.
+
+Company assets and bank transfers are outside profit entirely — see "Things
+worth knowing".
+
+---
+
 ## How stock is worked out
 
 ```
@@ -413,7 +454,7 @@ Everything else — the balanced-day check, the append-only ledger, the overlap
 rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
 translation at all.
 
-**The database is not a passive store.** Forty-eight migrations of triggers,
+**The database is not a passive store.** Forty-nine migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -529,6 +570,7 @@ Applied in order:
 | `046_treasury_series_ends_at_the_last_entry.sql` | The treasury chart stops where the entries stop. 044 ran the window to `pump_today()` and carried the balance forward into it, drawing a flat tail across days nothing had been written down for yet |
 | `047_treasury_a_page_is_a_day.sql` | `treasury_day()` — one day of the sheet per page, addressed by date rather than page number, with the day's own opening and closing and the neighbouring days that HAVE entries, so paging skips days with nothing on them and never lands on an empty page |
 | `048_treasury_in_the_activity_log.sql` | Repair: 044 wires `treasury_entries` into the activity log and the copy applied to the live project did not include that half, so cash moving in and out of the safe went unlogged there. Found by checking a number in this file against `pg_trigger` before updating it |
+| `049_profit_counts_stock_sold.sql` | **Profit was counting stock bought instead of stock sold.** `cost_of_goods_sold()` = opening stock + purchases − closing stock, with stock valued at the weighted average cost of the deliveries it is actually made of; wired into all three reporting RPCs |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

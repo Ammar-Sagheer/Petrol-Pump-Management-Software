@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **048**.
+logins, one pump. Migrations run to **049**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -46,7 +46,7 @@ logins, one pump. Migrations run to **048**.
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Forty-eight
+almost none of the important logic is in the JavaScript. Forty-nine
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -4150,3 +4150,116 @@ default behaviour is indistinguishable from a working one if you only test
 after. Without it, `scrollY` went 479 → 0 on Earlier, on Later and on the date
 box. With it, 479 on all three, with the day and the day counter changing
 underneath — and the chart's `days=14` window carried through each.
+
+## Profit was counting stock bought instead of stock sold
+
+The owner asked why August showed a loss of **Rs 1,464,581** in a month he had
+done well in. It was not a display bug. All three reporting RPCs computed:
+
+```
+profit = sales − purchases − expenses
+```
+
+There is no opening or closing stock in that anywhere. It charges a month for
+every litre that *arrived* in it, whether or not any of it was sold.
+
+August is the clearest possible illustration: 49,000 L bought, 43,418 L sold,
+including **two 5,000 L petrol loads on the 21st**. The petrol tank went from
+854 L on 31 July to 9,610 L. About Rs 1,866,000 of fuel was sitting in the
+ground, paid for by August and to be sold in September.
+
+```
+profit = sales − cost of goods SOLD − expenses
+cost of goods sold = opening stock + purchases − closing stock
+```
+
+August becomes **+Rs 566,307**:
+
+| | |
+|---|---|
+| Sales | 14,984,221 |
+| Opening stock (31 Jul) | 2,405,822 |
+| + Stock bought | 16,385,110 |
+| − Closing stock | 4,436,709 |
+| **= Cost of stock sold** | **14,354,223** |
+| Expenses | 63,692 |
+| **Profit** | **566,307** |
+
+It would not have come right at month end either, which is what made this
+worth fixing rather than explaining. The old formula is only correct when
+litres bought equal litres sold at the same rate, which is no month; a month
+ending with fuel in the tank is understated and one that runs the tanks down is
+*overstated*. The errors cancel over years and never within a month.
+
+### Valuing what is in the tank
+
+A litre in a tank has no price tag, so one has to be chosen. Stock is valued at
+the **weighted average cost of the deliveries it is actually made of** — walk
+that tank's purchases newest-first until its litres are accounted for. Petrol
+came out at Rs 332.60/L (the two loads of the 21st plus part of the 18th's) and
+diesel at Rs 386.40 (the 18th's delivery), which is exactly what is physically
+down there.
+
+**A single flat average over every purchase ever was considered and rejected.**
+With rates climbing through August (321 → 336), an average still carrying older
+cheap deliveries values a full tank below what it cost and understates profit
+for as long as prices rise — a smaller version of the bug being fixed.
+
+Litres older than any recorded delivery — the opening quantity typed into
+Settings when the pump joined the app — are valued at that tank's all-time
+average rate. That is an estimate and is documented as one; it affects only the
+first month that has purchases.
+
+Lubricants get identical treatment. It barely matters today (the shelf turns
+over slowly and August restocked nothing) but a half-fixed profit figure is
+worse than an unfixed one, because it looks trustworthy.
+
+### One formula, three callers
+
+`cost_of_goods_sold(from, to)` is the only place the arithmetic lives, and
+`get_monthly_report`, `get_month_export` and `get_range_summary` all call it —
+verified to return the identical figure for the same days, which is the whole
+reason aggregation is in Postgres rather than in three page components.
+
+**The three functions were patched, not reproduced in full**, which departs
+from how 036, 039 and 044 replaced functions. Those reproduced one function to
+add one branch; this changes one expression in three functions totalling about
+25,000 characters, none of which is otherwise touched, and three hand-copied
+near-duplicates is three chances to silently drop a line from a report nobody
+re-reads. Each is read back with `pg_get_functiondef`, has the known expressions
+swapped, and is re-declared — and **raises** if the expected text is not found,
+rather than reporting success while leaving a wrong profit in place.
+
+### What the page says now
+
+The line under the tiles used to apologise for the figure ("profit counts stock
+bought this month, not stock sold — so a big delivery near month end makes it
+look low"). That was honest about a formula that was wrong. It now shows the
+working instead: opening stock, plus bought, less closing, equals the cost of
+what sold. The Excel Summary sheet gained the same three figures and the same
+note.
+
+**The register's daily profit sparkline had to change too**, and this is the
+part that would have been easy to miss: it computed `sales − stock bought −
+expenses` per day in JavaScript. Left alone it would have been *worse* than
+before — a delivery day plunging to a deep loss on a line sitting directly
+beneath a headline that no longer counts deliveries. It now spreads the cost of
+stock sold across the days **by litres sold**, which is exact at the total
+(every day's litres sum to the period's, so every day's cost sums to the
+period's) and an apportionment within it. Verified: the daily series sums to
+566,306.57, the headline to the same.
+
+### Two things caught by rendering it
+
+Both in the new explanation line, both invisible to the build:
+
+- **Money broke across lines.** At 400px the total rendered as "Rs" ending one
+  line and "14,354,223" starting the next, which reads for a moment as two
+  figures. Every figure in the sentence is now `whitespace-nowrap`: prose
+  wraps, money inside prose does not.
+- **React dropped one space.** "Rs 4,436,709still there at the end" — one of
+  four gaps written as ordinary JSX whitespace came out missing while its three
+  identical-looking siblings were fine. Every gap around a figure is now an
+  explicit `{' '}`. JSX's rules about whitespace next to an element and a line
+  break are subtle enough that "it looks the same as the one above it" is not
+  evidence.
