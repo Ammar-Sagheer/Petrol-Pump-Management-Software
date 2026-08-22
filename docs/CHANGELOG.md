@@ -43,6 +43,7 @@ logins, one pump. Migrations run to **049**.
 | Readings         | A warning naming the missing day, and a checkbox that must be ticked to save a reading when the day before it was never entered. A day-completion strip was tried three ways alongside it and removed — migrations 037 and 038 add and then drop its RPC.                                                                                                               |
 | Stock            | **A dip taken in the morning closes yesterday.** The maths assumed the opposite and reported a whole day's sales as a loss, every day. `taken` + generated `books_date`; `expected_stock` recalculated from history rather than frozen at insert; the dashboard's tank card stopped ignoring the date on screen; and the owner can clear a mistyped dip. Migration 039. |
 | Treasury         | **The cash in the safe on site** — the owner's "Tajori" sheet, owner-only, seeded with his real 36 movements. A page is a DAY, not 25 rows, addressed by date and skipping days with nothing on them. The safe may never hold less than nothing, judged over the whole chain. Migrations 044–048. |
+| Profit           | **It was counting stock BOUGHT, not stock SOLD.** August 2026 showed a Rs 1,464,581 loss for a month that made Rs 566,307, because 10,000 L of petrol arrived six days before month end. Now `sales − cost of goods sold − expenses`, with stock valued at the cost of the deliveries it is made of. One function, all three reporting RPCs. Migration 049. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -52,7 +53,7 @@ single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
 early whether a single-user offline build needs it at all.
 
-**Five things that are load-bearing and easy to break:**
+**Six things that are load-bearing and easy to break:**
 
 1. **The database enforces the money rules, not the app.** Balanced days,
    append-only ledger, no overlapping meter readings, stock recalculated from
@@ -76,6 +77,13 @@ early whether a single-user offline build needs it at all.
    future change adds a table that holds money, attach the trigger to it in the
    same migration; if one is renamed, the log line degrades rather than
    breaking, so nothing will tell you.
+6. **Profit subtracts the cost of stock SOLD, never stock BOUGHT** — since 049.
+   `cost_of_goods_sold()` is the only place that arithmetic lives and all three
+   reporting RPCs call it. Reimplementing `sales − purchases − expenses`
+   anywhere reintroduces a bug that showed a Rs 1.46m loss in a profitable
+   month, and it reads perfectly reasonable while doing it. Anything that
+   derives a per-day or per-week profit has to spread the cost of goods sold,
+   not the purchases.
 
 ## Foundation
 
@@ -2637,6 +2645,11 @@ verdict was "too long". Only the first clause changes how a figure is read;
 "both trades" was already covered by the Sales tile's own sub-line, which
 itemises fuel and lubricants. The full reasoning is in the Guide and on the
 workbook's Summary sheet, where there is room.
+
+> Read later: that note was rewritten a second time in **049**, because the
+> formula it was explaining turned out to be wrong. It no longer apologises for
+> the figure; it shows the working. See "Profit was counting stock bought
+> instead of stock sold" near the end of this file.
 
 **Expenses** got the shared stat tiles (it was the last page still rendering
 its total by hand), and its by-category list became a real breakdown with

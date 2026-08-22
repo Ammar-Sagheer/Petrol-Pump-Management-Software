@@ -454,6 +454,22 @@ Everything else — the balanced-day check, the append-only ledger, the overlap
 rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
 translation at all.
 
+**Two things about `049_profit_counts_stock_sold.sql` specifically**, because it
+is the one migration that is not purely declarative:
+
+- It patches the three reporting RPCs by reading them back with
+  `pg_get_functiondef` and re-declaring them, rather than reproducing them in
+  full. That is plain Postgres and runs offline unchanged — but it **depends on
+  the earlier definitions being present**, so the migrations must be applied in
+  order and `005`, `010` and `041` must not have been skipped or edited. It
+  raises rather than failing quietly if the expression it expects is not there.
+- If the offline build ever **reimplements reporting outside Postgres**, this is
+  the formula that must come with it:
+  `profit = sales − (opening stock + purchases − closing stock) − expenses`.
+  Copying the old `sales − purchases − expenses` reintroduces a bug that showed
+  a Rs 1.46m loss in a month that made Rs 566,307 — and looks entirely
+  reasonable while doing it. See "How profit is worked out" above.
+
 **The database is not a passive store.** Forty-nine migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same

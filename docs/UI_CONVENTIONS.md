@@ -2301,3 +2301,25 @@ which spreads onto Next's `Link`, which consumes it. It never reaches the DOM.
 indistinguishable from a working one if you only test after applying it. Record
 `window.scrollY` before and after the click, with the fix and without: here it
 was 479 → 0 without and 479 → 479 with, on all three controls.
+
+## Money inside a sentence: nowrap the figure, and space it explicitly
+
+Money in a table cell is already protected — `.td-num` is `whitespace-nowrap`.
+Money in **prose** is not, and the Reports page's profit explanation is where
+that showed up: at 400px it broke as "Rs" ending one line and "14,354,223"
+beginning the next, which reads for a moment as two figures.
+
+**Wrap every figure in a sentence in its own `whitespace-nowrap` span.** Prose
+wraps; a money figure inside it does not. This is the same rule as "a figure
+never wraps" everywhere else, it just has to be applied by hand because there is
+no `.td-num` doing it.
+
+**And put an explicit `{' '}` in every gap around one.** Written as ordinary JSX
+whitespace, one of four otherwise identical gaps in that sentence came out of
+React missing — `Rs 4,436,709still there` — while its three siblings were fine.
+JSX's rules about whitespace next to an element and a line break are subtle
+enough that "it is formatted the same as the line above" is not evidence, and a
+missing space between a figure and a word reads as a typo in a money total.
+
+Neither is visible to a build, a type check, or the clipping report — the text
+was not overflowing anything. Both were caught by reading a screenshot at 400px.
