@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **049**.
+logins, one pump. Migrations run to **050**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -44,10 +44,11 @@ logins, one pump. Migrations run to **049**.
 | Stock            | **A dip taken in the morning closes yesterday.** The maths assumed the opposite and reported a whole day's sales as a loss, every day. `taken` + generated `books_date`; `expected_stock` recalculated from history rather than frozen at insert; the dashboard's tank card stopped ignoring the date on screen; and the owner can clear a mistyped dip. Migration 039. |
 | Treasury         | **The cash in the safe on site** — the owner's "Tajori" sheet, owner-only, seeded with his real 36 movements. A page is a DAY, not 25 rows, addressed by date and skipping days with nothing on them. The safe may never hold less than nothing, judged over the whole chain. Migrations 044–048. |
 | Profit           | **It was counting stock BOUGHT, not stock SOLD.** August 2026 showed a Rs 1,464,581 loss for a month that made Rs 566,307, because 10,000 L of petrol arrived six days before month end. Now `sales − cost of goods sold − expenses`, with stock valued at the cost of the deliveries it is made of. One function, all three reporting RPCs. Migration 049. |
+| Activity         | The owner may clear the OLD end of the log — whole retention periods only, cutoff computed in Postgres, recent month never touched, the trim logged into the log it trimmed. Append-only intact: no line editable, no single line removable. Migration 050. And the open section in the sidebar now ends with a dark bar, because the tint alone washes out in daylight. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Forty-nine
+almost none of the important logic is in the JavaScript. Fifty
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -4276,3 +4277,70 @@ Both in the new explanation line, both invisible to the build:
   explicit `{' '}`. JSX's rules about whitespace next to an element and a line
   break are subtle enough that "it looks the same as the one above it" is not
   evidence.
+
+## The old end of the activity log can be thrown away
+
+The owner: the activity page grows much faster than anything else in the app,
+and a month later most of it is useless. He wanted a button to clear the old
+entries.
+
+Which sounds like it contradicts migration 035, whose whole point is that the
+log is append-only for everybody, the owner included. It does not, and the
+difference is worth writing down, because it is the difference between a trail
+that is worth something and one that is decoration:
+
+- **A line may never be EDITED.** That is untouched, for everyone, always. The
+  UPDATE half of the guard is exactly as it was.
+- **A line may never be picked out and removed on its own.** That is the half
+  that would have made the trail worthless — remove the one line about the
+  payment somebody backdated on Tuesday, leave Monday and Wednesday, and the
+  log now lies by looking complete.
+
+So what shipped is a coarse, whole-period trim and nothing finer. The dialog
+offers four choices and they are all "how much to KEEP": the last month, three
+months, six months or year. The cutoff date is computed in Postgres from
+`pump_today()`, not sent from the browser, so no caller can ask for "everything
+up to five minutes ago"; the most recent month can never be cleared whatever is
+asked for; and the trim writes its own line into the log it just trimmed,
+naming who did it and how many entries went. Migration 050.
+
+**The append-only guard was not disabled to do it.** It learns one named
+exception, `app.trimming_activity`, set only by `clear_activity_log()`, only
+for the length of its transaction, and even then it refuses any row that is not
+older than the cutoff the setting names — so the setting alone does not open
+the table, it only opens the far end of it. This is the same shape as
+`app.purging_customer` in migration 033 and for the same reason: a stray DELETE
+from PostgREST, from server code, or from a later refactor meets the refusal it
+always did, because none of them set it.
+
+**Each period says how many lines it would take**, from
+`activity_log_trim_counts()`, which returns all four counts and the span of the
+log in one round trip. "Older than six months" is a tidy-up at 4 lines and a
+decision at 4,000, and the owner cannot tell which one he is agreeing to
+without the number. The counts and the delete share one cutoff function, so the
+figure shown and the rows that actually go cannot drift apart. The dialog
+defaults to the largest period that would actually remove something — somebody
+opening it has too much log, not too little — and a period with nothing older
+than it is drawn disabled rather than hidden, so the four options stay in the
+same places.
+
+**Tested on a local Postgres** against a shim of the 035 schema rather than the
+live project: staff refused on both functions, an out-of-range period refused,
+a direct DELETE and any UPDATE still refused, the trim removing exactly the
+rows older than its cutoff, the log line it writes about itself, a second trim
+in a row reporting nothing to do and writing no line claiming otherwise, and
+the transaction-local setting not surviving into the next statement.
+
+## The active section carries a dark bar
+
+The tinted band and the greener label already said which section was open, but
+both are soft, and on a cheap tablet in daylight the `brand-50` fill washes out
+to the same white as the rest of the column — at which point nothing on screen
+says which of thirteen sections is showing. Each active row now ends with a
+short dark bar (`ActiveMark` in `AdminSidebar.js`): `ml-auto` so the markers
+line up down the column's right edge whatever the label's length, and
+`brand-800`, which is the darkest thing in the nav and sits somewhere no other
+row has ink at all. It reads as a marker rather than as one more pale wash.
+Decorative only — `aria-current="page"` on the link is what a screen reader is
+told, and the mark is `aria-hidden`. It is on the phone drawer's rows and on
+Account as well as the sections, checked at 1152px and 400px.

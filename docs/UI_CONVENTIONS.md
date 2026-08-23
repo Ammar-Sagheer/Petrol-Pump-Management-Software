@@ -476,6 +476,41 @@ not for a designer's monitor.
   not on the click — closing on click pulls it away while the next page is
   still loading, and the pending spinner on the link is the only feedback
   there is.
+- **The open section is marked three ways, and the third is the one that
+  survives daylight.** A `brand-50` band, a `brand-800` semibold label, and a
+  short dark bar at the right-hand end of the row (`ActiveMark`, bottom of
+  `AdminSidebar.js`). The first two are soft: on a cheap tablet in poor light
+  the tint washes out to the same white as the rest of the column, and then
+  nothing says which of thirteen sections is showing. The bar is the darkest
+  ink in the nav and sits where no other row has ink at all, so it reads as a
+  marker rather than one more pale wash. `ml-auto` puts it against the far edge
+  whatever the label's length, so the markers line up down the column. It is
+  `aria-hidden`; `aria-current="page"` on the link is what is announced. On the
+  drawer's rows and on Account too — an active-state rule that skips a surface
+  is how the two drift apart.
+
+## Clearing history: whole periods, never a single line
+
+The Activity page can throw away its own old end
+(`<ClearOldActivityButton>`), and the shape of that dialog is the rule for any
+"this list has grown too long" control over records that are meant to be
+trustworthy:
+
+- **The only choice offered is how much to KEEP**, out of a few whole periods —
+  never a free date, never a picked row. Choosing a cutoff on the recent side,
+  or removing one line out of a run, is what turns a trail into something that
+  lies by looking complete.
+- **The cutoff is computed in the database**, from `pump_today()`, so the
+  browser cannot name an instant of its own and the count shown and the rows
+  deleted come from the same expression.
+- **Every option says how many entries it would take.** "Older than six months"
+  is a tidy-up at 4 lines and a decision at 4,000, and nobody can tell which
+  they are agreeing to without the number. An option with nothing old enough is
+  drawn disabled, not hidden, so the choices stay in the same places.
+- **The clear-out records itself** in the thing it cleared, and the dialog says
+  so. Everything else follows the destructive-dialog pattern above: `danger`
+  button, `<SubmitButton>` with a pending label, result carried out in a
+  `<Toast>`.
 
 ## Responsive: measure the container, not the window
 

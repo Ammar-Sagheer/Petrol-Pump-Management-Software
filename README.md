@@ -264,7 +264,12 @@ amount of application code can get around them.
   edit — which fields moved and what they moved from. Only the owner can read
   it (`/admin/activity`), and *nobody* can write to it by hand or change a line
   afterwards: there is no insert policy, and update and delete raise the same
-  way the ledger's do. See `035_activity_log.sql` for the two things it
+  way the ledger's do. The one thing the owner may do to it is throw away its
+  OLD end — whole retention periods only (keep the last month, three, six or
+  twelve), the cutoff worked out in the database, the recent month never
+  touched, and the trim itself written into the log as a line. A single entry
+  can still never be picked out and removed, and no entry can ever be edited;
+  see `050_clear_the_old_activity_log.sql`. See `035_activity_log.sql` for the two things it
   deliberately stays quiet about (stock recalculation, and the ledger row a
   credit slip posts for itself) and for why the trigger swallows its own errors
   rather than ever blocking a write.
@@ -470,7 +475,7 @@ is the one migration that is not purely declarative:
   a Rs 1.46m loss in a month that made Rs 566,307 — and looks entirely
   reasonable while doing it. See "How profit is worked out" above.
 
-**The database is not a passive store.** Forty-nine migrations of triggers,
+**The database is not a passive store.** Fifty migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -587,6 +592,7 @@ Applied in order:
 | `047_treasury_a_page_is_a_day.sql` | `treasury_day()` — one day of the sheet per page, addressed by date rather than page number, with the day's own opening and closing and the neighbouring days that HAVE entries, so paging skips days with nothing on them and never lands on an empty page |
 | `048_treasury_in_the_activity_log.sql` | Repair: 044 wires `treasury_entries` into the activity log and the copy applied to the live project did not include that half, so cash moving in and out of the safe went unlogged there. Found by checking a number in this file against `pg_trigger` before updating it |
 | `049_profit_counts_stock_sold.sql` | **Profit was counting stock bought instead of stock sold.** `cost_of_goods_sold()` = opening stock + purchases − closing stock, with stock valued at the weighted average cost of the deliveries it is actually made of; wired into all three reporting RPCs |
+| `050_clear_the_old_activity_log.sql` | The owner may throw away the OLD end of the audit trail — whole retention periods only (a month, three, six or a year kept), the cutoff computed from `pump_today()`, the recent end never touched, and the trim logged into the log it trimmed. Append-only is intact: no line may be edited, and no single line may be picked out |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

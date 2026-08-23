@@ -2260,3 +2260,55 @@ export async function deleteTreasuryEntry(_prevState, formData) {
   revalidatePath('/admin/treasury');
   return ok('Entry removed.');
 }
+
+/**
+ * Throws away the old end of the audit trail.
+ *
+ * The log gains a line per change - dozens on a working day - and the part of
+ * it anyone ever reads is the recent end. Left alone it becomes hundreds of
+ * pages with the useful end buried at the top.
+ *
+ * The period is all that crosses the wire: how many months to KEEP, one of
+ * four. The cutoff date is worked out in the database from pump_today(), so
+ * the browser cannot name an instant of its own, and the count the dialog
+ * showed and the rows that actually go are computed the same way in the same
+ * place - see migration 050.
+ *
+ * Append-only is not weakened by this. A line still cannot be edited, and a
+ * single line cannot be picked out and removed: it is a whole period or
+ * nothing, the last month is never on offer, and the trim writes its own line
+ * into the log saying who did it and how many went.
+ */
+export async function clearOldActivity(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const keepMonths = number(formData, 'keep_months');
+  if (![1, 3, 6, 12].includes(keepMonths)) {
+    return fail('Choose how much of the log to keep.');
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('clear_activity_log', {
+    p_keep_months: keepMonths,
+  });
+
+  if (error) return fail(describe(error, 'Could not clear the old entries.'));
+
+  revalidatePath('/admin/activity');
+
+  const gone = Number(data?.deleted ?? 0);
+  const cutoff = data?.cutoff ? formatDate(data.cutoff) : null;
+
+  if (gone === 0) {
+    return ok(`Nothing to clear — every entry is newer than ${cutoff ?? 'the cutoff'}.`);
+  }
+
+  return ok(
+    `${gone} ${gone === 1 ? 'entry' : 'entries'} cleared` +
+      (cutoff ? ` — everything before ${cutoff} is gone.` : '.'),
+  );
+}
