@@ -33,6 +33,7 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | `<TrendRange>`              | The Dashboard's 7 / 14 / 30 / 90-day chart window.                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `<BalanceDirection>`        | Which way a customer's balance moves, in register words: بنام / جمع.                                                                                                                                                                                                                                                                                                                                                                                             |
 | `<ActivityTable>`           | The audit trail. The one list that is a grid rather than a table — see why below.                                                                                                                                                                                                                                                                                                                                                                                |
+| `<BackupPanel>`             | The backup download at the foot of Reports. A panel with sentences rather than a fourth header button — see "A download that is not a report" below.                                                                                                                                                                                                                                                       |
 | `<GuideFlow>`               | The bilingual guide's stages, steps, section map and roles table.                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## Design tokens (`app/_styles/globals.css`)
@@ -488,6 +489,27 @@ not for a designer's monitor.
   `aria-hidden`; `aria-current="page"` on the link is what is announced. On the
   drawer's rows and on Account too — an active-state rule that skips a surface
   is how the two drift apart.
+
+## A download that is not a report explains itself
+
+Reports carries two downloads that look like neighbours and are nothing alike:
+the Excel workbook (a month, laid out for reading) and the backup (every table,
+shaped to be reloaded). `<BackupPanel>` is a panel with sentences at the foot of
+the page rather than a fourth button in the header, and that is the rule worth
+keeping: **a control whose consequences are not obvious explains itself where it
+stands**, in the words the reader would use, rather than in documentation nobody
+has open. Beside "Download Excel", a button marked "Back up" reads as another
+way to see the numbers. The same reasoning put the sentences on the reset panel
+in Settings.
+
+Two mechanical details that are easy to get wrong and are shared by both:
+
+- **No `download` attribute on the link.** It saves whatever the URL returns,
+  including the redirect a failure produces, so a failed export lands in
+  Downloads as a junk file saying nothing. The route's `Content-Disposition`
+  downloads the file on its own and lets a failure navigate back.
+- **The failure comes back as a query parameter** and is rendered where the
+  button is, trimmed before it goes on screen because it arrives from the URL.
 
 ## Clearing history: whole periods, never a single line
 

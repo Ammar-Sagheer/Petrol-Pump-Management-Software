@@ -19,6 +19,7 @@ import CashCreditChart from '@/app/_components/admin/CashCreditChart';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import Button from '@/app/_components/ui/Button';
+import BackupPanel from '@/app/_components/admin/BackupPanel';
 
 export const metadata = { title: 'Reports' };
 
@@ -40,6 +41,10 @@ export default async function ReportsPage({ searchParams }) {
   // because it goes on screen and arrives from the query string.
   const exportError =
     typeof params?.export_error === 'string' ? params.export_error.slice(0, 300) : null;
+
+  // Same arrangement for the backup download at the foot of the page.
+  const backupError =
+    typeof params?.backup_error === 'string' ? params.backup_error.slice(0, 300) : null;
 
   // The charts and the day-by-day table follow the month box, like everything
   // else on this page. They used to show a rolling last-30-days window
@@ -433,6 +438,8 @@ export default async function ReportsPage({ searchParams }) {
         </PendingLink>
       </details>
 
+      {/* The one thing on this page that is not a report - see the component. */}
+      <BackupPanel error={backupError} />
     </>
   );
 }

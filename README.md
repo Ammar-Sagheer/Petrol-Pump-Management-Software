@@ -475,7 +475,7 @@ is the one migration that is not purely declarative:
   a Rs 1.46m loss in a month that made Rs 566,307 — and looks entirely
   reasonable while doing it. See "How profit is worked out" above.
 
-**The database is not a passive store.** Fifty migrations of triggers,
+**The database is not a passive store.** Fifty-one migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -537,6 +537,71 @@ RLS completely, so it must stay server-side. In a desktop build that is packed
 into a binary anyone can unzip — move that call behind an Edge Function, or
 drop staff accounts from the offline build entirely.
 
+## Backups, and restoring from one
+
+The books exist in one place. The Supabase project is on the free plan, which
+has no daily backup anybody can restore from, so this is the whole of the
+safety net — take one regularly.
+
+**Taking a backup.** Reports → **Download backup**, at the foot of the page.
+One JSON file, a few hundred KB, holding every table: readings, credit slips,
+the ledger, customers, deliveries, dips, expenses, banking, the safe, assets,
+rates, tanks and nozzles. Keep it somewhere that is not this Supabase account.
+
+Two things are deliberately **not** in it:
+
+- **The activity log's rows.** It is the largest table, nothing depends on it,
+  and it answers "what happened last week" rather than "what are the books".
+  The table and its trigger come from migration 035 like everything else, so a
+  restored project starts writing new lines from its first save.
+- **The logins.** A profile row is half of a login; the other half is in
+  `auth.users`, and passwords are hashes no API hands out. The names and roles
+  ARE in the file, so you know which logins to remake.
+
+**Restoring into a new project**, in order:
+
+1. Make the new Supabase project and apply every migration in
+   `supabase/migrations/` **in order** — see the note in "If you are porting
+   this off Supabase" about 049 depending on the definitions before it.
+2. Recreate the logins (Authentication → Users), **typing the names exactly as
+   the backup lists them**. That is what puts each entry back under the person
+   who made it; the script matches by name.
+3. Run the restore:
+
+   ```bash
+   node scripts/restore-backup.mjs --file pump-backup-2026-08-23.json \
+     --url https://<new-ref>.supabase.co --key <service-role-key>
+   ```
+
+   It prints which authors it matched, asks before it loads anything, and then
+   checks what landed: every table's row count and eight money totals
+   recomputed from the live database and compared against the file. It exits
+   non-zero if anything disagrees. A name with no login here is not fatal —
+   those entries are restored with nobody against them, and `--map "Name=<uuid>"`
+   points them at a login instead.
+4. Point the app at the new project (`NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in Vercel) and
+   open it.
+
+**The restore only ever loads into an empty project.** It does not merge and it
+does not overwrite: if the target already holds trading data it refuses and
+names the tables. What the migrations themselves seed — the two tanks, the six
+nozzles, and the 36 treasury movements from 045 — does not count as data and is
+replaced by the file's own copy.
+
+**Why the loading is a database function** (`restore_everything`, migration
+051) rather than a loop over the REST API: this schema is not a passive store.
+A credit slip auto-posts its own ledger entry, so a naive reload would double
+every customer's balance; stock is recalculated per row; readings may not
+overlap and a day must balance, which is true of the finished data but not
+necessarily half way through loading it. The function turns user triggers off
+for one transaction, loads parents before children, turns them back on, and
+recomputes the two derived stock figures itself.
+
+**Try it once before you need it.** Make a throwaway Supabase project, restore
+a real backup into it, check a few figures against the live app, then delete
+the project. A backup nobody has ever restored is a guess.
+
 ## Database migrations
 
 Applied in order:
@@ -593,6 +658,7 @@ Applied in order:
 | `048_treasury_in_the_activity_log.sql` | Repair: 044 wires `treasury_entries` into the activity log and the copy applied to the live project did not include that half, so cash moving in and out of the safe went unlogged there. Found by checking a number in this file against `pg_trigger` before updating it |
 | `049_profit_counts_stock_sold.sql` | **Profit was counting stock bought instead of stock sold.** `cost_of_goods_sold()` = opening stock + purchases − closing stock, with stock valued at the weighted average cost of the deliveries it is actually made of; wired into all three reporting RPCs |
 | `050_clear_the_old_activity_log.sql` | The owner may throw away the OLD end of the audit trail — whole retention periods only (a month, three, six or a year kept), the cutoff computed from `pump_today()`, the recent end never touched, and the trim logged into the log it trimmed. Append-only is intact: no line may be edited, and no single line may be picked out |
+| `051_backup_and_restore.sql` | **Backup and restore.** `export_everything()` — the whole book as one JSON document, owner only, minus the activity log's rows and the profiles. `restore_everything()` — loads one into an EMPTY project with user triggers off, parents before children, `created_by` remapped onto the new project's logins and stock recomputed; service-role only, never callable from the app. Driven by `scripts/restore-backup.mjs` |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

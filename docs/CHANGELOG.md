@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **050**.
+logins, one pump. Migrations run to **051**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -45,10 +45,11 @@ logins, one pump. Migrations run to **050**.
 | Treasury         | **The cash in the safe on site** — the owner's "Tajori" sheet, owner-only, seeded with his real 36 movements. A page is a DAY, not 25 rows, addressed by date and skipping days with nothing on them. The safe may never hold less than nothing, judged over the whole chain. Migrations 044–048. |
 | Profit           | **It was counting stock BOUGHT, not stock SOLD.** August 2026 showed a Rs 1,464,581 loss for a month that made Rs 566,307, because 10,000 L of petrol arrived six days before month end. Now `sales − cost of goods sold − expenses`, with stock valued at the cost of the deliveries it is made of. One function, all three reporting RPCs. Migration 049. |
 | Activity         | The owner may clear the OLD end of the log — whole retention periods only, cutoff computed in Postgres, recent month never touched, the trim logged into the log it trimmed. Append-only intact: no line editable, no single line removable. Migration 050. And the open section in the sidebar now ends with a dark bar, because the tint alone washes out in daylight. |
+| Backups          | **The books can now leave Supabase and come back.** Reports → Download backup writes the whole book as one JSON file; `scripts/restore-backup.mjs` loads it into a fresh project with the triggers off, remapping each entry's author onto the new logins, then recomputes counts and money totals and compares them against the file. Migration 051. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Fifty
+almost none of the important logic is in the JavaScript. Fifty-one
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -4344,3 +4345,75 @@ row has ink at all. It reads as a marker rather than as one more pale wash.
 Decorative only — `aria-current="page"` on the link is what a screen reader is
 told, and the mark is `aria-hidden`. It is on the phone drawer's rows and on
 Account as well as the sections, checked at 1152px and 400px.
+
+## The books can leave Supabase, and come back
+
+The owner asked the question that had not been asked in fifty migrations: if he
+lost access to the Supabase account, could he stand a new project up and put
+everything back? At the time the honest answer was no. The project is on the
+free plan — no daily backup anybody can restore from, and a pause after a week
+of inactivity — and the only export was the Excel workbook, which is a report:
+one month, laid out for reading, with no way back into a database.
+
+So: **Download backup** at the foot of Reports, and a recovery script beside it.
+
+**What is in the file.** Every table, in dependency order, as one JSON
+document. Two things are left out on purpose. The activity log's ROWS, at the
+owner's request — it is the largest table, nothing depends on it, and it
+answers "what happened last week" rather than "what are the books"; the table
+and its trigger still come from migration 035, so a restored project writes new
+lines from its first save. And the profiles, because a profile row is half of a
+login and the other half lives in `auth.users`, where passwords are hashes no
+API hands out. The names ARE exported, which is what lets a restore put each
+entry back under the person who made it.
+
+**Why the loading is a database function rather than a loop in JavaScript.**
+This is the part that would have been easy to get wrong and hard to notice: the
+schema is not a passive store. A credit slip auto-posts its own ledger entry —
+reload both through the normal path and every credit customer's balance
+doubles. Tank and lubricant stock are recalculated per row, from a table that
+is only partly loaded. Readings may not overlap, a day must balance, and the
+safe may never go below zero at any point in the chain — all true of the
+finished data, and not necessarily true half way through loading it in table
+order. `restore_everything()` therefore disables user triggers for one
+transaction, loads parents before children, turns them back on, and recomputes
+the two derived stock figures itself.
+
+**It refuses a target that already holds trading data**, and names the tables.
+Merging two books is not something to ask a script to attempt, and "restore
+over the top of what is there" is how a stale backup destroys a good database.
+
+### Three things only found by actually restoring
+
+The round trip was run for real against a local Postgres with all fifty-one
+migrations applied: seed a database through the normal path, export, wipe,
+rebuild from the migrations, restore, and diff every count, money total,
+customer balance, stock figure and trigger state. It came back identical — but
+only after three things that reading the code would not have caught:
+
+- **A fresh project is not empty.** Migration 045 seeds the owner's real 36
+  treasury movements, on top of the tanks and nozzles from 004/012/013. The
+  first restore into a freshly migrated database was refused by its own
+  emptiness check. Hence `backup_seeded_tables()`, which names what the
+  migrations put there and is cleared and replaced by the file's own copy.
+- **`treasury_entries.seq` is an identity column, and it is load-bearing.** The
+  safe's running order is `(entry_date, seq)`, so letting Postgres hand out
+  fresh values would silently reorder two movements made on the same day. The
+  restore writes the old values with `overriding system value` and then moves
+  the sequence past them, or the next entry after a restore would collide.
+- **A restore that returns nothing must say so.** With a 200 carrying no
+  result, the script went on to its checks and reported all seventeen tables as
+  mismatched — seventeen alarming lines for a load that never started. It now
+  stops and says the load did not happen.
+
+**The script's own failure paths were exercised too**: a project with no logins
+yet, an author with no matching login (restored with nobody against them, and
+said out loud), a file whose header disagrees with its rows, a file from a
+future schema version, and a target that already has data.
+
+One honest limitation, recorded because a future session will want to know: the
+script's HTTP path was exercised against a small stand-in for PostgREST backed
+by the real database and the real restore function, because Docker Hub is
+unreachable from this environment and the genuine article could not be run. The
+database half of the round trip is tested for real; PostgREST's own routing is
+the one thing standing in for itself.
