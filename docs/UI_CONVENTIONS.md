@@ -21,6 +21,7 @@ a comment at the top of the file saying why it exists.
 | `<PendingLink>`                                                                                      | A link that shows a spinner while the navigation is in flight. Every server-rendered page needs one round trip.                     |
 | `<IconButton>`                                                                                       | Square 44px icon-only row action. The one place an icon may stand without a word.                                                   |
 | `<NumberInput>`                                                                                      | Blocks scroll-wheel and arrow-key changes that silently corrupt a typed figure. Use instead of bare `type="number"`.                |
+| `<DownloadNotice>`                                                                                   | A failure from a download route: shows the reason, then takes its own query parameter out of the URL so a refresh cannot resurrect it.                                                            |
 | `<FormMessage>`                                                                                      | Renders the `{ ok, message }` shape every Server Action returns.                                                                    |
 | `<EmptyState>` / `<PageHeader>` / `<FuelBadge>` / `<Icon>` / `<Spinner>` / `<BrandMark>` / `<Toast>` | Small, self-explanatory; see the files.                                                                                             |
 
@@ -510,6 +511,17 @@ Two mechanical details that are easy to get wrong and are shared by both:
   downloads the file on its own and lets a failure navigate back.
 - **The failure comes back as a query parameter** and is rendered where the
   button is, trimmed before it goes on screen because it arrives from the URL.
+- **And it has to be able to go away** — `<DownloadNotice>`. A download that
+  works does not re-render the page, so a reason parked in the query string
+  outlives the problem it describes: the backup's migration was applied, the
+  file downloaded, and the red line was still sitting there. The notice strips
+  its own parameter from the URL once it has been read (`history.replaceState`,
+  not a router navigation — this changes nothing the server rendered, and a
+  navigation would re-fetch the whole page to drop one parameter), carries a
+  Dismiss button, and is cleared by the panel when the button is pressed again,
+  because the answer to the old failure is the attempt now in flight. Errors
+  still never go in a `<Toast>`; this is how an error that must persist stops
+  persisting past its truth.
 
 ## Clearing history: whole periods, never a single line
 

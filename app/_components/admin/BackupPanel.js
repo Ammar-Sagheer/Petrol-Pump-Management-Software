@@ -1,4 +1,9 @@
+'use client';
+
+import { useState } from 'react';
+
 import Button from '@/app/_components/ui/Button';
+import DownloadNotice from '@/app/_components/ui/DownloadNotice';
 
 /**
  * The backup download, at the foot of Reports.
@@ -21,15 +26,22 @@ import Button from '@/app/_components/ui/Button';
  * Excel route hit. `download` saves whatever the URL returns, including the
  * redirect a failure produces, so an error would land in Downloads as a junk
  * file. The route's Content-Disposition downloads the file on its own and lets
- * a failure navigate back here, where `error` puts it on screen.
+ * a failure navigate back here.
+ *
+ * A CLIENT COMPONENT for one reason: the failure message has to be able to go
+ * away. A download that works does not re-render the page, so a reason left in
+ * the query string outlives the problem it describes - see `<DownloadNotice>`.
+ * Pressing the button again clears it, because the answer to the old failure is
+ * the attempt now in flight; if that fails too, the route sends back a fresh
+ * one.
  */
 export default function BackupPanel({ error }) {
+  const [notice, setNotice] = useState(error ?? null);
+
   return (
     <section className="card mt-8 p-4">
-      {error ? (
-        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          The backup did not download: {error}
-        </p>
+      {notice ? (
+        <DownloadNotice param="backup_error">The backup did not download: {notice}</DownloadNotice>
       ) : null}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -45,6 +57,7 @@ export default function BackupPanel({ error }) {
           component="a"
           variant="secondary"
           href="/admin/reports/backup"
+          onClick={() => setNotice(null)}
           className="shrink-0 whitespace-nowrap"
         >
           Download backup

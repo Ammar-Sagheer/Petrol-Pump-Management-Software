@@ -20,6 +20,7 @@ import FuelBadge from '@/app/_components/ui/FuelBadge';
 import PendingLink from '@/app/_components/ui/PendingLink';
 import Button from '@/app/_components/ui/Button';
 import BackupPanel from '@/app/_components/admin/BackupPanel';
+import DownloadNotice from '@/app/_components/ui/DownloadNotice';
 
 export const metadata = { title: 'Reports' };
 
@@ -123,10 +124,14 @@ export default async function ReportsPage({ searchParams }) {
         </Button>
       </PageHeader>
 
+      {/* The same self-clearing notice as the backup panel's. A download that
+          works does not re-render the page, so a reason left in the query
+          string outlives the problem - this one takes itself out of the URL
+          once it has been read. */}
       {exportError ? (
-        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <DownloadNotice param="export_error">
           The Excel download did not work: {exportError}
-        </p>
+        </DownloadNotice>
       ) : null}
 
       {/* ---- monthly headline ---- */}

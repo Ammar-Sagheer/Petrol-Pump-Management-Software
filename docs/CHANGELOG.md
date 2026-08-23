@@ -4417,3 +4417,33 @@ by the real database and the real restore function, because Docker Hub is
 unreachable from this environment and the genuine article could not be run. The
 database half of the round trip is tested for real; PostgREST's own routing is
 the one thing standing in for itself.
+
+## A download's failure outlived the failure
+
+Reported from the live app, and it had been true of the Excel export since the
+day it shipped — nobody had noticed because nobody had failed an export and then
+succeeded at one.
+
+A download is a plain link, not a form. When it works, the browser saves the
+file and the page never re-renders; when it fails, the route redirects back with
+the reason in the query string. So the reason stays in the URL. Migration 051
+was applied, the backup downloaded correctly — and the red line still read
+"Could not find the function public.export_everything", because
+`?backup_error=…` was still in the address bar and the server was faithfully
+rendering it on every request.
+
+`<DownloadNotice>` fixes both banners. It shows the reason, then strips its own
+parameter out of the URL with `history.replaceState` — not `router.replace`,
+which would re-fetch the whole Reports page, charts and RPCs and all, to remove
+one query parameter. It carries a Dismiss button, and the panel clears it when
+the download button is pressed again, since the answer to the old failure is the
+attempt now in flight.
+
+This is the `<Toast>` rule arrived at from the other end. Successes go in a
+toast because a message that outlives what it describes starts describing
+something else; errors deliberately do not, because an error has to survive long
+enough to be read and acted on. What was missing was the third case: an error
+that has survived long enough, and is now false.
+
+Verified in a browser rather than reasoned about: shown on arrival, gone after a
+refresh, gone on Dismiss, gone when Download is pressed again.
