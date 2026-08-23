@@ -4357,6 +4357,10 @@ one month, laid out for reading, with no way back into a database.
 
 So: **Download backup** at the foot of Reports, and a recovery script beside it.
 
+> Read later: the panel moved to **Settings** a day afterwards, on the owner's
+> instruction — see "The backup panel belongs on Settings, not Reports" below.
+> The route moved with it, to `/admin/settings/backup`.
+
 **What is in the file.** Every table, in dependency order, as one JSON
 document. Two things are left out on purpose. The activity log's ROWS, at the
 owner's request — it is the largest table, nothing depends on it, and it
@@ -4512,3 +4516,156 @@ The dialog is a client component holding a SERVER-rendered child.
 for the role checks and cannot be pulled into a client bundle, so the finished
 table is passed as `children`. Worth knowing before writing the next modal that
 needs server-rendered content in it.
+
+# Porting the Treasury → Backup rounds to the offline (Electron) build
+
+The desktop build tracks this repo, and the last catch-up list above stops at
+migration 043. This is the next one: **migrations 044–051 and everything that
+came with them**, sorted by what a port has to do about it rather than by the
+order it happened in. Every "why" is in the sections above; this is the list of
+what to carry.
+
+## 1. Database — eight migrations, and only one of them is Supabase-shaped
+
+| Migration | What it is | What a port has to do |
+|---|---|---|
+| `044_treasury.sql` | The safe on site: `treasury_entries`, the `treasury_ledger` view, the never-negative rule, owner-only RLS, and the **18th** table on the activity trigger | **The hardest one in this round.** See below |
+| `045_treasury_opening_entries.sql` | The owner's real 36 movements to 21 Aug 2026, with an assertion that rolls the whole thing back if they do not total Rs 8,364 | Data, not schema. Apply it, or the offline books start empty where the live ones do not |
+| `046_treasury_series_ends_at_the_last_entry.sql` | The chart stops where the entries stop | Read function. Plain SQL |
+| `047_treasury_a_page_is_a_day.sql` | `treasury_day()` — one day per page, with the neighbouring days that *have* entries | Read function. Plain SQL |
+| `048_treasury_in_the_activity_log.sql` | Repair: 044 wires `treasury_entries` into the activity log and the copy applied to the live project did not include that half | **Check `pg_trigger` in the offline database too.** The bug was a partially-applied migration, which is exactly what hand-copying SQL between two databases produces |
+| `049_profit_counts_stock_sold.sql` | Profit counts stock SOLD, not stock bought | Already covered in `README.md` → "If you are porting this off Supabase". Not purely declarative: it reads the earlier definitions back with `pg_get_functiondef`, so 005/010/041 must be present and unedited |
+| `050_clear_the_old_activity_log.sql` | The owner can throw away the old end of the audit trail | Plain Postgres — `set_config`/`current_setting` for the transaction-local exception, `at time zone 'Asia/Karachi'` for the cutoff. Needs 035's append-only guard to exist first, since it replaces it |
+| `051_backup_and_restore.sql` | The whole book out as JSON, and back into an empty database | **The only migration in this round with genuinely Supabase-shaped SQL in it.** See below |
+
+### 044 is the hard one, and the reason is two Postgres features
+
+If the desktop build ships **its own Postgres**, 044 applies verbatim and there
+is nothing to do. If anything ever replaces Postgres with SQLite or similar,
+these two do not survive the swap and the safe stops being trustworthy quietly:
+
+- **A DEFERRED constraint trigger.** The rule is "the safe may never hold less
+  than nothing **at any point in the chain**", judged at COMMIT, not per row —
+  because entries arrive in any order and a mid-transaction state that dips
+  below zero is not a violation if the finished chain does not. SQLite has no
+  deferred constraint triggers. Re-implementing it per-row rejects legitimate
+  entries; leaving it out lets the safe go negative.
+- **A window function.** `treasury_ledger` carries the running balance as
+  `sum(...) over (order by entry_date, seq)`, and `treasury_day()` uses the same
+  window twice. Computing a running balance in JavaScript instead means the
+  page and the constraint can disagree about what the balance is, which is the
+  one thing this table exists to prevent.
+
+Also: `treasury_entries.seq` is `generated always as identity` and **the order
+of a day depends on it**. Anything that copies these rows must preserve it — see
+what 051 had to do below.
+
+### 051 is the one to read before touching
+
+The backup and restore matter MORE offline, not less: a desktop build's books
+live on one laptop, with no Supabase project behind them at all, so the file
+this produces is the only copy in existence. Carry it. But three things in it
+are shaped by Supabase and need replacing:
+
+- **The role guard.** `restore_everything()` refuses anyone who is not
+  `service_role`, `postgres` or `supabase_admin` — `current_user` being the role
+  PostgREST switched into. Offline there is no PostgREST and no `service_role`,
+  so that check either passes for everybody or fails for everybody depending on
+  how the app connects. **Replace the guard rather than deleting it**: the
+  intent is "a restore is an operator action, not something the app's own UI can
+  reach", and offline the equivalent is a flag only the recovery path sets, or
+  keeping the function out of the connection the app itself uses.
+- **The transport in `scripts/restore-backup.mjs`.** It speaks PostgREST over
+  HTTP (`/rest/v1/rpc/...`, `Range` headers for paging). Offline that becomes a
+  direct `pg` client, or an IPC call from the Electron main process. The
+  script's *other* two jobs — matching each old author to a login by name, and
+  re-checking every row count and money total against the file afterwards — are
+  worth keeping whatever the transport is.
+- **What the backup leaves out.** `profiles` rows are excluded because a profile
+  is half of a login and the other half is in `auth.users`, which is Supabase's.
+  In a single-user offline build there may be no such split, and restoring
+  `profiles` directly is then both possible and simpler — in which case the
+  `p_profile_map` remapping has nothing to do and can go. Decide it on purpose;
+  do not leave the remapping in place pointing at ids that no longer mean
+  anything. The activity log's rows are excluded on the owner's instruction and
+  that holds offline too.
+
+One thing that is NOT Supabase-shaped and must survive the port intact: the
+restore turns **user triggers off for one transaction**, loads parents before
+children, turns them back on, and recomputes the two derived stock figures. A
+naive reload doubles every credit customer's balance, because a credit slip
+auto-posts its own ledger entry. And a freshly migrated database is **not
+empty** — 004/012/013 seed the tanks and nozzles, 045 the 36 treasury
+movements — which is why `backup_seeded_tables()` exists.
+
+## 2. New files
+
+| File | Purpose |
+|---|---|
+| `app/admin/treasury/page.js` + `loading.js` | The safe, a day per page |
+| `_components/admin/TreasuryEntryForm.js` | `'use client'`. Record cash in or out, category per direction |
+| `_components/admin/TreasuryDayNav.js` | `'use client'`. Steps to the previous/next day that HAS entries |
+| `_components/admin/TreasuryBalanceChart.js` | `'use client'`. The running balance |
+| `_components/admin/DeleteTreasuryEntryButton.js` | Removing one line from the chain |
+| `_lib/treasury-categories.js` | The fixed reason lists, per direction |
+| `_components/admin/ClearOldActivityButton.js` | `'use client'`. Whole-period trim of the activity log (050) |
+| `_components/admin/BackupPanel.js` | `'use client'`. The backup download, on Settings |
+| `app/admin/settings/backup/route.js` | Route handler: the whole book as a JSON download |
+| `scripts/restore-backup.mjs` | The recovery script — see above |
+| `_components/ui/DownloadNotice.js` | `'use client'`. A download's failure that takes its own query parameter out of the URL |
+| `_components/admin/DailyTableDialog.js` | `'use client'`. A client shell holding a SERVER-rendered table |
+
+## 3. Changed shared files — these reach more than one page
+
+- **`_components/ui/Dialog.js`** — `size` now takes `xl` (64rem) as well as
+  `lg` and `md`, for a table that is wide in its own right.
+- **`_components/admin/AdminSidebar.js`** — `ActiveMark`: the open section ends
+  with a dark bar, in the column and in the phone drawer, because the tinted
+  band washes out on a tablet in daylight.
+- **`_components/admin/AdminStats.js`** — a `treasury` accent (teal: the safe's
+  balance is a level, not a movement), and the sparkline yields the line rather
+  than disappearing below the threshold.
+- **`_components/admin/DateJump.js`** — `scroll` prop; pass `scroll={false}`
+  where the date box sits at the BOTTOM of a page, as Treasury does.
+- **`_components/admin/CategoryBreakdown.js`** — optional `title`, because
+  Treasury renders two side by side (where cash came from, where it went).
+- **`_lib/fuel-colors.js`** — `deepHex`, a bare hex for a chart fill.
+- **`_lib/helpers.js`** — `/admin/treasury` in the page-role table.
+- **`_lib/data-service.js`** — `getTreasuryOverview`, `getTreasuryDay`,
+  `getActivityTrimCounts`.
+- **`_lib/actions.js`** — `createTreasuryEntry`, `deleteTreasuryEntry`,
+  `clearOldActivity`.
+- **`_lib/excel-report.js`** — the workbook's Summary sheet gains cost of stock
+  sold, opening and closing stock value (049).
+- **`_components/ui/Icon.js`** — a `treasury` icon.
+
+## 4. Page changes
+
+| Page | Change |
+|---|---|
+| Treasury | New section, owner-only, a page is a day |
+| Activity | **Clear old entries** — whole retention periods only, counts per period, the trim logs itself |
+| Settings | **Backup** section: download the whole book |
+| Reports | The month's days moved from a `<details>` block under the charts to a button above them opening a modal; profit is now sales − cost of stock sold − expenses, with the working shown |
+| Nav | The open section carries a dark bar |
+
+## 5. The rules worth carrying over, not just the diffs
+
+- **A partially-applied migration is the failure mode of hand-copied SQL.**
+  048 exists because 044 was applied to the live project without the half that
+  wires treasury into the activity log. It was found by checking a number in
+  the docs against `pg_trigger`. Do that check on the offline database too.
+- **Append-only means "no line may be EDITED", not "no line may ever leave".**
+  050 lets the owner drop whole retention periods and nothing finer, because
+  removing one line while its neighbours stay is what makes a trail lie.
+- **A backup nobody has restored is a guess.** The round trip here was proved
+  by doing it against a local Postgres — export, wipe, rebuild from the
+  migrations, restore, diff every count, total, balance and stock figure. The
+  offline build should run the same rehearsal on its own database rather than
+  assuming the port carried.
+- **A download that fails leaves its reason in the URL, and the reason outlives
+  the failure.** A successful download does not re-render the page. Whatever
+  the offline shell does for downloads, the notice has to be able to go away.
+- **A modal can hold a server-rendered child** — pass it as `children`. Anything
+  that formats through `helpers.js` cannot be imported into a client component,
+  because that file reads request cookies.

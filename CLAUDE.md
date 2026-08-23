@@ -56,6 +56,11 @@ from a cloned repo and a new Supabase account. If a rehearsal turns something
 up, fix it in migration 051 and record it in the changelog rather than working
 around it in the script.
 
+**The offline build tracks this repo**, and its catch-up list for this round is
+`docs/CHANGELOG.md` → "Porting the Treasury → Backup rounds to the offline
+(Electron) build" — migrations 044–051, the new files, the shared files that
+reach every page, and the two things in 044 that only Postgres provides.
+
 Two things about the schema that make a naive reload wrong, and are the reason
 the loading lives in Postgres rather than in JavaScript: a credit slip
 auto-posts its own ledger entry (reload both and every customer's balance

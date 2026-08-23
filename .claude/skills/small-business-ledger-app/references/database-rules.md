@@ -224,3 +224,66 @@ subtracted stock bought per day; it now apportions the cost of goods sold
 across days **by units sold**, which is exact at the total and an apportionment
 within it. Grep for every place the old formula was re-implemented before
 calling the fix done.
+
+
+## Append-only means "no line may be EDITED", not "no line may ever leave"
+
+An audit trail or a ledger grows by a line per change, and after a year most of
+it is dead weight. The instinct is to refuse every delete for ever, and it is
+half right. Two different guarantees hide inside "append-only", and only one of
+them is what makes the trail worth anything:
+
+- **No line may ever be changed.** Keep this absolutely, for everyone, always.
+- **No single line may be picked out and removed** while its neighbours stay.
+  This is the one that matters: remove the one entry about the payment somebody
+  backdated on Tuesday, leave Monday and Wednesday, and the record now lies by
+  looking complete.
+
+Neither of those is violated by dropping a **whole period** off the old end. So
+if the owner needs the log trimmed, give them exactly that shape and nothing
+finer:
+
+- offer only whole retention periods — keep the last month, three, six, a year
+- compute the cutoff **in the database**, from the business day, so a caller
+  cannot name an arbitrary instant
+- never let the most recent period go, whatever is asked for
+- say how many entries each period would remove before it is chosen; "older
+  than six months" is a tidy-up at 4 lines and a decision at 4,000
+- **write the trim into the log it just trimmed** — who did it, how many went
+- do not disable the guard to do it. Teach it ONE named, transaction-local
+  exception, and have it still refuse any row that is not older than the cutoff
+  the exception names. A stray delete from anywhere else meets the same refusal
+  it always did.
+
+## The books must be able to leave the database, and come back
+
+A single hosted project — especially on a free tier with no restorable
+backup — is one account closure away from being the end of the business's
+records. Give the owner a button that writes the whole thing to a file they
+keep, and a tested way to load it into an empty database.
+
+The export is the easy half. The restore is where the work is, because a schema
+that enforces its own rules will fight a reload:
+
+- a line that **auto-posts another line** (a credit slip posting its own ledger
+  entry) will double every balance if both are reloaded through the normal path
+- running totals recalculated per row will be computed from a half-loaded table
+- rules that are true of the finished data — a balanced day, no overlapping
+  readings, a balance that never goes negative — are not necessarily true half
+  way through loading it in table order
+
+So the loading belongs **in the database, in one transaction, with user triggers
+off**, parents before children, derived figures recomputed at the end. Then:
+
+- **refuse a target that already holds data.** Merging two sets of books is not
+  something to attempt; "restore over the top" is how a stale file destroys a
+  good database
+- **know what your migrations seed.** A freshly migrated database is usually not
+  empty — seeded reference rows and opening balances are not "data" for this
+  purpose, and must be replaced rather than treated as a blocker
+- **preserve identity/sequence columns** if anything orders by them, and move
+  the sequence past what was loaded
+- **check afterwards, out loud**: row counts and money totals recomputed from
+  the live database and compared against the file, non-zero exit on any
+  disagreement
+- **rehearse it once, for real.** A backup nobody has ever restored is a guess.

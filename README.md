@@ -399,7 +399,7 @@ app/
     reports/               monthly profit, charts, Excel export
       daily/               every trading day, newest first, paged
       register/            petrol and diesel day by day, with running gain/loss
-    settings/              prices, tanks, nozzle wiring
+    settings/              prices, tanks, nozzle wiring, the backup download
       fuel-prices/         the full rate history, paged
     account/               your own login, and staff logins for the owner
     guide/                 how to use the app, English and Urdu (?lang=ur)
@@ -444,7 +444,7 @@ important logic is in the JavaScript.
 changes the shape of this enormously and most of the warnings below are about
 the harder case. On local Postgres the migrations in `supabase/migrations/`
 apply **verbatim** — same triggers, same constraints, same RPCs, same
-guarantees. Three things are the only real edits:
+guarantees. Four things are the only real edits:
 
 - **`auth.uid()`** is Supabase's, not Postgres's. It reads a JWT claim out of a
   session GUC. Anything using it — `auth_role()`, `is_super_admin()`,
@@ -454,10 +454,30 @@ guarantees. Three things are the only real edits:
   legitimate choice; forgetting it is not. Decide on purpose, and remember that
   `requireRole()` was only ever the second fence.
 - **`profiles.id` references `auth.users`**, a Supabase-managed table.
+- **The role guard in `051_backup_and_restore.sql`.** `restore_everything()`
+  refuses any caller that is not `service_role`, `postgres` or `supabase_admin`
+  — `current_user` being the role PostgREST switched into. Offline there is no
+  PostgREST and no `service_role`, so that check either lets everybody through
+  or nobody, depending on how the app connects. Replace it rather than delete
+  it: the intent is that a restore is an operator action the app's own UI
+  cannot reach. `scripts/restore-backup.mjs` needs the same treatment — it
+  speaks PostgREST over HTTP, and offline that becomes a direct `pg` client or
+  an IPC call from the Electron main process.
 
 Everything else — the balanced-day check, the append-only ledger, the overlap
-rules, stock recalculation, the reporting RPCs — is plain Postgres and needs no
-translation at all.
+rules, stock recalculation, the reporting RPCs, the activity log and its
+retention trim — is plain Postgres and needs no translation at all.
+
+**Backups matter MORE offline, not less.** A desktop build's books live on one
+laptop with no Supabase project behind them, so the file Settings → Backup
+produces is the only copy that exists. Carry the feature across, and run the
+same rehearsal on the offline database that the live one is getting: export,
+wipe, rebuild from the migrations, restore, and diff every count and total.
+
+**The catch-up list for the desktop build** — migrations 044–051 and everything
+that came with them, including what 044 needs that only Postgres provides — is
+`docs/CHANGELOG.md` → "Porting the Treasury → Backup rounds to the offline
+(Electron) build".
 
 **Two things about `049_profit_counts_stock_sold.sql` specifically**, because it
 is the one migration that is not purely declarative:

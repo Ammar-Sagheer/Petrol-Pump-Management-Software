@@ -405,3 +405,38 @@ not reach for it at all if Sign out is the last item, because a list that
 silently ends above it leaves the owner unable to sign out with nothing on
 screen to say why. Keep the scroll, style it to a hairline, and make sure it
 only fires on genuinely short windows.
+
+
+## A destructive control explains itself where it stands
+
+A button whose consequences are not obvious from its label — "Back up", "Clear
+old entries", "Empty everything" — gets a panel with sentences, not a place in a
+row of header buttons. Say what it does, what it does not touch, and what
+undoing it would involve. Documentation nobody has open is not a substitute.
+
+Put it where its KIND of work lives, not where it superficially rhymes. A backup
+is maintenance, so it belongs with the settings that are configured once and
+left alone — not next to a report download just because both produce a file. The
+question the reader is answering when they arrive on a page decides what belongs
+on it.
+
+## A failure that arrives in the URL must be able to leave
+
+A download is a link, not a form: on success the browser saves a file and the
+page never re-renders, so a failure reported by redirecting back with a reason
+in the query string stays on screen after the problem is fixed. Show it, then
+strip the parameter from the URL (a history replace, not a router navigation
+that re-fetches the page), give it a dismiss control, and clear it when a fresh
+attempt starts. Successes get a toast because a message that outlives what it
+describes starts describing something else; errors persist — but not past the
+point where they are still true.
+
+## The table behind a chart: above it, and in a modal
+
+When a page offers both a chart and the same figures as a table, the table is
+what someone reaches for when the chart is not answering their question. So the
+way into it goes **above** the chart, not below — otherwise the reader scrolls
+past the thing that just failed them to find the alternative. Open it as a modal
+rather than expanding it inline: nothing moves on the way past, and the table
+gets the whole screen when it is wanted. A `<details>` strip with no button and
+no border reads as furniture rather than a control.
