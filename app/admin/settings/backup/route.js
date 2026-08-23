@@ -29,9 +29,14 @@ import { redirect } from 'next/navigation';
 import { requireRole, ROLES, todayISO } from '@/app/_lib/helpers';
 import { createClient } from '@/app/_lib/supabase-server';
 
-function backToReports(message) {
+/*
+ * Back to Settings, which is where the button is: a failure has to land on the
+ * page the reader pressed it from, or the message appears somewhere they are
+ * not looking.
+ */
+function backToSettings(message) {
   const params = new URLSearchParams({ backup_error: message });
-  return `/admin/reports?${params.toString()}`;
+  return `/admin/settings?${params.toString()}`;
 }
 
 export async function GET() {
@@ -45,7 +50,7 @@ export async function GET() {
   const { data, error } = await supabase.rpc('export_everything');
 
   if (error) {
-    redirect(backToReports(`Could not read the data: ${error.message}`));
+    redirect(backToSettings(`Could not read the data: ${error.message}`));
   }
 
   /*

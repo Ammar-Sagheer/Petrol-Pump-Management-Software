@@ -12,6 +12,7 @@ import FuelPriceForm from '@/app/_components/admin/FuelPriceForm';
 import TankForm from '@/app/_components/admin/TankForm';
 import NozzleSettingsButton from '@/app/_components/admin/NozzleSettingsButton';
 import FullResetPanel from '@/app/_components/admin/FullResetPanel';
+import BackupPanel from '@/app/_components/admin/BackupPanel';
 import FuelPriceTable from '@/app/_components/admin/FuelPriceTable';
 import PendingLink from '@/app/_components/ui/PendingLink';
 
@@ -25,8 +26,14 @@ export const metadata = { title: 'Settings' };
    day's petrol and diesel, so this can show six. */
 const RECENT_ROWS = 5;
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }) {
   await requirePageRole(ROLES.SUPER_ADMIN);
+
+  // Set by the backup route when the download could not be produced. Trimmed,
+  // because it goes on screen and arrives from the query string.
+  const params = await searchParams;
+  const backupError =
+    typeof params?.backup_error === 'string' ? params.backup_error.slice(0, 300) : null;
 
   const [tanks, nozzles, prices, rates] = await Promise.all([
     getTanks(),
@@ -100,6 +107,16 @@ export default async function SettingsPage() {
           <TankForm key={tank.id} tank={tank} />
         ))}
       </div>
+
+      {/* ---- backup ---- */}
+      {/* Here rather than on Reports, where it was first put. A backup is not a
+          report: it is not read, it is filed, and it belongs with the other
+          things that are set up once and then left alone. Reports is where the
+          owner goes for a figure - a control about losing the whole database
+          sitting under the month's profit was answering a question nobody was
+          asking at that moment. */}
+      <h2 className="section-heading">Backup</h2>
+      <BackupPanel error={backupError} />
 
       {/* Testing scaffolding. Gone the moment ALLOW_FULL_RESET is removed from
           the server, with no code change - see fullResetAllowed(). */}

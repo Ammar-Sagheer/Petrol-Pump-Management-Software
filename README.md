@@ -543,7 +543,7 @@ The books exist in one place. The Supabase project is on the free plan, which
 has no daily backup anybody can restore from, so this is the whole of the
 safety net — take one regularly.
 
-**Taking a backup.** Reports → **Download backup**, at the foot of the page.
+**Taking a backup.** Settings → **Backup** → **Download backup**.
 One JSON file, a few hundred KB, holding every table: readings, credit slips,
 the ledger, customers, deliveries, dips, expenses, banking, the safe, assets,
 rates, tanks and nozzles. Keep it somewhere that is not this Supabase account.
@@ -601,6 +601,20 @@ recomputes the two derived stock figures itself.
 **Try it once before you need it.** Make a throwaway Supabase project, restore
 a real backup into it, check a few figures against the live app, then delete
 the project. A backup nobody has ever restored is a guess.
+
+**What has and has not been proved, as of migration 051.** The round trip was
+run for real against a LOCAL Postgres with all 51 migrations applied: seed
+through the normal path, export, wipe, rebuild from the migrations, restore, and
+diff every row count, money total, customer balance, stock figure and trigger
+state — identical, both through the database function and through the script.
+The script's own HTTP path ran against a small stand-in for PostgREST rather
+than the real thing, because Docker Hub was unreachable from the machine that
+built it. **A rehearsal against a real Supabase project has not been done yet.**
+When it is, the things most likely to differ from the local run are the ones
+Supabase owns rather than Postgres: whether `service_role` reaches
+`restore_everything` through PostgREST as the role check expects, whether a
+payload of a few hundred KB goes through the RPC endpoint unaltered, and the
+`auth.users` half of remaking the logins. Record the result here.
 
 ## Database migrations
 

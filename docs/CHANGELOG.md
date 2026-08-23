@@ -45,7 +45,7 @@ logins, one pump. Migrations run to **051**.
 | Treasury         | **The cash in the safe on site** — the owner's "Tajori" sheet, owner-only, seeded with his real 36 movements. A page is a DAY, not 25 rows, addressed by date and skipping days with nothing on them. The safe may never hold less than nothing, judged over the whole chain. Migrations 044–048. |
 | Profit           | **It was counting stock BOUGHT, not stock SOLD.** August 2026 showed a Rs 1,464,581 loss for a month that made Rs 566,307, because 10,000 L of petrol arrived six days before month end. Now `sales − cost of goods sold − expenses`, with stock valued at the cost of the deliveries it is made of. One function, all three reporting RPCs. Migration 049. |
 | Activity         | The owner may clear the OLD end of the log — whole retention periods only, cutoff computed in Postgres, recent month never touched, the trim logged into the log it trimmed. Append-only intact: no line editable, no single line removable. Migration 050. And the open section in the sidebar now ends with a dark bar, because the tint alone washes out in daylight. |
-| Backups          | **The books can now leave Supabase and come back.** Reports → Download backup writes the whole book as one JSON file; `scripts/restore-backup.mjs` loads it into a fresh project with the triggers off, remapping each entry's author onto the new logins, then recomputes counts and money totals and compares them against the file. Migration 051. |
+| Backups          | **The books can now leave Supabase and come back.** Settings → Backup → Download backup writes the whole book as one JSON file; `scripts/restore-backup.mjs` loads it into a fresh project with the triggers off, remapping each entry's author onto the new logins, then recomputes counts and money totals and compares them against the file. Migration 051. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -4447,3 +4447,68 @@ that has survived long enough, and is now false.
 
 Verified in a browser rather than reasoned about: shown on arrival, gone after a
 refresh, gone on Dismiss, gone when Download is pressed again.
+
+## The backup panel belongs on Settings, not Reports
+
+It shipped at the foot of Reports on the reasoning that both it and the Excel
+workbook are files you take away. The owner moved it, and he is right: Reports
+is where you go to READ a figure, and a control about losing the whole database
+has no business sitting under the month's profit. Settings is where the things
+that are set up once and then left alone live — the rates, the tanks, the nozzle
+wiring, the reset panel — and a backup is one of those.
+
+The route moved with it (`/admin/settings/backup`) and its failure redirects to
+Settings, because a message has to land on the page the reader pressed the
+button from.
+
+## Where the restore stands, for whoever picks this up next
+
+The plan, in the owner's words: clone the repo, run all 51 migrations on a new
+Supabase account, and test the restore. Everything needed for that is in
+`README.md` → "Backups, and restoring from one"; the short version of what
+changes for a clone is **nothing in the SQL** — no hardcoded project ref, no
+hardcoded ids or emails, `pgcrypto` created by 001, and the `auth.users →
+profiles` trigger created by 002 rather than by hand in the dashboard — only the
+three environment variables, and the owner login made by hand and promoted to
+`super_admin` with one UPDATE.
+
+**Proved:** the whole round trip against a local Postgres with all 51 migrations
+applied — export, wipe, rebuild, restore, and an identical diff of every count,
+money total, balance, stock figure and trigger state, both through
+`restore_everything()` directly and through `scripts/restore-backup.mjs` with
+the authors remapped onto different login ids. Also the refusals: staff, a
+non-empty target, a wrong confirmation word, a future schema version, a damaged
+file, a project with no logins, and an author with no matching login.
+
+**Not proved yet:** any of it against a real Supabase project. The three things
+most likely to behave differently are the ones Supabase owns rather than
+Postgres — whether `service_role` reaches `restore_everything` through PostgREST
+as the `current_user` check expects, whether a payload of a few hundred KB
+survives the RPC endpoint unaltered, and the `auth.users` half of remaking the
+logins. If the rehearsal turns any of those up, the fix belongs in migration 051
+and this file, not in a workaround in the script.
+
+## The days-as-a-table block became a button and a modal
+
+Owner's request, and it fixes three things at once. The month-by-day table was a
+`<details>` card under the charts: no button, no border, just a line of text and
+a triangle, so it read as a strip of furniture rather than something to press.
+It sat below the charts — the table is what you reach for when the chart is not
+answering your question, so the alternative was hidden underneath the thing that
+had failed you. And opening it pushed a nine-column table into the middle of a
+page that already carries a stat strip and two charts, moving everything below
+it.
+
+It is now a **Show these days as a table** button in the heading row, on the
+right, above the charts, opening `<DailyTableDialog>` — a modal at a new
+`size="xl"` (64rem), because the table is nine columns and 46rem at its
+narrowest and `lg` fits it only by giving up its own padding. Rendered at 1152px
+and 400px: the full table fits without sideways scrolling on a laptop, and on a
+phone it scrolls inside the sheet the way every other wide table in the app
+does.
+
+The dialog is a client component holding a SERVER-rendered child.
+`<DailySalesTable>` formats through `helpers.js`, which reads request cookies
+for the role checks and cannot be pulled into a client bundle, so the finished
+table is passed as `children`. Worth knowing before writing the next modal that
+needs server-rendered content in it.

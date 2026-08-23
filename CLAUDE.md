@@ -39,6 +39,29 @@ Read these before making changes, in this order:
 - **Business name and logo are data, not code.** `app/_lib/brand.js` and
   `public/logo.png` — see `README.md`.
 
+## Backups and restoring (live work, August 2026)
+
+The books can be taken out of Supabase and put back: **Settings → Backup →
+Download backup** writes the whole database as one JSON file, and
+`scripts/restore-backup.mjs` plus `restore_everything()` (migration 051) load
+one into an empty project. `README.md` → "Backups, and restoring from one" is
+the procedure; `docs/CHANGELOG.md` → "Where the restore stands" is what has and
+has not been proved.
+
+**The state of it, so you do not re-derive this:** the whole round trip is
+tested against a local Postgres with all 51 migrations applied and comes back
+byte-identical on every count, total, balance and stock figure. It has **not**
+yet been rehearsed against a real Supabase project — the owner is doing that
+from a cloned repo and a new Supabase account. If a rehearsal turns something
+up, fix it in migration 051 and record it in the changelog rather than working
+around it in the script.
+
+Two things about the schema that make a naive reload wrong, and are the reason
+the loading lives in Postgres rather than in JavaScript: a credit slip
+auto-posts its own ledger entry (reload both and every customer's balance
+doubles), and a freshly migrated project is **not** empty — 004/012/013 seed the
+tanks and nozzles, and 045 seeds 36 real treasury movements.
+
 ## Verifying UI changes
 
 This app is read by someone on a cheap tablet, in poor light, checking

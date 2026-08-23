@@ -13,7 +13,7 @@ a comment at the top of the file saying why it exists.
 
 | Component                                                                                            | What it is for                                                                                                                      |
 | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `<Dialog>`                                                                                           | Native `<dialog>` + `showModal()`. Full-screen sheet on a phone, centred panel above `sm`. No click-outside-to-close, deliberately. |
+| `<Dialog>`                                                                                           | Native `<dialog>` + `showModal()`. Full-screen sheet on a phone, centred panel above `sm`. `size` is `md` (32rem), `lg` (48rem) or `xl` (64rem, for a wide table). No click-outside-to-close, deliberately. |
 | `<ConfirmAction>`                                                                                    | Every "are you sure?": trash icon → dialog. Replaced seven inline confirms that shifted the page.                                   |
 | `<Pager>`                                                                                            | The row under a paged table — "Showing 1 to 8 of 26" plus Previous/Next. `pageFrom(searchParams)` reads and clamps `?page=`.        |
 | `<Button>`                                                                                           | Every button in the app. Material UI, with the three intents as `variant` (`primary` / `secondary` / `danger`).                     |
@@ -493,11 +493,18 @@ not for a designer's monitor.
 
 ## A download that is not a report explains itself
 
-Reports carries two downloads that look like neighbours and are nothing alike:
-the Excel workbook (a month, laid out for reading) and the backup (every table,
-shaped to be reloaded). `<BackupPanel>` is a panel with sentences at the foot of
-the page rather than a fourth button in the header, and that is the rule worth
-keeping: **a control whose consequences are not obvious explains itself where it
+The app has two downloads that look like neighbours and are nothing alike: the
+Excel workbook (a month, laid out for reading) and the backup (every table,
+shaped to be reloaded). They were briefly next to each other on Reports, and
+that was the wrong grouping — **Reports is where the owner goes to read a
+figure**, and a control about losing the entire database does not belong under
+the month's profit. The backup panel now lives on **Settings**, with the rates,
+the tanks, the nozzle wiring and the reset panel: the things set up once and
+then left alone. Its failure redirects there too, because a message has to land
+on the page the reader pressed the button from.
+
+`<BackupPanel>` is a panel with sentences rather than a bare button, and that is
+the rule worth keeping: **a control whose consequences are not obvious explains itself where it
 stands**, in the words the reader would use, rather than in documentation nobody
 has open. Beside "Download Excel", a button marked "Back up" reads as another
 way to see the numbers. The same reasoning put the sentences on the reset panel
@@ -522,6 +529,32 @@ Two mechanical details that are easy to get wrong and are shared by both:
   because the answer to the old failure is the attempt now in flight. Errors
   still never go in a `<Toast>`; this is how an error that must persist stops
   persisting past its truth.
+
+## The table behind a chart: a modal, and the way in goes ABOVE the chart
+
+Reports' month-by-day table used to be a `<details>` block under the two charts,
+and both halves of that were wrong.
+
+- **A `<details>` strip reads as furniture, not a control.** Its whole visible
+  state was a line of text and a disclosure triangle — the one thing on the page
+  with no button and no border around anything clickable.
+- **It was below the charts.** The table is what a reader reaches for when the
+  chart is not answering their question, so putting it underneath meant scrolling
+  past the thing that had just failed them to find the alternative. The button
+  now sits in the heading row, on the right, above the charts — where the reader
+  already is when they give up on the picture.
+- **Opening it in the flow pushed the page around.** A nine-column table
+  appearing mid-page moves everything below it and lands the figure someone
+  wanted below the fold. `<DailyTableDialog>` opens it as a modal (`size="xl"`)
+  instead: nothing moves on the way past, and the table gets the whole screen
+  when it is wanted.
+
+**A client shell around a server component.** `<DailySalesTable>` formats money
+through `helpers.js`, which reads request cookies and cannot cross into a client
+bundle. The dialog is a client component that takes the finished table as
+`children` — rendered on the server, passed in. Importing it inside the client
+component would break the build; this is the pattern to copy whenever a modal
+needs to hold server-rendered content.
 
 ## Clearing history: whole periods, never a single line
 
