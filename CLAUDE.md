@@ -59,7 +59,11 @@ around it in the script.
 **The offline build tracks this repo**, and its catch-up list for this round is
 `docs/CHANGELOG.md` → "Porting the Treasury → Backup rounds to the offline
 (Electron) build" — migrations 044–051, the new files, the shared files that
-reach every page, and the two things in 044 that only Postgres provides.
+reach every page, and the two things in 044 that only Postgres provides. **The
+backup feature is not part of that list**: the desktop build already backs
+itself up its own way, and a local Postgres has better tools for it than a JSON
+export (a data-directory copy or `pg_dump` also captures the logins, which this
+export deliberately cannot).
 
 Two things about the schema that make a naive reload wrong, and are the reason
 the loading lives in Postgres rather than in JavaScript: a credit slip

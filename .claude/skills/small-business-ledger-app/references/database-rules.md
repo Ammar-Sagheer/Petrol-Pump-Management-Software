@@ -262,6 +262,11 @@ backup — is one account closure away from being the end of the business's
 records. Give the owner a button that writes the whole thing to a file they
 keep, and a tested way to load it into an empty database.
 
+**This is the HOSTED case.** An app that ships its own local database has
+better tools and should use them: a copy of the data directory, or a dump on a
+timer, both of which capture the logins that an application-level export usually
+cannot. Do not build the JSON round trip twice — decide which case you are in.
+
 The export is the easy half. The restore is where the work is, because a schema
 that enforces its own rules will fight a reload:
 

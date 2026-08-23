@@ -454,25 +454,32 @@ guarantees. Four things are the only real edits:
   legitimate choice; forgetting it is not. Decide on purpose, and remember that
   `requireRole()` was only ever the second fence.
 - **`profiles.id` references `auth.users`**, a Supabase-managed table.
-- **The role guard in `051_backup_and_restore.sql`.** `restore_everything()`
-  refuses any caller that is not `service_role`, `postgres` or `supabase_admin`
-  — `current_user` being the role PostgREST switched into. Offline there is no
-  PostgREST and no `service_role`, so that check either lets everybody through
-  or nobody, depending on how the app connects. Replace it rather than delete
-  it: the intent is that a restore is an operator action the app's own UI
-  cannot reach. `scripts/restore-backup.mjs` needs the same treatment — it
-  speaks PostgREST over HTTP, and offline that becomes a direct `pg` client or
-  an IPC call from the Electron main process.
+- **`051_backup_and_restore.sql` is not for the desktop build at all.** It backs
+  itself up its own way — a local Postgres on one laptop can copy its data
+  directory or run `pg_dump`, which also captures the logins that this JSON
+  export deliberately cannot. Skip the migration, the Settings panel, the
+  download route and `scripts/restore-backup.mjs`. (If it is ever ported
+  anyway: `restore_everything()` guards on `current_user` being `service_role`
+  or `supabase_admin`, which is PostgREST's shape and means nothing offline,
+  and the script speaks PostgREST over HTTP.)
 
 Everything else — the balanced-day check, the append-only ledger, the overlap
 rules, stock recalculation, the reporting RPCs, the activity log and its
 retention trim — is plain Postgres and needs no translation at all.
 
-**Backups matter MORE offline, not less.** A desktop build's books live on one
-laptop with no Supabase project behind them, so the file Settings → Backup
-produces is the only copy that exists. Carry the feature across, and run the
-same rehearsal on the offline database that the live one is getting: export,
-wipe, rebuild from the migrations, restore, and diff every count and total.
+**Backups offline are the desktop build's own business.** Its books live on one
+laptop, and the right tools there are the ones this repo cannot use — a copy of
+the data directory, or `pg_dump` on a timer, both of which capture the logins
+too. What transfers is the discipline, not the code: rehearse the restore on a
+copy before it is needed, and check row counts and money totals afterwards
+rather than trusting the file.
+
+**What DOES transfer from the restore work** is a fact about this schema: a
+credit slip auto-posts its own ledger entry, so anything that replays rows
+through the normal write path doubles every credit customer's balance. A
+file-level or `pg_dump` restore avoids that by not going through the write path;
+a row-by-row one needs triggers off, parents before children, and derived stock
+recomputed at the end.
 
 **The catch-up list for the desktop build** — migrations 044–051 and everything
 that came with them, including what 044 needs that only Postgres provides — is

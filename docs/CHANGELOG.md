@@ -4536,7 +4536,7 @@ what to carry.
 | `048_treasury_in_the_activity_log.sql` | Repair: 044 wires `treasury_entries` into the activity log and the copy applied to the live project did not include that half | **Check `pg_trigger` in the offline database too.** The bug was a partially-applied migration, which is exactly what hand-copying SQL between two databases produces |
 | `049_profit_counts_stock_sold.sql` | Profit counts stock SOLD, not stock bought | Already covered in `README.md` → "If you are porting this off Supabase". Not purely declarative: it reads the earlier definitions back with `pg_get_functiondef`, so 005/010/041 must be present and unedited |
 | `050_clear_the_old_activity_log.sql` | The owner can throw away the old end of the audit trail | Plain Postgres — `set_config`/`current_setting` for the transaction-local exception, `at time zone 'Asia/Karachi'` for the cutoff. Needs 035's append-only guard to exist first, since it replaces it |
-| `051_backup_and_restore.sql` | The whole book out as JSON, and back into an empty database | **The only migration in this round with genuinely Supabase-shaped SQL in it.** See below |
+| `051_backup_and_restore.sql` | The whole book out as JSON, and back into an empty database | **Skip it.** The desktop build already backs itself up its own way — see below |
 
 ### 044 is the hard one, and the reason is two Postgres features
 
@@ -4560,43 +4560,38 @@ Also: `treasury_entries.seq` is `generated always as identity` and **the order
 of a day depends on it**. Anything that copies these rows must preserve it — see
 what 051 had to do below.
 
-### 051 is the one to read before touching
+### 051 is the one NOT to port
 
-The backup and restore matter MORE offline, not less: a desktop build's books
-live on one laptop, with no Supabase project behind them at all, so the file
-this produces is the only copy in existence. Carry it. But three things in it
-are shaped by Supabase and need replacing:
+**The desktop build already has backups, done its own way, and this migration is
+not for it.** A local Postgres on one laptop has options this repo does not —
+copying the data directory, a `pg_dump` on a timer, the installer's own
+mechanism — and they back up the whole database including the logins, which the
+JSON export deliberately cannot. Do not port `export_everything()`,
+`restore_everything()`, `scripts/restore-backup.mjs`, the Settings panel or the
+download route. Apply the migration only if the offline database is ever asked
+to produce the same portable JSON file for some other reason.
 
-- **The role guard.** `restore_everything()` refuses anyone who is not
-  `service_role`, `postgres` or `supabase_admin` — `current_user` being the role
-  PostgREST switched into. Offline there is no PostgREST and no `service_role`,
-  so that check either passes for everybody or fails for everybody depending on
-  how the app connects. **Replace the guard rather than deleting it**: the
-  intent is "a restore is an operator action, not something the app's own UI can
-  reach", and offline the equivalent is a flag only the recovery path sets, or
-  keeping the function out of the connection the app itself uses.
-- **The transport in `scripts/restore-backup.mjs`.** It speaks PostgREST over
-  HTTP (`/rest/v1/rpc/...`, `Range` headers for paging). Offline that becomes a
-  direct `pg` client, or an IPC call from the Electron main process. The
-  script's *other* two jobs — matching each old author to a login by name, and
-  re-checking every row count and money total against the file afterwards — are
-  worth keeping whatever the transport is.
-- **What the backup leaves out.** `profiles` rows are excluded because a profile
-  is half of a login and the other half is in `auth.users`, which is Supabase's.
-  In a single-user offline build there may be no such split, and restoring
-  `profiles` directly is then both possible and simpler — in which case the
-  `p_profile_map` remapping has nothing to do and can go. Decide it on purpose;
-  do not leave the remapping in place pointing at ids that no longer mean
-  anything. The activity log's rows are excluded on the owner's instruction and
-  that holds offline too.
+Two things in it are still worth reading, because they are about THIS SCHEMA and
+apply to whatever the offline build's own restore does:
 
-One thing that is NOT Supabase-shaped and must survive the port intact: the
-restore turns **user triggers off for one transaction**, loads parents before
-children, turns them back on, and recomputes the two derived stock figures. A
-naive reload doubles every credit customer's balance, because a credit slip
-auto-posts its own ledger entry. And a freshly migrated database is **not
-empty** — 004/012/013 seed the tanks and nozzles, 045 the 36 treasury
-movements — which is why `backup_seeded_tables()` exists.
+- **A reload through the normal write path corrupts the books.** A credit slip
+  auto-posts its own ledger entry, so re-inserting both doubles every credit
+  customer's balance. Tank and lubricant stock are recalculated per row and will
+  be computed from a half-loaded table. The balanced-day, no-overlap and
+  never-negative rules are true of the finished data and not necessarily true
+  part-way through loading it in table order. A file-level or `pg_dump` restore
+  sidesteps all of this by not going through the write path at all — which is
+  precisely why it is the better tool offline. Anything that DOES replay rows
+  needs triggers off for one transaction, parents before children, and the
+  derived stock figures recomputed at the end.
+- **A freshly migrated database is not empty.** 004/012/013 seed the tanks and
+  nozzles, 045 the 36 treasury movements. Any restore that expects a blank slate
+  has to account for them.
+
+And one thing to leave behind: `restore_everything()` guards on `current_user`
+being `service_role`, `postgres` or `supabase_admin` — the role PostgREST
+switches into. That is Supabase's shape, it means nothing offline, and it is
+another reason not to carry this function across rather than to adapt it.
 
 ## 2. New files
 
@@ -4661,8 +4656,9 @@ movements — which is why `backup_seeded_tables()` exists.
 - **A backup nobody has restored is a guess.** The round trip here was proved
   by doing it against a local Postgres — export, wipe, rebuild from the
   migrations, restore, diff every count, total, balance and stock figure. The
-  offline build should run the same rehearsal on its own database rather than
-  assuming the port carried.
+  offline build backs up its own way and does not take this feature, but the
+  discipline transfers: rehearse ITS restore on a copy, and check the figures
+  afterwards rather than trusting that the file is good.
 - **A download that fails leaves its reason in the URL, and the reason outlives
   the failure.** A successful download does not re-render the page. Whatever
   the offline shell does for downloads, the notice has to be able to go away.
