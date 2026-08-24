@@ -292,3 +292,37 @@ off**, parents before children, derived figures recomputed at the end. Then:
   the live database and compared against the file, non-zero exit on any
   disagreement
 - **rehearse it once, for real.** A backup nobody has ever restored is a guess.
+
+
+## Never compute in the app a money figure the database also computes
+
+A generated column or a check constraint that re-derives a total is a promise
+that both ends agree. Binary floating point is a wager that they will.
+
+    197.75 litres x Rs 371.90 = 73,543.2250 exactly
+
+Postgres `numeric` rounds the half-paisa away from zero and gets .23. The same
+multiplication in a double is 73,543.224999999991 and rounds to .22. If the app
+sends the .22 and a constraint compares it against the database's own .23, the
+row is refused — over one paisa, on figures that are all correct, with an error
+message the person cannot act on. It looks intermittent because it depends on
+which side of the tie the float lands, and it disappears whenever the inputs are
+whole numbers, which is exactly the case anyone testing by hand will try first.
+
+Two rules follow:
+
+- **Derive it in the database.** If a value is not independent information — cash
+  is sale minus credit, a line total is quantity times price — the caller should
+  not be sending it at all. Compute it in the same expression the constraint
+  uses, so the two agree by construction. Accept and ignore the old parameter
+  rather than dropping it, so deployed clients keep working.
+- **Where the app must show the figure before it is saved**, compute it with
+  integer arithmetic that matches the database's rounding — scale both sides,
+  multiply, round half away from zero — not with `*` on floats. The number on
+  screen is the one somebody checks against cash in a drawer.
+
+And when hunting one of these: measure the exposure rather than fixing the one
+reported case. Run the app's own arithmetic against exact arithmetic across
+every rate and every plausible quantity. The answer here was that 13 of 25 rates
+could produce it and the worst refused 7% of all possible readings — which is a
+different conversation from "a reading failed once".

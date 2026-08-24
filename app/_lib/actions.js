@@ -28,6 +28,7 @@ import {
   fullResetAllowed,
   formatLitres,
   formatLitresFine,
+  saleAmount as exactSaleAmount,
   formatPKR,
   formatRate,
   shiftISODate,
@@ -311,7 +312,20 @@ export async function saveReading(_prevState, formData) {
   }
 
   const litresSold = roundMoney(closing - opening);
-  const saleAmount = roundMoney(litresSold * rate);
+
+  /*
+   * EXACT, not `roundMoney(litresSold * rate)`. That was a floating-point
+   * multiplication of the same figures Postgres multiplies in `numeric`, and on
+   * a half-paisa the two disagreed by a paisa - which the balanced-day
+   * constraint refused, on a reading where every figure was correct. See
+   * migration 052 and saleAmount() in format-helpers.js.
+   *
+   * The database no longer believes this number anyway: create_nozzle_reading
+   * derives the cash itself. It is still computed here for the guard below and
+   * for the message, and it has to be the same figure the database will reach
+   * or the sentence would quote a total the books disagree with.
+   */
+  const saleAmount = exactSaleAmount(litresSold, rate);
   const creditTotal = roundMoney(cleanedLines.reduce((total, line) => total + line.amount, 0));
   const cashAmount = roundMoney(saleAmount - creditTotal);
 

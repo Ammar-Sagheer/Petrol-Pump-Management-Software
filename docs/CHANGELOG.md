@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **051**.
+logins, one pump. Migrations run to **052**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -46,6 +46,7 @@ logins, one pump. Migrations run to **051**.
 | Profit           | **It was counting stock BOUGHT, not stock SOLD.** August 2026 showed a Rs 1,464,581 loss for a month that made Rs 566,307, because 10,000 L of petrol arrived six days before month end. Now `sales − cost of goods sold − expenses`, with stock valued at the cost of the deliveries it is made of. One function, all three reporting RPCs. Migration 049. |
 | Activity         | The owner may clear the OLD end of the log — whole retention periods only, cutoff computed in Postgres, recent month never touched, the trim logged into the log it trimmed. Append-only intact: no line editable, no single line removable. Migration 050. And the open section in the sidebar now ends with a dark bar, because the tint alone washes out in daylight. |
 | Backups          | **The books can now leave Supabase and come back.** Settings → Backup → Download backup writes the whole book as one JSON file; `scripts/restore-backup.mjs` loads it into a fresh project with the triggers off, remapping each entry's author onto the new logins, then recomputes counts and money totals and compares them against the file. Migration 051. |
+| Readings         | **A reading would not save, and every figure on it was right.** 197.75 L × Rs 371.90 is exactly Rs 73,543.2250; Postgres rounds the half-paisa up, a JavaScript double rounds it down, and the balanced-day constraint refused the row by one paisa. The cash is now derived in the database. Migration 052. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -4665,3 +4666,108 @@ another reason not to carry this function across rather than to adapt it.
 - **A modal can hold a server-rendered child** — pass it as `children`. Anything
   that formats through `helpers.js` cannot be imported into a client component,
   because that file reads request cookies.
+
+## One paisa stopped a reading being saved
+
+Reported from the pump: Unit 1 Nozzle A, 23 Aug, diesel. Opening 1,990,670.61,
+closing 1,990,868.36, rate Rs 371.90 — and *"Cash plus credit does not equal the
+amount sold. Check the figures and try again."* Every figure on the screen was
+correct. Entering the same reading without the decimals worked.
+
+**What was actually happening.** 197.75 litres × Rs 371.90 is exactly
+
+    Rs 73,543.2250
+
+a half-paisa, sitting precisely on the rounding boundary.
+
+- **Postgres** works in `numeric`, which is exact, and rounds half away from
+  zero: **73,543.23**. `sale_amount` is a generated column, so that is what the
+  database had.
+- **JavaScript** works in a binary double, where the same product comes out as
+  **73,543.224999999991**, and rounds to **73,543.22**. That is what the app
+  sent as the cash.
+
+`nozzle_readings_split_matches_sale` compares cash + credit against
+`round((closing - opening) * rate, 2)` and refused the row over the paisa. The
+error message was accurate and completely unactionable: no amount of re-typing
+could fix a figure the app was computing itself.
+
+**Why "without points" worked.** A whole number of litres times a two-decimal
+rate has at most two decimals, so it can never land on a half-paisa. Decimals
+can, and the owner's meter produces them.
+
+**How often.** Measured against the 25 rates this pump has actually charged, by
+running the app's own `roundMoney` against exact integer arithmetic for every
+two-decimal litre figure from 0.01 to 2000.00:
+
+| | |
+|---|---|
+| Rates that can produce it | **13 of 25** |
+| Worst rate (Rs 389.50, diesel) | 13,895 of 200,000 litre values — **6.95%** |
+| The rate on the day (Rs 371.90) | 7,618 of 200,000 — **3.81%**, about one reading in 26 |
+| Rates that are clean | 12 of 25, including Rs 339.48 and Rs 331.16 |
+
+So this had been happening for weeks, on both fuels and every nozzle, and looked
+random because it is: it depends on where the float falls relative to the tie.
+Four readings already in the books sit exactly on a half-paisa and saved fine —
+those are the ones where the double happened to land on the high side.
+
+### The fix is that the app stops sending the number
+
+Rounding "more carefully" in JavaScript would be the same bet placed again, by
+whoever next writes a figure the database also computes. `p_cash` was the last
+value in `create_nozzle_reading()` the caller was trusted for — and the credit
+total beside it had already been moved into the function years earlier, with the
+comment *"so the two can't disagree"*. Migration 052 extends that to the cash:
+
+    v_sale := round((p_closing - p_opening) * p_rate, 2);
+    v_cash := v_sale - v_credit_total;
+
+the identical expression to the generated column and the check constraint, so
+all three now agree by construction rather than by luck. Cash was never
+independent information — it is what is left after the slips.
+
+`p_cash` stays in the signature and is ignored, because dropping it would break
+every deployed copy of the app the moment the migration lands.
+
+**"Slips come to more than the nozzle sold" moved into the function too.** That
+check used to live only in the Server Action, which no longer computes the
+authoritative sale — and if it had been left to the constraint underneath, a
+genuine mistake would have been reported as "the figures do not add up", sending
+the reader to look at the meter instead of at the slips.
+
+### The app still does the arithmetic, and now does it exactly
+
+The screen has to show the figure that is about to be saved — the cash-in-hand
+number is checked against the notes in the drawer before saving, and being a
+paisa out from the books would be its own small betrayal. `saleAmount()` in
+`format-helpers.js` scales both sides to integers, multiplies exactly, and
+rounds half away from zero the way Postgres does. Used by the entry dialog, the
+Server Action's guard and message, and the lubricant sale form — which derives
+its amount from litres × rate the same way and could store an amount a paisa off
+(never refused, because the constraint there compares the split against that
+same figure, so both sides shared the error).
+
+Litres are scaled by a **thousand**, not a hundred: nozzle litres are two
+decimals, but loose oil is measured to three, and a helper that quietly rounded
+12.345 litres before multiplying would have been a worse bug than the one it was
+written to fix.
+
+### Verified, twice
+
+- **Locally**, against a Postgres with all 52 migrations: the exact failing
+  reading now saves and stores sale 73,543.23 / cash 73,543.23; a wildly wrong
+  `p_cash` is ignored; over-slipped readings are still refused with the sentence
+  about slips; a reading with slips still balances.
+- **On the live database**, by calling the function with the owner's real
+  figures inside a transaction that raises at the end — so the proof is in the
+  error message and nothing was written. Confirmed afterwards that no row was
+  left behind.
+
+### The rule this leaves behind
+
+**Never compute in JavaScript a money figure the database also computes.**
+Derive it in Postgres and let the app read it back. Where the app must show it
+before saving, compute it with integer arithmetic that matches `numeric`, never
+with `*` on floats. A generated column plus a check constraint is a promise that
+the two ends agree; a float is a wager that they will.

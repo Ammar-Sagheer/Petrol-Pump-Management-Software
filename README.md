@@ -502,7 +502,7 @@ is the one migration that is not purely declarative:
   a Rs 1.46m loss in a month that made Rs 566,307 — and looks entirely
   reasonable while doing it. See "How profit is worked out" above.
 
-**The database is not a passive store.** Fifty-one migrations of triggers,
+**The database is not a passive store.** Fifty-two migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -700,6 +700,7 @@ Applied in order:
 | `049_profit_counts_stock_sold.sql` | **Profit was counting stock bought instead of stock sold.** `cost_of_goods_sold()` = opening stock + purchases − closing stock, with stock valued at the weighted average cost of the deliveries it is actually made of; wired into all three reporting RPCs |
 | `050_clear_the_old_activity_log.sql` | The owner may throw away the OLD end of the audit trail — whole retention periods only (a month, three, six or a year kept), the cutoff computed from `pump_today()`, the recent end never touched, and the trim logged into the log it trimmed. Append-only is intact: no line may be edited, and no single line may be picked out |
 | `051_backup_and_restore.sql` | **Backup and restore.** `export_everything()` — the whole book as one JSON document, owner only, minus the activity log's rows and the profiles. `restore_everything()` — loads one into an EMPTY project with user triggers off, parents before children, `created_by` remapped onto the new project's logins and stock recomputed; service-role only, never callable from the app. Driven by `scripts/restore-backup.mjs` |
+| `052_the_database_works_out_the_cash.sql` | **A reading would not save.** 197.75 L x Rs 371.90 is exactly Rs 73,543.2250 — Postgres rounds the half-paisa to .23, JavaScript's binary double to .22, and the balanced-day constraint refused the row by one paisa on figures that were all correct. `create_nozzle_reading()` now DERIVES the cash in `numeric`, as it already derived the credit total, so the app cannot disagree with the constraint. `p_cash` is accepted and ignored |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

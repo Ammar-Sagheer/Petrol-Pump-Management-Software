@@ -225,7 +225,7 @@ export {
  * Same arrangement for the formatters the client forms also need - see
  * format-helpers.js.
  */
-export { formatRate, formatLitresFine } from './format-helpers';
+export { formatRate, formatLitresFine, saleAmount } from './format-helpers';
 
 /**
  * Whether the "empty everything" button exists on this deployment.
