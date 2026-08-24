@@ -30,6 +30,16 @@ Read these before making changes, in this order:
   see "What the database will not let you do" in `README.md`. Don't
   re-implement these checks in the UI as the only guard; the UI check is a
   courtesy, the database constraint is the rule.
+- **Never compute in JavaScript a money figure the database also computes.**
+  Postgres works in exact `numeric`; JavaScript works in binary doubles, and on
+  a half-paisa they disagree — 197.75 L × Rs 371.90 is exactly Rs 73,543.2250,
+  which Postgres rounds to .23 and a double rounds to .22. That one paisa made
+  a correct reading unsaveable against the balanced-day constraint, on and off,
+  for weeks (migration 052). Derive the figure in Postgres and read it back;
+  where a form must show it before saving, use `saleAmount()` in
+  `format-helpers.js`, which multiplies as integers and rounds the way `numeric`
+  does. A generated column plus a check constraint is a promise that both ends
+  agree — a float is a wager that they will.
 - **Every page under `/admin` goes through `requirePageRole()`** and every
   Server Action through `requireRole()` (`app/_lib/helpers.js`,
   `app/_lib/actions.js`). Hiding a nav link is cosmetic only — never rely on

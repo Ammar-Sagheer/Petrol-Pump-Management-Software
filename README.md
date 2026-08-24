@@ -107,7 +107,8 @@ enforced in three independent places:
    litres — the amount fills in at today's rate.
 5. **Cash is calculated for you** as whatever is left over. Check it against the
    notes in the drawer *before* saving. If it does not match, something is wrong
-   while it is still easy to fix.
+   while it is still easy to fix. (The figure is worked out by the database, not
+   the browser — see migration 052 for the paisa that made that necessary.)
 6. Save. Each customer's balance updates by itself.
 
 Oil sold over the counter goes under **Lubricants**, one sale at a time as it
@@ -415,16 +416,17 @@ app/
     actions.js             every Server Action
     helpers.js             requireRole(), formatting, calculations
     date-helpers.js        dates, safe on the server AND in the browser
-    format-helpers.js      formatRate() - same reason as date-helpers
+    format-helpers.js      formatRate(), saleAmount() - same reason as date-helpers
     brand.js               business name; the logo is public/logo.png
     guide-content.js       the guide's text, both languages, as data
     asset-categories.js    the five company-asset categories, as data
+    treasury-categories.js the safe's reason lists, one per direction
     customer-avatar.js     a customer's initials and their stable tint
     fuel-colors.js         the single definition of petrol, diesel and lubricant
     excel-report.js        builds the monthly workbook from the template
   _styles/globals.css        tokens, .card, .fuel-band, .unit-card
 proxy.js                   session refresh + signed-in gate
-scripts/                   build-report-template.py, build-icons.py
+scripts/                   restore-backup.mjs (disaster recovery), build-report-template.py, build-icons.py
 supabase/migrations/       the schema, in order
 docs/                      UI_CONVENTIONS.md, CHANGELOG.md
 ```

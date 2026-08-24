@@ -185,6 +185,12 @@ question, which is the worst possible instant for a page to shift.
   per-litre. `formatRate` (`app/_lib/format-helpers.js`) always shows two
   decimals, so Rs 339.48 does not display as "Rs 339" and Rs 339.50 does not
   display as "Rs 339.5".
+- **A figure on screen must be the figure that will be saved.** The cash-in-hand
+  number is checked against the notes in the drawer before saving, so a form
+  that computes `litres * rate` in floating point can show a total a paisa away
+  from what the database stores. Use `saleAmount()` from `format-helpers.js` for
+  any money the database also computes — see migration 052 and the changelog
+  entry "One paisa stopped a reading being saved".
 - **There is no paisa in this app's money, because there is no paisa coin in
   Pakistan.** `formatPKR` everywhere; a `formatPKRExact` that showed the ledger
   to two decimals was removed. Rates are the one exception, and only because a

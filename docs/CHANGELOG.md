@@ -50,7 +50,7 @@ logins, one pump. Migrations run to **052**.
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Fifty-one
+almost none of the important logic is in the JavaScript. Fifty-two
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -4390,8 +4390,8 @@ over the top of what is there" is how a stale backup destroys a good database.
 
 ### Three things only found by actually restoring
 
-The round trip was run for real against a local Postgres with all fifty-one
-migrations applied: seed a database through the normal path, export, wipe,
+The round trip was run for real against a local Postgres with every migration
+then in the repo applied (through 051): seed a database through the normal path, export, wipe,
 rebuild from the migrations, restore, and diff every count, money total,
 customer balance, stock figure and trigger state. It came back identical — but
 only after three things that reading the code would not have caught:
@@ -4518,15 +4518,15 @@ for the role checks and cannot be pulled into a client bundle, so the finished
 table is passed as `children`. Worth knowing before writing the next modal that
 needs server-rendered content in it.
 
-# Porting the Treasury → Backup rounds to the offline (Electron) build
+# Porting the Treasury → Backup → paisa rounds to the offline (Electron) build
 
 The desktop build tracks this repo, and the last catch-up list above stops at
-migration 043. This is the next one: **migrations 044–051 and everything that
+migration 043. This is the next one: **migrations 044–052 and everything that
 came with them**, sorted by what a port has to do about it rather than by the
 order it happened in. Every "why" is in the sections above; this is the list of
 what to carry.
 
-## 1. Database — eight migrations, and only one of them is Supabase-shaped
+## 1. Database — nine migrations, and only one of them is Supabase-shaped
 
 | Migration | What it is | What a port has to do |
 |---|---|---|
@@ -4538,6 +4538,7 @@ what to carry.
 | `049_profit_counts_stock_sold.sql` | Profit counts stock SOLD, not stock bought | Already covered in `README.md` → "If you are porting this off Supabase". Not purely declarative: it reads the earlier definitions back with `pg_get_functiondef`, so 005/010/041 must be present and unedited |
 | `050_clear_the_old_activity_log.sql` | The owner can throw away the old end of the audit trail | Plain Postgres — `set_config`/`current_setting` for the transaction-local exception, `at time zone 'Asia/Karachi'` for the cutoff. Needs 035's append-only guard to exist first, since it replaces it |
 | `051_backup_and_restore.sql` | The whole book out as JSON, and back into an empty database | **Skip it.** The desktop build already backs itself up its own way — see below |
+| `052_the_database_works_out_the_cash.sql` | A reading would not save: the app computed the cash in a float and the database computed the sale in `numeric`, and on a half-paisa they differed by one | **Take this one, and take the JavaScript with it.** It is not Supabase-shaped at all — the same `numeric` versus double mismatch exists in any Postgres, and the desktop build runs the identical `create_nozzle_reading()` and the identical entry dialog. `saleAmount()` in `format-helpers.js` goes across too, or the figure on screen and the figure in the books differ by a paisa |
 
 ### 044 is the hard one, and the reason is two Postgres features
 
