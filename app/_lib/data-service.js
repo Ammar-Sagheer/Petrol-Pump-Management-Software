@@ -353,6 +353,35 @@ export async function getStockChecks() {
   );
 }
 
+/**
+ * The most recent dip for one tank, or null if it has never been dipped.
+ *
+ * Ordered by `books_date` - the trading day the dip CLOSES (migration 039),
+ * not `check_date`, the day the rod physically went in. A morning dip closes
+ * the day before it was taken, so sorting by `check_date` could hand back a
+ * dip that reads as "most recent" while actually closing an earlier day than
+ * one taken the previous evening.
+ *
+ * One tank per call rather than `getStockChecks()` filtered in JS - that list
+ * has no cap for exactly the reason its own comment gives (a capped list lies
+ * about "does this date have a check"), so pulling the WHOLE history just to
+ * find one tank's latest row is the unbounded-list trap this file has already
+ * been burned by once.
+ */
+export async function getLastStockCheck(tankId) {
+  const supabase = await createClient();
+  return unwrap(
+    await supabase
+      .from('stock_checks')
+      .select('books_date, gain_loss')
+      .eq('tank_id', tankId)
+      .order('books_date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    'the last dip',
+  );
+}
+
 /** What the books say should be in a tank at the end of a given date. */
 export async function getExpectedStock(tankId, date) {
   const supabase = await createClient();

@@ -45,7 +45,8 @@ export const ROUTE_ACCESS = {
   // sidebar while it is still a preview - reached from the Reports page.
   '/admin/reports/register': [ROLES.SUPER_ADMIN],
   '/admin/settings': [ROLES.SUPER_ADMIN],
-  // Your own login only. Managing other people's stays under /admin/settings.
+  // Your own login only. Managing other people's is on this same page, further
+  // down, for the owner - see app/admin/account/page.js.
   '/admin/account': [ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY],
   // How to use the app. Open to staff too - the person most likely to need it
   // is a new attendant on their first evening.

@@ -1574,6 +1574,37 @@ name in `text-sm`. Now:
 Reach for this whenever two or more entry surfaces sit side by side, accept the
 same shape of value, and cannot validate each other.
 
+**"The colour is on the header and border only" is a rule about protecting
+typed figures, not about fuel cards specifically — read-only ones can go
+further.** Settings' two current-rate cards (`solid` filled edge to edge, no
+white body left at all) look like they break this rule and do not: the figures
+on them are read, never typed, so there is no data-entry contrast to protect,
+and `solid`'s petrol/diesel pairs are already the ones measured for exactly
+this job — white-on-`#075985` at 7.6:1, `ink-900`-on-`#FDBA74` at 10.6:1 — as
+the fill's OWN text, not something laid over it that could lose contrast to
+the background. The dip boxes stay header-band-only because a NumberInput
+sits in the white part of that card and needs full, uncoloured contrast around
+it. Ask which card you have: something being typed into (band only, protect
+the white body) or something only ever read (`solid` can own the whole card,
+and on the one figure a tired attendant checks before every reading, it
+should).
+
+**When a colour fills the WHOLE card, put the colour and the rounding on the
+SAME element - never clip a filled child into a rounded parent.** The
+Settings rate cards' first version was `card unit-card overflow-hidden`
+outside, `fuel-band ... solid` filling it as a child; at every rounded
+corner, a hairline of the parent's white showed through - invisible in the
+DOM (nothing was overflowing, so `scrollWidth`/`clientWidth` had nothing to
+report), only visible in a screenshot. The Readings unit header uses the
+identical parent/child shape and never shows this, because its coloured band
+is only a strip at the top of an otherwise white card - a seam has nowhere to
+appear when the rest of the card is already the background colour. The
+moment a fill reaches all four corners, though, the parent's clip-path and
+the child's own rectangular edge have to agree at the pixel level, and they
+do not always. Fix: one element carries the rounding AND the fill
+(`card fuel-band ... ${color.solid}` together, no `overflow-hidden`, nothing
+left to clip). Reserve the parent-clips-child shape for a partial fill only.
+
 ## A date-driven page does not remount: reset form state yourself
 
 `<DateNav>` changes the day with a client-side navigation. The page re-renders

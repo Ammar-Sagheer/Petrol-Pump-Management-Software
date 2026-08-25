@@ -3,17 +3,41 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { updateTank } from '@/app/_lib/actions';
+import { fuelColor } from '@/app/_lib/fuel-colors';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
 import FormMessage from '@/app/_components/ui/FormMessage';
-import FuelBadge from '@/app/_components/ui/FuelBadge';
 import NumberInput from '@/app/_components/ui/NumberInput';
+import Dialog from '@/app/_components/ui/Dialog';
+import Button from '@/app/_components/ui/Button';
+import Toast from '@/app/_components/ui/Toast';
+import PendingLink from '@/app/_components/ui/PendingLink';
 
 // helpers.js reaches into request cookies, so a client component cannot import
 // it. Same approach as ReadingForm: format inline with Intl.
 const litreFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 const litres = (value) => `${litreFormat.format(value)} L`;
 
-export default function TankForm({ tank }) {
+/**
+ * A tank's capacity and opening stock - behind a dialog, for the same reason
+ * `NozzleSettingsButton` gives for the wiring: set once when the pump goes
+ * onto the system and then almost never touched again. It used to stand open
+ * as a full edit form for the tank's whole life, which meant the Tanks
+ * section was two four-field forms even on a pump that has not touched either
+ * figure in months.
+ *
+ * WHAT REPLACES THE STANDING FORM is a read card in the same language the
+ * Dashboard's own tank cards already use - the accent colour, the dot, the
+ * fill gauge against CAPACITY - so "how full is this tank" looks like the
+ * same fact wherever it is read. It shows `current_stock_litres`, the book
+ * stock right now, which is a different number from the dialog's own gauge
+ * (opening stock against capacity, a check on what is about to be SAVED as
+ * the starting baseline) - the two never contradict each other because they
+ * are not answering the same question.
+ */
+export default function TankForm({ tank, lastDip }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notice, setNotice] = useState(null);
+
   const [state, formAction] = useActionState(updateTank, null);
 
   // Controlled, because the gauge has to move as the numbers are typed - a
@@ -25,10 +49,21 @@ export default function TankForm({ tank }) {
 
   const stored = [tank.capacity_litres, tank.opening_stock_litres, tank.opening_stock_date].join('|');
 
-  // Re-seed from the server once a save has landed. Without this the fields go
-  // on showing what was typed rather than what was stored - the same trap
-  // DateNav documents on its date box.
+  // Re-seed from the server once a save has landed, and close the dialog with
+  // a toast rather than leaving it open on a form that already says "Saved" -
+  // the same shape as every other dialog this page uses now.
   const seeded = useRef(stored);
+  const handled = useRef(state);
+  useEffect(() => {
+    if (state === handled.current) return;
+    handled.current = state;
+
+    if (state?.ok) {
+      setIsOpen(false);
+      setNotice({ message: state.message });
+    }
+  }, [state]);
+
   useEffect(() => {
     if (seeded.current === stored) return;
     seeded.current = stored;
@@ -36,17 +71,6 @@ export default function TankForm({ tank }) {
     setOpening(String(tank.opening_stock_litres ?? ''));
     setOpeningDate(tank.opening_stock_date ?? '');
   }, [stored, tank.capacity_litres, tank.opening_stock_litres, tank.opening_stock_date]);
-
-  // "Saved" is worth showing for a moment and then getting out of the way. The
-  // old message sat there for the rest of the session, so both tanks always
-  // looked as though something had just happened.
-  const [justSaved, setJustSaved] = useState(false);
-  useEffect(() => {
-    if (!state?.ok) return;
-    setJustSaved(true);
-    const timer = setTimeout(() => setJustSaved(false), 4000);
-    return () => clearTimeout(timer);
-  }, [state]);
 
   const capacityNum = Number(capacity);
   const openingNum = Number(opening);
@@ -58,144 +82,211 @@ export default function TankForm({ tank }) {
   const overBy = hasFigures ? openingNum - capacityNum : 0;
   const isOver = overBy > 0;
   const filledPercent = hasFigures ? (openingNum / capacityNum) * 100 : 0;
-  const isNearlyFull = !isOver && filledPercent >= 90;
 
-  // The two figures compare as numbers, not as text: 25000 and 25000.00 are the
-  // same tank, and offering to save one as the other is a lie.
-  const isDirty =
-    (hasFigures && capacityNum !== Number(tank.capacity_litres)) ||
-    (hasFigures && openingNum !== Number(tank.opening_stock_litres)) ||
-    openingDate !== (tank.opening_stock_date ?? '');
-
-  // One place decides what the button says and whether it can be pressed, so
-  // the label and the state can never disagree.
-  const button = isOver
-    ? {
-        label: 'Opening stock is over capacity',
-        blocked: true,
-        // Muted enough to read as unavailable, dark enough to actually read -
-        // this is the one blocked state that has something to say.
-        className: 'border-red-200 bg-red-50 text-red-700',
-      }
-    : isDirty
-      ? { label: 'Save tank', blocked: false, className: 'border-brand-600 bg-brand-600 text-white hover:bg-brand-700' }
-      : justSaved
-        ? { label: 'Saved', blocked: true, className: 'border-brand-300 bg-brand-50 text-brand-800' }
-        : { label: 'No changes to save', blocked: true, className: 'border-ink-200 bg-ink-100 text-ink-400' };
-
-  const tone = isOver
-    ? { bar: 'bg-red-500', text: 'text-red-700' }
-    : isNearlyFull
-      ? { bar: 'bg-amber-500', text: 'text-amber-800' }
-      : { bar: 'bg-brand-600', text: 'text-ink-600' };
+  const color = fuelColor(tank.fuel_type);
+  const currentStock = Number(tank.current_stock_litres ?? 0);
+  const currentCapacity = Number(tank.capacity_litres ?? 0);
+  const currentFill =
+    currentCapacity > 0 ? Math.min(100, Math.max(0, (currentStock / currentCapacity) * 100)) : 0;
 
   return (
-    <form action={formAction} className="card space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-ink-900">{tank.name}</h3>
-        <FuelBadge fuelType={tank.fuel_type} />
-      </div>
-
-      <input type="hidden" name="tank_id" value={tank.id} />
-
-      <div>
-        <label className="label" htmlFor={`capacity-${tank.id}`}>
-          Capacity (litres)
-        </label>
-        <NumberInput
-          id={`capacity-${tank.id}`}
-          name="capacity_litres"
-          step="0.01"
-          min="1"
-          required
-          value={capacity}
-          onChange={(event) => setCapacity(event.target.value)}
-          className="input-number"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label" htmlFor={`opening-${tank.id}`}>
-            Opening stock
-          </label>
-          <NumberInput
-            id={`opening-${tank.id}`}
-            name="opening_stock_litres"
-            step="0.01"
-            min="0"
-            required
-            value={opening}
-            onChange={(event) => setOpening(event.target.value)}
-            aria-invalid={isOver}
-            aria-describedby={`gauge-${tank.id}`}
-            className={`input-number ${
-              isOver ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
-            }`}
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor={`opening-date-${tank.id}`}>
-            From
-          </label>
-          <input
-            id={`opening-date-${tank.id}`}
-            name="opening_stock_date"
-            type="date"
-            required
-            value={openingDate}
-            onChange={(event) => setOpeningDate(event.target.value)}
-            className="input"
-          />
-        </div>
-      </div>
-
-      {/* How full the tank would be. A number typed into a box gives no sense of
-          scale; a bar that runs out of room does, and the moment it turns red
-          the reason is on screen rather than one save away. */}
-      <div id={`gauge-${tank.id}`}>
-        <div className="mb-1.5 flex items-baseline justify-between gap-2">
-          <span className="text-xs font-medium text-ink-500">Opening stock against capacity</span>
-          <span className={`tabular text-xs font-bold ${tone.text}`}>
-            {hasFigures ? `${Math.round(filledPercent)}%` : '—'}
-          </span>
+    <>
+      {/* THE READ CARD - what the page shows day to day. Same language as the
+          Dashboard's own tank cards: an accent border and dot in the fuel's
+          colour, the level read as text before it is read as a bar, and the
+          bar itself in the fuel's true hue. */}
+      <div className={`card border-t-4 p-4 ${color.accent}`}>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-inset ring-black/15"
+              style={{ backgroundColor: color.raw }}
+              aria-hidden="true"
+            />
+            <h3 className={`text-base font-bold ${color.onWhite}`}>{tank.name}</h3>
+          </div>
+          <Button variant="secondary" type="button" onClick={() => setIsOpen(true)}>
+            <span aria-hidden="true" className="text-base leading-none">
+              ✎
+            </span>
+            Edit
+          </Button>
         </div>
 
-        <div className="h-2 overflow-hidden rounded-full bg-ink-200">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${tone.bar}`}
-            style={{ width: `${Math.min(filledPercent, 100)}%` }}
-          />
-        </div>
-
-        <p className={`mt-1.5 text-xs ${isOver ? 'font-semibold text-red-700' : 'text-ink-500'}`}>
-          {!hasFigures
-            ? 'Enter a capacity and an opening stock.'
-            : isOver
-              ? `${litres(overBy)} more than this tank holds. Lower the opening stock, or raise the capacity if the tank really is bigger.`
-              : `${litres(openingNum)} in a ${litres(capacityNum)} tank · ${litres(capacityNum - openingNum)} free`}
+        <p
+          className={`tabular mt-3 whitespace-nowrap text-2xl font-bold ${
+            currentStock < 0 ? 'text-red-700' : 'text-ink-900'
+          }`}
+        >
+          {litres(currentStock)}
         </p>
+
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-ink-200">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${currentFill}%`, backgroundColor: color.hex }}
+          />
+        </div>
+        <p className="mt-1.5 text-sm text-ink-600">
+          {Math.round(currentFill)}% of {litres(currentCapacity)} capacity
+        </p>
+
+        {/* The book figure above is never corrected by a dip - see
+            getLastStockCheck's own comment on why - so this line is the
+            check on it, not a repeat of it: the last time this tank was
+            physically measured, and how far the book was from that measurement
+            on the day. Links to Stock checks the same way the Dashboard's own
+            tank card does. */}
+        <div className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-600">
+          {lastDip ? (
+            <p>
+              Last dipped {lastDip.label} ·{' '}
+              <span
+                className={`font-semibold ${
+                  lastDip.gainLoss < 0
+                    ? 'text-red-700'
+                    : lastDip.gainLoss > 0
+                      ? 'text-brand-700'
+                      : 'text-ink-700'
+                }`}
+              >
+                {lastDip.gainLoss === 0
+                  ? 'exact match'
+                  : `${lastDip.gainLoss > 0 ? '+' : ''}${litres(lastDip.gainLoss)}`}
+              </span>
+            </p>
+          ) : (
+            <p>Never dipped.</p>
+          )}
+          <PendingLink
+            href="/admin/stock-checks"
+            className="mt-1 inline-block font-semibold text-brand-700 hover:underline"
+          >
+            {lastDip ? 'View stock checks' : 'Record the first one'}
+          </PendingLink>
+        </div>
       </div>
 
-      <p className="text-sm text-ink-600">
-        Opening stock is only the starting point before the first dip is recorded. Once a physical
-        dip exists, that measured figure becomes the baseline instead.
-      </p>
-
-      {/* A failure stays up until it is dealt with. A success does not need to:
-          the button says "Saved" and the fields show what was stored. */}
-      <FormMessage state={state?.ok === false ? state : null} />
-
-      <SubmitButton
-        disabled={button.blocked}
-        pendingLabel="Saving…"
-        className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5
-                    text-sm font-semibold transition
-                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600
-                    disabled:cursor-not-allowed ${button.className}`}
+      <Dialog
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={`Edit ${tank.name}`}
+        subtitle={
+          <span className="text-sm text-ink-600">
+            Capacity and the opening stock this tank started from
+          </span>
+        }
       >
-        {button.label}
-      </SubmitButton>
-    </form>
+        <form action={formAction} className="space-y-4 p-4">
+          <input type="hidden" name="tank_id" value={tank.id} />
+
+          <div>
+            <label className="label" htmlFor={`capacity-${tank.id}`}>
+              Capacity (litres)
+            </label>
+            <NumberInput
+              id={`capacity-${tank.id}`}
+              name="capacity_litres"
+              step="0.01"
+              min="1"
+              required
+              autoFocus
+              value={capacity}
+              onChange={(event) => setCapacity(event.target.value)}
+              className="input-number"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label" htmlFor={`opening-${tank.id}`}>
+                Opening stock
+              </label>
+              <NumberInput
+                id={`opening-${tank.id}`}
+                name="opening_stock_litres"
+                step="0.01"
+                min="0"
+                required
+                value={opening}
+                onChange={(event) => setOpening(event.target.value)}
+                aria-invalid={isOver}
+                aria-describedby={`gauge-${tank.id}`}
+                className={`input-number ${
+                  isOver ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
+                }`}
+              />
+            </div>
+            <div>
+              <label className="label" htmlFor={`opening-date-${tank.id}`}>
+                From
+              </label>
+              <input
+                id={`opening-date-${tank.id}`}
+                name="opening_stock_date"
+                type="date"
+                required
+                value={openingDate}
+                onChange={(event) => setOpeningDate(event.target.value)}
+                className="input"
+              />
+            </div>
+          </div>
+
+          {/* How full the tank would be. A number typed into a box gives no sense of
+              scale; a bar that runs out of room does, and the moment it turns red
+              the reason is on screen rather than one save away. */}
+          <div id={`gauge-${tank.id}`}>
+            <div className="mb-1.5 flex items-baseline justify-between gap-2">
+              <span className="text-xs font-medium text-ink-500">Opening stock against capacity</span>
+              <span
+                className={`tabular text-xs font-bold ${
+                  isOver ? 'text-red-700' : 'text-ink-600'
+                }`}
+              >
+                {hasFigures ? `${Math.round(filledPercent)}%` : '—'}
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-ink-200">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  isOver ? 'bg-red-500' : 'bg-brand-600'
+                }`}
+                style={{ width: `${Math.min(filledPercent, 100)}%` }}
+              />
+            </div>
+
+            <p className={`mt-1.5 text-xs ${isOver ? 'font-semibold text-red-700' : 'text-ink-500'}`}>
+              {!hasFigures
+                ? 'Enter a capacity and an opening stock.'
+                : isOver
+                  ? `${litres(overBy)} more than this tank holds. Lower the opening stock, or raise the capacity if the tank really is bigger.`
+                  : `${litres(openingNum)} in a ${litres(capacityNum)} tank · ${litres(capacityNum - openingNum)} free`}
+            </p>
+          </div>
+
+          <p className="text-sm text-ink-600">
+            Opening stock is only the starting point before the first dip is recorded. Once a
+            physical dip exists, that measured figure becomes the baseline instead.
+          </p>
+
+          {/* A failure stays where it happened, until it is dealt with. A
+              success leaves as a toast with the dialog. */}
+          <FormMessage state={state?.ok === false ? state : null} />
+
+          <div className="flex gap-2 border-t border-ink-200 pt-4">
+            <SubmitButton className="flex-1" disabled={isOver} pendingLabel="Saving…">
+              {isOver ? 'Opening stock is over capacity' : 'Save tank'}
+            </SubmitButton>
+            <Button variant="secondary" type="button" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Toast notice={notice} onDismiss={() => setNotice(null)} />
+    </>
   );
 }

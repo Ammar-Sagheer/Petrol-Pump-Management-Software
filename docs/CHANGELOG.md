@@ -47,7 +47,8 @@ logins, one pump. Migrations run to **053**.
 | Activity         | The owner may clear the OLD end of the log — whole retention periods only, cutoff computed in Postgres, recent month never touched, the trim logged into the log it trimmed. Append-only intact: no line editable, no single line removable. Migration 050. And the open section in the sidebar now ends with a dark bar, because the tint alone washes out in daylight. |
 | Backups          | **The books can now leave Supabase and come back.** Settings → Backup → Download backup writes the whole book as one JSON file; `scripts/restore-backup.mjs` loads it into a fresh project with the triggers off, remapping each entry's author onto the new logins, then recomputes counts and money totals and compares them against the file. Migration 051. |
 | Readings         | **A reading would not save, and every figure on it was right.** 197.75 L × Rs 371.90 is exactly Rs 73,543.2250; Postgres rounds the half-paisa up, a JavaScript double rounds it down, and the balanced-day constraint refused the row by one paisa. The cash is now derived in the database. Migration 052. |
-| Expenses         | **A partial reimbursement can be recorded against an expense** — a bill paid in full upfront, repaid a little at a time. Stored as a second row in the same shape, amount negative, same category, dated when the cash actually comes back. `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`; no new table. Migration 053. Recording an expense also moved from a standing sidebar form to an **Add expense** dialog, with a third "Recovered" stat tile. |
+| Expenses         | **A partial reimbursement can be recorded against an expense** — a bill paid in full upfront, repaid a little at a time. Stored as a second row in the same shape, amount negative, same category, dated when the cash actually comes back. `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`; no new table. Migration 053. Recording one moved to two dialogs, **Add expense** / **Add recovery**, plus a third "Recovered" stat tile. |
+| Settings         | **Set a new rate** and each tank's capacity/opening stock moved behind dialogs; the two current-rate cards fill edge to edge in the fuel's own colour (`solid`, the same blue/orange Readings and Stock wear) at `text-4xl`+, and each tank card now shows its live book stock plus a **last dipped** line (`getLastStockCheck`) so the book figure and the last physical check against it sit side by side. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -4923,3 +4924,166 @@ one dialog is open at a time, but both exist in the DOM throughout. See "Two
 buttons, not a toggle" in `docs/UI_CONVENTIONS.md` for the general shape of
 this: a choice between two options is not always a control to put inside a
 form — sometimes it is a choice of which form to open.
+
+## Settings: a dialog for the rare edit, full colour for the figures that matter
+
+`FuelPriceForm` stood open beside the two current-rate cards, the same
+standing-form pattern this file has already been retiring page by page
+(`BankAccountForm`, then `ExpenseForm` two entries up). Same move again: **Set
+a new rate** behind a dialog, `useActionState` + a `handled` ref that closes
+the dialog and raises a `<Toast>` once per success, `<FormMessage>` guarded by
+`state?.ok === false`. It also picked up the warning icon and sentence about
+sales before the effective date that used to be a plain caption under the
+date field — small, but it is the one line in the form saying past readings
+are untouched, and a dialog is worth a beat of extra reassurance a standing
+form was not.
+
+**The two rate cards went the other way — louder, not quieter.** This is the
+figure an attendant checks before every single reading, on a cheap tablet,
+sometimes in a hurry, and it was a `text-2xl` number in a plain white card with
+a small badge — no louder than "Categories used" on the Expenses page, for a
+number that matters far more. Now: `fuel-colors.js`'s `solid` fills the WHOLE
+card (petrol's dark blue with white text, diesel's light orange with dark
+text — the Readings unit header and the Stock dip cards' own colours, so a
+reading, a tank and its price are the same colour wherever they appear), the
+`.fuel-band` sheen the rest of the app already uses for a filled fuel surface,
+and the rate itself set at `text-4xl`/`text-5xl` — bigger than any other figure
+on the page. `FuelBadge` was dropped from the card: the whole surface is
+already the fuel's colour, and the label sits right beside the icon in the
+band, so a separate chip would be the third statement of the same fact (see
+"Drop a badge the band has made redundant", above).
+
+**This reads as a deviation from "the colour is on the header and border
+only" and is not one** — see the addendum after "Two entry cards side by
+side" in `docs/UI_CONVENTIONS.md`. That rule protects a figure being TYPED
+from a colour wash stealing its contrast; nothing is typed into these cards
+any more (the form moved to a dialog in the same pass), and `solid`'s
+petrol/diesel pairs are already the ones measured for text-on-fill at this
+exact job (7.6:1, 10.6:1) — the rate is the fill's own text, not something
+layered on top that could lose contrast to it. A card with no rate set is
+deliberately NOT fuel-coloured — a confident blue or orange card for a price
+that does not exist would be worse than the plain grey it replaced — and stays
+dashed-amber, the app's usual "needs attention" language.
+
+**Verified** by rendering the new cards, the dialog, and the "not set" state
+through a disposable devcheck route at 1152px and 400px: both fuels' figures
+stayed legible and un-wrapped at both widths, the dialog opened cleanly over
+the coloured cards, and the not-set card read as distinctly unfinished rather
+than as a third fuel colour.
+
+### A rounded corner clipped a child, not a colour - the seam was in the markup shape
+
+First render had a hairline of the card's white background showing through
+the bottom corners of the filled rate cards - visible in a screenshot,
+invisible in the DOM (`scrollWidth`/`clientWidth` had nothing to say about it,
+because nothing was overflowing). The markup was `card unit-card
+overflow-hidden` on the outside and a separate `fuel-band ... solid` div
+filling it as a child - the same shape the Readings unit header uses, where it
+never showed because that header is only a strip at the top of an otherwise
+white card. Here the coloured child filled the WHOLE card, and at the rounded
+bottom corners the parent's clip and the child's own rectangular edge did not
+perfectly agree at the pixel level - a sub-pixel anti-aliasing seam, the kind
+of thing that only appears once a colour reaches all four corners of a
+rounded box.
+
+**The fix is putting the colour and the rounding on the SAME element** rather
+than clipping a coloured child into a rounded parent: one div carrying `card`
+(the rounding), `fuel-band` (the sheen) and `color.solid` (the fill) together,
+no `overflow-hidden`, nothing left to clip. The general lesson: a fully-filled
+rounded surface should own its own border-radius, not inherit one by being
+clipped inside it — reserve the parent-clips-child shape for when the colour
+is only PART of the card (a header strip, e.g. the Readings unit header),
+where the seam has nowhere to become visible because the rest of the card is
+already the background colour.
+
+### `.rate-card`: a second "solid object" shadow, under its own name
+
+The filled rate cards wanted the same lifted, tactile shadow the Readings
+unit card wears (`.unit-card` - four stacked shadows plus a white inset
+highlight, not one blur; see that class's own comment in `globals.css` for
+why four and not one) rather than `.card`'s quiet default. Reusing
+`.unit-card` directly was rejected: its own comment says the elevation is
+deliberately reserved for "the one thing on the page worth making a solid
+object... if everything were lifted this far, nothing would read as lifted at
+all" — a restraint rule about not diluting the effect, and a class literally
+named for the physical pump unit showing up on a page with no pump on it
+would mislead the next reader about what it means. `.rate-card` is the same
+four-shadow recipe under its own name, with the white inset highlight turned
+down (0.9 → 0.35 alpha) since these cards are already coloured rather than
+white — a highlight tuned for a light surface read as a bright seam at the
+top edge of a dark blue one at full strength.
+
+### Diesel first, petrol second - a hardcoded array had it backwards
+
+The rate cards were written as `['petrol', 'diesel'].map(...)`, which is
+alphabetical and happens to be the opposite of `FUEL_ORDER` in
+`fuel-colors.js` ("the pump's own layout... not alphabetical," used by the
+Dashboard's tank cards and every other paired fuel list already). Swapped to
+`FUEL_ORDER.filter((f) => f in rates).map(...)` so this reads the same
+direction as the Tanks section directly beneath it, and cannot drift out of
+step with the app's one canonical order again.
+
+### The Tanks section gets the same treatment, and a genuine question about what it shows
+
+**Capacity and opening stock are the tank's own version of "set once when
+the pump goes onto the system, then almost never touched again"** - the exact
+reasoning `NozzleSettingsButton`'s own comment already gives for the wiring
+form. `TankForm` moved the same way: a read card in the Dashboard's own tank-
+card language (accent border, coloured dot, level read as text before it is
+read as a bar) with a small **✎ Edit** button opening a dialog that carries
+the original form - capacity, opening stock, date, the live gauge that warns
+before an opening stock is saved over capacity - now closing to a `<Toast>`
+instead of leaving a permanent "Saved" state in a form that stood open
+anyway. `FuelBadge` was dropped from the read card for the same "drop a badge
+the band has made redundant" reason as the rate cards - the accent border and
+the dot already say the fuel twice.
+
+**"These should be after dip values or not?"** was asked while reviewing the
+new card, and it is worth answering here because the instinct is a reasonable
+one and the schema deliberately does the opposite. `current_stock_litres` is
+the BOOK stock - opening stock plus purchases minus sales, recomputed
+continuously by trigger (`002_functions_and_triggers.sql`) - and a dip never
+writes back into it. Migration 039's own comment explains why: a dip is a
+periodic reality check AGAINST the book, producing its own `gain_loss`
+figure, not a correction that resets the book to match. If a dip silently
+snapped the book to the measured value, small day-to-day discrepancies -
+evaporation, calibration drift, a slow leak - would vanish every time someone
+dipped the tank instead of accumulating into a trend the Stock page can show.
+So the card showing the live book figure is correct for what it is for
+("what does the book say right now"), and a new `getLastStockCheck(tankId)`
+in `data-service.js` adds the other half as its own line underneath - "Last
+dipped 24 Aug 2026 · −18.5 L", linking to Stock checks - so the book figure
+and the last reality check against it sit on the same card without either one
+pretending to be the other. One call per tank rather than `getStockChecks()`
+filtered in JS: that list is deliberately uncapped for its own page (the Stock
+page needs every row to answer "has this date been checked"), and pulling the
+whole history just to find one tank's newest row would be the unbounded-list
+trap this file has already been burned by once (see the comment on
+`getStockChecks` itself).
+
+Ordered by `books_date` - the trading day a dip CLOSES - not `check_date`,
+the day the rod physically went in, for the same reason migration 039 exists:
+a morning dip closes the PREVIOUS day, so sorting by the day it was taken
+could hand back a dip that reads as "most recent" while actually closing an
+earlier trading day than one taken the evening before.
+
+### Two stale sentences, found while on the page anyway
+
+Settings' own header still read "Prices, hardware and who can sign in." Staff
+logins moved to `/admin/account` a while ago - that page's own comment says
+so explicitly ("Staff logins used to live under Settings, which was the
+wrong page for it") - and nothing on Settings has managed a login since. The
+description now says "Prices, tanks and backups," which is what the page
+actually contains. The matching comment in `helpers.js`'s `ROUTE_ACCESS`
+table, still pointing the other way ("Managing other people's stays under
+/admin/settings"), was corrected alongside it. Neither was a UI bug; both
+were a doc drifting a page and a comment out of step with a move made in a
+different commit, the kind of thing worth a `grep` before trusting a
+description on screen.
+
+**Verified** again after all of the above: the corner seam is gone at every
+width checked, the two rate cards read left-to-right as diesel/petrol with
+clear space between them and between the heading row and the cards, the Tanks
+read cards show the right accent, gauge and last-dip line in all three states
+(recent gain, recent loss, never dipped), and the edit dialog still pre-fills
+and saves correctly.
