@@ -84,7 +84,7 @@ const LINKS = [
   // answers a different question ("what do we own") from both.
   {
     href: '/admin/company-assets',
-    label: 'Company Assets',
+    label: 'Assets',
     icon: 'assets',
     roles: ['super_admin'],
   },

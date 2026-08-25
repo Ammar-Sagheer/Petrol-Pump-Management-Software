@@ -10,7 +10,7 @@ import { AddAssetButton, EditAssetButton } from '@/app/_components/admin/Company
 import { ASSET_CATEGORIES } from '@/app/_lib/asset-categories';
 import DeleteCompanyAssetButton from '@/app/_components/admin/DeleteCompanyAssetButton';
 
-export const metadata = { title: 'Company Assets' };
+export const metadata = { title: 'Assets' };
 
 /*
  * Nine to a page - three rows of three on a laptop, matching the card grid's
@@ -164,7 +164,7 @@ export default async function CompanyAssetsPage({ searchParams }) {
   return (
     <>
       <PageHeader
-        title="Company Assets"
+        title="Assets"
         description="What the pump has bought and kept — vehicles, machinery, equipment. A private record for you; it does not touch sales, expenses or profit."
       >
         <AddAssetButton />
