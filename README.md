@@ -504,7 +504,7 @@ is the one migration that is not purely declarative:
   a Rs 1.46m loss in a month that made Rs 566,307 — and looks entirely
   reasonable while doing it. See "How profit is worked out" above.
 
-**The database is not a passive store.** Fifty-three migrations of triggers,
+**The database is not a passive store.** Fifty-five migrations of triggers,
 check constraints and RPCs hold the rules that make the books trustworthy —
 balanced days, an append-only ledger, no two readings covering the same
 litres, stock recalculated from history rather than incremented, no account
@@ -704,6 +704,8 @@ Applied in order:
 | `051_backup_and_restore.sql` | **Backup and restore.** `export_everything()` — the whole book as one JSON document, owner only, minus the activity log's rows and the profiles. `restore_everything()` — loads one into an EMPTY project with user triggers off, parents before children, `created_by` remapped onto the new project's logins and stock recomputed; service-role only, never callable from the app. Driven by `scripts/restore-backup.mjs` |
 | `052_the_database_works_out_the_cash.sql` | **A reading would not save.** 197.75 L x Rs 371.90 is exactly Rs 73,543.2250 — Postgres rounds the half-paisa to .23, JavaScript's binary double to .22, and the balanced-day constraint refused the row by one paisa on figures that were all correct. `create_nozzle_reading()` now DERIVES the cash in `numeric`, as it already derived the credit total, so the app cannot disagree with the constraint. `p_cash` is accepted and ignored |
 | `053_expense_recovery_rows.sql` | **Partial reimbursements against an expense.** `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`, so a reimbursement (a neighbour repaying his share of a shared electricity bill, paid one instalment at a time) can be stored as a second row in the same shape — same category, dated when the cash actually comes back, amount negative. No new table: every RPC that already sums `expenses.amount` nets it out automatically |
+| `054_lifetime_fuel_totals.sql` | `get_daily_summary()` gains `lifetime_by_fuel_type` — litres sold per fuel across every reading ever saved, not just the day on screen. Folded into the existing function rather than a new RPC, since the Dashboard already calls it once per render and the figure does not depend on the date shown |
+| `055_month_to_date_fuel_totals.sql` | Replaces 054's `lifetime_by_fuel_type` with `month_by_fuel_type` — the wrong window had been built; what was wanted was the running month, not the pump's whole history. Scoped to the calendar month `p_date` falls in, from the 1st through `p_date` itself, matching how every other window on this page ends on the day shown rather than on today |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.

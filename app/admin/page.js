@@ -8,9 +8,10 @@ import {
   formatDate,
   formatLitres,
   formatPKR,
+  formatMonth,
 } from '@/app/_lib/helpers';
 import { getDailySummary, getSalesTrend, getLubricantTrend } from '@/app/_lib/data-service';
-import { fuelColor, byFuelOrder } from '@/app/_lib/fuel-colors';
+import { fuelColor, byFuelOrder, FUEL_ORDER } from '@/app/_lib/fuel-colors';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import DateNav from '@/app/_components/admin/DateNav';
 import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
@@ -52,6 +53,17 @@ export default async function DashboardPage({ searchParams }) {
   const lubricantsSold = summary.lubricants_by_product ?? [];
   const lubricantStock = summary.lubricant_stock ?? [];
   const lubColor = fuelColor('lubricant');
+
+  // The calendar month `date` falls in, from the 1st through `date` itself -
+  // not the pump's whole history, and not through today if an earlier day is
+  // on screen. See migration 055. A Map rather than reading
+  // summary.month_by_fuel_type directly: that array omits a fuel entirely if
+  // it has not sold a litre this month, and a slow fuel should still show its
+  // card at 0 L rather than silently dropping out of a two-card row.
+  const monthByFuel = new Map(
+    (summary.month_by_fuel_type ?? []).map((row) => [row.fuel_type, Number(row.litres_sold ?? 0)]),
+  );
+  const [summaryYear, summaryMonth] = date.split('-').map(Number);
 
   // The tiles at the top are the whole day's takings, fuel and oil together -
   // that is what was in the drawer at closing time. The sections below are
@@ -223,7 +235,12 @@ export default async function DashboardPage({ searchParams }) {
       </StatGrid>
 
       {/* ---- by fuel type ---- */}
-      <h2 className="section-heading">By fuel type</h2>
+      {/* The heading alone did not say which day it was for, on a page that
+          can be stepped back through weeks of history with the arrows above -
+          the same "a figure that is a moment in time must name its moment"
+          rule the tank cards below already follow ("at the close of..."). */}
+      <h2 className="section-heading mb-1">By fuel type</h2>
+      <p className="mb-3 text-sm text-ink-600">On {formatDate(date)}</p>
       {byFuel.length === 0 ? (
         <p className="card px-4 py-6 text-center text-base text-ink-600">
           Nothing entered for this day yet.{' '}
@@ -292,6 +309,44 @@ export default async function DashboardPage({ searchParams }) {
           })}
         </div>
       )}
+
+      {/* ---- month-to-date totals ---- */}
+      {/* Always rendered, unlike the section above - "By fuel type" collapses
+          to an empty state on a day with nothing entered, but a month running
+          total does not depend on today's own readings and has no empty day
+          of its own. Litres only, not sales/cash/credit: the question this
+          answers is "how much fuel has moved through this pump this month",
+          and a month's rupee figure is already the "Total sales" tile's own
+          job at the top of the page - repeating it here would be the same
+          fact stated twice in different scopes. The heading and the line
+          under it both name the exact moment for the same reason "By fuel
+          type" now does, just above: "this month" alone does not say WHICH
+          month once the date arrows have been used. */}
+      <h2 className="section-heading mb-1">Total sold in {formatMonth(summaryYear, summaryMonth)}</h2>
+      <p className="mb-3 text-sm text-ink-600">Up to {formatDate(date)}</p>
+      <div className="mb-1 grid gap-4 sm:grid-cols-2">
+        {FUEL_ORDER.filter((fuelType) => fuelType !== 'lubricant')
+          .map((fuelType) => ({ fuel_type: fuelType, litres: monthByFuel.get(fuelType) ?? 0 }))
+          .map((fuel) => {
+            const color = fuelColor(fuel.fuel_type);
+            return (
+              <div key={fuel.fuel_type} className={`card border-t-4 p-4 ${color.accent}`}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-inset ring-black/15"
+                    style={{ backgroundColor: color.raw }}
+                    aria-hidden="true"
+                  />
+                  <h3 className={`text-base font-bold ${color.onWhite}`}>{color.label}</h3>
+                </div>
+                <p className="tabular mt-2 whitespace-nowrap text-2xl font-bold text-ink-900">
+                  {formatLitres(fuel.litres)}
+                </p>
+                <p className="mt-1 text-sm text-ink-600">sold this month</p>
+              </div>
+            );
+          })}
+      </div>
 
       {/* ---- tanks ---- */}
       <h2 className="section-heading">Tank stock</h2>

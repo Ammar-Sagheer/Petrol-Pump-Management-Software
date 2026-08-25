@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **053**.
+logins, one pump. Migrations run to **055**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -49,6 +49,7 @@ logins, one pump. Migrations run to **053**.
 | Readings         | **A reading would not save, and every figure on it was right.** 197.75 L × Rs 371.90 is exactly Rs 73,543.2250; Postgres rounds the half-paisa up, a JavaScript double rounds it down, and the balanced-day constraint refused the row by one paisa. The cash is now derived in the database. Migration 052. |
 | Expenses         | **A partial reimbursement can be recorded against an expense** — a bill paid in full upfront, repaid a little at a time. Stored as a second row in the same shape, amount negative, same category, dated when the cash actually comes back. `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`; no new table. Migration 053. Recording one moved to two dialogs, **Add expense** / **Add recovery**, plus a third "Recovered" stat tile. |
 | Settings         | **Set a new rate** and each tank's capacity/opening stock moved behind dialogs; the two current-rate cards fill edge to edge in the fuel's own colour (`solid`, the same blue/orange Readings and Stock wear) at `text-4xl`+, and each tank card now shows its live book stock plus a **last dipped** line (`getLastStockCheck`) so the book figure and the last physical check against it sit side by side. |
+| Dashboard        | **Total sold this month** — petrol and diesel litres for the calendar month shown, up to the day on screen. `get_daily_summary()` gains `month_by_fuel_type` (054 shipped this as a lifetime total first, corrected to month-to-date by 055); always rendered, even on a day with nothing entered yet. "By fuel type" now names the day it is for, the same fix. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -5087,3 +5088,84 @@ clear space between them and between the heading row and the cards, the Tanks
 read cards show the right accent, gauge and last-dip line in all three states
 (recent gain, recent loss, never dipped), and the edit dialog still pre-fills
 and saves correctly.
+
+## Total sold this month — and a first attempt that answered the wrong question
+
+Every fuel total on the Dashboard was scoped to one day, because
+`get_daily_summary()` was written for exactly one question - what happened
+today - and every subquery in it filters by `p_date`. There was nowhere to
+read "how many litres of petrol has this pump sold this month," which is the
+kind of number an owner asks about out loud rather than reads off a screen,
+and until now the honest answer required adding up daily figures by hand.
+
+**First shipped as a LIFETIME total (migration 054) - "petrol and diesel sold
+in litres till date" was read as "since the pump started using this app."**
+That was the wrong reading. The very next message corrected it: "I meant total
+sold in the running month, not all time." 054 was left alone rather than
+edited - a migration that has run is never rewritten, the same reasoning
+037/038 already set down in this file (037 added a feature, 038 removed it one
+migration later, and 037 was not rewritten to pretend it never happened) - and
+**055 replaces `lifetime_by_fuel_type` with `month_by_fuel_type`**, scoped to
+the calendar month `p_date` falls in, from the 1st through `p_date` itself.
+Not through the end of the month, and not through today regardless of which
+day is on screen: every other window on this page ends on the day being
+looked at rather than on today (the trend charts' own comment says so in as
+many words), and a reader who has stepped back to the 10th should see the
+month-to-the-10th, not the 10th plus days that have not happened yet from that
+day's point of view.
+
+**Folded into `get_daily_summary()` rather than a separate RPC**, both times.
+The Dashboard already calls this function once per render for everything else
+on the page, and the figure only depends on the date already being passed in
+- so answering it here is one more subquery in an existing round trip, not a
+second network call. Same join shape as the `by_fuel_type` key immediately
+above it (`nozzle_readings` → `nozzles` → `tanks`, grouped by `fuel_type`),
+with `date_trunc('month', p_date)::date <= reading_date <= p_date` in place of
+`by_fuel_type`'s `reading_date = p_date`.
+
+**Litres only, not sales, cash or credit.** The question this answers is "how
+much fuel has moved through this pump this month," and a month's rupee figure
+is already the "Total sales" tile's own job at the top of the page - repeating
+it here in a different scope would be confusing rather than additive.
+
+**Its own always-visible section, not folded into "By fuel type."** That
+section already shows petrol and diesel for the day on screen, and reusing its
+cards for a second, differently-scoped figure reads as one card answering two
+questions. It also does not work on a day with nothing entered: "By fuel type"
+collapses to an empty state precisely then (see the screenshot that prompted
+this - Tuesday, 25 Aug 2026, "Nothing entered for this day yet"), and a
+month-to-date total is exactly the figure that should still be there on a day
+like that. So "Total sold in [Month Year]" is its own heading and its own row
+of two cards, in the same `card border-t-4` language the app already uses for
+a fuel pair (`By fuel type`, `Tank stock`) - same accent border, same coloured
+dot, same bold heading. Reads from a `Map` built from the RPC's array rather
+than the array directly, so a fuel that has not sold a single litre this month
+still gets its card at 0 L instead of silently vanishing from a two-card row
+that would look incomplete with only one.
+
+**"By fuel type" itself named while this was being reviewed.** Its heading was
+just "By fuel type," full stop, on a page that steps back through weeks of
+history with the date arrows above - so once a second, differently-scoped fuel
+section existed on the same page, the ambiguity became impossible to miss:
+which day, or which window, is "by fuel type" even talking about? Fixed with
+the same rule the tank cards already follow ("a figure that is a moment in
+time must name its moment," docs/UI_CONVENTIONS.md) - a line reading "On
+{formatDate(date)}" now sits under the heading, and the new section gets the
+equivalent treatment ("Up to {formatDate(date)}" under "Total sold in
+[Month]"). Neither addition changed what either section computes; both only
+say out loud what was previously implicit.
+
+**Verified by SQL and by re-reading the JSX, not by screenshot.** Both
+migrations were applied to the live project and the underlying aggregate
+queries run directly against it, returning real, sane totals (10,450.37 L
+diesel, 39,477.53 L petrol for the month at the time of writing) before the
+RPC's own `is_super_admin()` guard was confirmed separately to refuse an
+unauthenticated call, exactly as every other reporting RPC in this file does.
+The page itself was not rendered and screenshotted: Next.js 16 refuses a
+second `next dev` against the same project directory while one is already
+running, and the owner's own dev server was live and testing the Settings
+work above throughout. The month-total cards are a close structural copy of
+the "By fuel type" cards directly above them on the same page (identical
+classes, same dot-plus-heading shape), which are proven in production - but
+that is a lower bar than an actual screenshot, and is written down as such
+rather than claimed as full verification.
