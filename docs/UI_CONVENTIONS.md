@@ -1432,14 +1432,72 @@ in `StockCheckForm`) is its second caller, and reusing it was the right call
 over forty lines of near-identical markup.
 
 Reach for it whenever a choice is **two options, both legal, told apart by
-reading a sentence** — and follow the rule the section above states: _show the
-consequence_. The dip card names the day the choice closes ("at the close of
-10 Aug 2026") and the book figure that produces, then the gain or loss once a
-reading is typed. That is what makes the choice checkable rather than merely
-labelled, and it is the whole reason this control exists.
+reading a sentence, and neither one owns a colour of its own** — and follow
+the rule the section above states: _show the consequence_. The dip card names
+the day the choice closes ("at the close of 10 Aug 2026") and the book figure
+that produces, then the gain or loss once a reading is typed. That is what
+makes the choice checkable rather than merely labelled, and it is the whole
+reason this control exists.
 
 Use `CategoryPicker`'s icon tiles instead when the options are _kinds of
 thing_ recognised on sight. Use a `<select>` when the list is long.
+
+## Two buttons, not a toggle: when a choice picks which form opens
+
+`ExpenseForm`'s **Paid out / Recovered** choice (migration 053) went through
+`BalanceDirection`, then a hand-rolled toggle styled like Treasury's Cash in /
+Cash out, before landing somewhere neither of those sections actually covers:
+**two buttons and two dialogs, not one control inside one form.** `kind`
+("paid" or "recovered") is now a prop fixed for the lifetime of one
+`ExpenseForm` instance, and the page renders two instances — `Add expense` and
+`Add recovery` — each its own button, its own `<Dialog>`, its own small form.
+Nothing inside either dialog can be typed against the wrong choice, because
+there is no choice inside it to get wrong; the choice was which button got
+pressed, and by the time the form is open that is settled.
+
+This is not "avoid `BalanceDirection`, use two buttons instead" as a general
+substitute — the two are answers to different questions. `BalanceDirection`
+and a hand-rolled toggle both answer *"which of two values does this ONE row
+get"* and belong INSIDE a form the row is being built in. Paid out/Recovered
+turned out to answer a different question — *"which of two forms should even
+be open"* — and a value picked before the form exists is not a form control at
+all; it is routing, the same way `Add account` and a delete button are two
+different buttons rather than one button with a mode, never a toggle that
+decides what a single button does. `moneyOut` / brand-`primary` for Paid out
+and `moneyIn` / `secondary` for Recovered, per "one primary per view" — Paid
+out is the common case.
+
+Ask this before reaching for `BalanceDirection`, `CategoryPicker`'s tiles, or a
+`<select>`: is the choice something that changes what gets filled into ONE row
+(reach for one of those three), or does picking it decide which of several
+SEPARATE, differently-shaped things is being recorded at all (reach for two
+buttons and two forms instead, one per kind). A meter reading's cash/credit
+split is the first kind. Which of two unrelated pieces of paper — a bill paid,
+or a repayment against one — is being written down is the second.
+
+## A signed money row needs colour and an icon, not a minus sign
+
+`formatPKR` never hides a sign — `formatPKR(-5000)` prints **"Rs -5,000"** —
+and a bare minus in front of a rupee figure reads as a typo before it reads as
+a direction, on a screen scanned quickly for whether a number is right.
+Treasury settled this first, for its Cash in / Cash out columns: never print
+the signed figure, print the **magnitude**, and carry the direction in colour
+(brand green for money arriving, amber for money leaving) plus the `moneyIn` /
+`moneyOut` icon beside it — because colour alone is not a safe carrier of
+meaning either (§ colour is never the only cue).
+
+`ExpenseForm`'s recovery rows (migration 053) are the second case this shows up
+in: a reimbursement is stored as a negative `expenses.amount` so every RPC that
+already sums the column nets it out for free, but the table has to show that
+row as money **coming back**, not as a mistyped expense. Same treatment —
+`formatPKR(Math.abs(amount))` in brand green beside a `moneyIn` icon, never the
+raw signed number.
+
+**The rule generalises:** wherever a column can hold a value whose sign is the
+whole story (a ledger movement, a safe entry, an expense that might be a
+recovery), branch on the sign and show magnitude + colour + icon. Reserve a
+literal negative number for places a minus is read as arithmetic, not as an
+event — nowhere in this app, so far.
 
 ## A figure and its unit must not be able to break apart
 

@@ -1705,7 +1705,9 @@ export async function createExpense(_prevState, formData) {
   const note = text(formData, 'note');
 
   if (!category) return fail('Enter a category.');
-  if (amount === null || amount <= 0) return fail('Enter an amount above zero.');
+  // Zero is refused either way; a negative amount is a reimbursement coming
+  // back (see 053_expense_recovery_rows.sql) and is allowed through.
+  if (amount === null || amount === 0) return fail('Enter an amount above zero.');
   if (!expenseDate) return fail('Enter the date.');
 
   const supabase = await createClient();

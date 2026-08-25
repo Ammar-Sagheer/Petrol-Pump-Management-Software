@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **052**.
+logins, one pump. Migrations run to **053**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -47,10 +47,11 @@ logins, one pump. Migrations run to **052**.
 | Activity         | The owner may clear the OLD end of the log — whole retention periods only, cutoff computed in Postgres, recent month never touched, the trim logged into the log it trimmed. Append-only intact: no line editable, no single line removable. Migration 050. And the open section in the sidebar now ends with a dark bar, because the tint alone washes out in daylight. |
 | Backups          | **The books can now leave Supabase and come back.** Settings → Backup → Download backup writes the whole book as one JSON file; `scripts/restore-backup.mjs` loads it into a fresh project with the triggers off, remapping each entry's author onto the new logins, then recomputes counts and money totals and compares them against the file. Migration 051. |
 | Readings         | **A reading would not save, and every figure on it was right.** 197.75 L × Rs 371.90 is exactly Rs 73,543.2250; Postgres rounds the half-paisa up, a JavaScript double rounds it down, and the balanced-day constraint refused the row by one paisa. The cash is now derived in the database. Migration 052. |
+| Expenses         | **A partial reimbursement can be recorded against an expense** — a bill paid in full upfront, repaid a little at a time. Stored as a second row in the same shape, amount negative, same category, dated when the cash actually comes back. `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`; no new table. Migration 053. Recording an expense also moved from a standing sidebar form to an **Add expense** dialog, with a third "Recovered" stat tile. |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
-almost none of the important logic is in the JavaScript. Fifty-two
+almost none of the important logic is in the JavaScript. Fifty-three
 migrations of triggers and constraints hold the money rules, and the hardest
 single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
@@ -4518,15 +4519,15 @@ for the role checks and cannot be pulled into a client bundle, so the finished
 table is passed as `children`. Worth knowing before writing the next modal that
 needs server-rendered content in it.
 
-# Porting the Treasury → Backup → paisa rounds to the offline (Electron) build
+# Porting the Treasury → Backup → paisa → recovery-row rounds to the offline (Electron) build
 
 The desktop build tracks this repo, and the last catch-up list above stops at
-migration 043. This is the next one: **migrations 044–052 and everything that
+migration 043. This is the next one: **migrations 044–053 and everything that
 came with them**, sorted by what a port has to do about it rather than by the
 order it happened in. Every "why" is in the sections above; this is the list of
 what to carry.
 
-## 1. Database — nine migrations, and only one of them is Supabase-shaped
+## 1. Database — ten migrations, and only one of them is Supabase-shaped
 
 | Migration | What it is | What a port has to do |
 |---|---|---|
@@ -4539,6 +4540,7 @@ what to carry.
 | `050_clear_the_old_activity_log.sql` | The owner can throw away the old end of the audit trail | Plain Postgres — `set_config`/`current_setting` for the transaction-local exception, `at time zone 'Asia/Karachi'` for the cutoff. Needs 035's append-only guard to exist first, since it replaces it |
 | `051_backup_and_restore.sql` | The whole book out as JSON, and back into an empty database | **Skip it.** The desktop build already backs itself up its own way — see below |
 | `052_the_database_works_out_the_cash.sql` | A reading would not save: the app computed the cash in a float and the database computed the sale in `numeric`, and on a half-paisa they differed by one | **Take this one, and take the JavaScript with it.** It is not Supabase-shaped at all — the same `numeric` versus double mismatch exists in any Postgres, and the desktop build runs the identical `create_nozzle_reading()` and the identical entry dialog. `saleAmount()` in `format-helpers.js` goes across too, or the figure on screen and the figure in the books differ by a paisa |
+| `053_expense_recovery_rows.sql` | `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`, so a reimbursement against a past bill can be stored as a negative row in the same table | **Plain SQL, one `alter table`.** Nothing Supabase-specific — take it, and take `createExpense`'s relaxed validation (`app/_lib/actions.js`) and the Paid out/Recovered toggle (`ExpenseForm.js`) with it |
 
 ### 044 is the hard one, and the reason is two Postgres features
 
@@ -4631,7 +4633,22 @@ another reason not to carry this function across rather than to adapt it.
 - **`_lib/data-service.js`** — `getTreasuryOverview`, `getTreasuryDay`,
   `getActivityTrimCounts`.
 - **`_lib/actions.js`** — `createTreasuryEntry`, `deleteTreasuryEntry`,
-  `clearOldActivity`.
+  `clearOldActivity`; `createExpense`'s amount check relaxed to reject only
+  zero, not negative (053).
+- **`_components/admin/ExpenseForm.js`** — moved from a standing sidebar form
+  to an `Add expense` button behind a dialog, on the same `useActionState` +
+  `handled` ref + `<Toast>` shape as `BankAccountForm`. Gained a Paid out/
+  Recovered toggle inside the dialog, styled like Treasury's Cash in/Cash out
+  (`moneyOut` amber / `moneyIn` brand green, not `BalanceDirection`'s single
+  "whichever is picked" highlight, so Recovered keeps the same green here it
+  wears in the table below); picking Recovered negates the typed amount before
+  it is submitted.
+- **`app/admin/expenses/page.js`** — the sidebar-form grid became a single
+  full-width column now that `ExpenseForm` lives behind a dialog triggered from
+  `PageHeader`; a third StatTile, `Recovered in [month]`, sits beside Spent and
+  Categories used. A negative-amount row (a recovery) draws in brand green with
+  the `moneyIn` icon and a "Recovered" tag, the same colour-plus-icon
+  distinction Treasury draws between cash in and cash out.
 - **`_lib/excel-report.js`** — the workbook's Summary sheet gains cost of stock
   sold, opening and closing stock value (049).
 - **`_components/ui/Icon.js`** — a `treasury` icon.
@@ -4772,3 +4789,137 @@ Derive it in Postgres and let the app read it back. Where the app must show it
 before saving, compute it with integer arithmetic that matches `numeric`, never
 with `*` on floats. A generated column plus a check constraint is a promise that
 the two ends agree; a float is a wager that they will.
+
+## A partial reimbursement can be recorded against an expense
+
+**The problem.** The owner pays the full electricity bill upfront — a real one
+was Rs 20,000 — and shares the connection with three or four neighbours, who
+pay him back one at a time over the following days. Until now the only record
+was the Rs 20,000 expense. Every rupee paid back was invisible: profit was
+understated by whatever came back, permanently, with no way to enter it.
+
+**The design, and what it was weighed against.** The obvious "correct" shape is
+a small receivables system — a table of bills, linked repayments, a running
+"outstanding" balance per bill. That is the right answer for a business that
+tracks who owes what reliably. It is the wrong size for a petrol pump recording
+a handful of Rs 500–1,500 repayments a month, read by an owner checking figures
+on a tablet against cash in a drawer. A second table is a second thing to get
+right — its own RLS policy, its own place for `sum()` to remember to look — and
+buys nothing that a much smaller change does not already buy.
+
+**What shipped instead: a recovery row.** `expenses.amount` was
+`check (amount > 0)`; migration 053 relaxes it to `check (amount <> 0)` (zero is
+still refused — it is not a real event either way). A reimbursement is recorded
+as an ordinary expense row with a **negative** amount: same table, same category
+("Electricity"), dated the day the cash actually comes back. No new table, no
+linked ledger, no trigger.
+
+**Why this nets out for free.** `sum(e.amount)` already runs unfiltered in three
+places — the month tile on `/admin/expenses`, `CategoryBreakdown`'s per-category
+totals, and both reporting RPCs (`005_reporting_rpcs.sql`'s monthly report and
+`010_month_export_rpc.sql`'s Excel export). A negative row cancels out of a sum
+by construction, so every one of those figures is correct **with no code
+change** — the whole reason a negative amount was the right shape rather than a
+`is_recovery` flag needing to be subtracted everywhere a total is built.
+
+**Cash basis, on purpose, and not a new rule.** The reimbursement is recorded
+when the neighbour actually hands the money over, not accrued against the
+original bill the day it was paid. Treasury entries and credit sales already
+work this way — recorded when the cash moves, never when it becomes owed — so
+this is the same rule applied to a third place, not a new one invented for it.
+
+**The app-side changes.** `createExpense` in `app/_lib/actions.js` rejected
+`amount <= 0`; it now rejects only `amount === null || amount === 0`, so a
+negative reimbursement passes through to the constraint above. `ExpenseForm`
+never asks anyone to type a minus sign — a tablet's on-screen numeric keypad
+usually has no key for one — so the amount field always takes a positive
+magnitude, and which sign gets applied is decided by which of two buttons
+opened the dialog (see "Two buttons, not a toggle" below), negated in
+`FormData` right before `createExpense` runs. `min="0.01"` stays fixed either
+way, because the field never has to represent both signs in one instance any
+more.
+
+**Reading it back.** A raw `formatPKR(-5000)` prints "Rs -5,000", which reads as
+a typo before it reads as a direction — see "A signed money row needs colour
+and an icon, not a minus sign" in `docs/UI_CONVENTIONS.md`, the rule this
+entry's table now shares with Treasury's Cash in/Cash out columns. A recovery
+row shows the **magnitude** in brand green beside a `moneyIn` icon, with a small
+"Recovered" tag next to its note, rather than the signed figure.
+
+**Verified**, twice — once for the standing-form version, again after the
+rework above — by rendering `/admin/expenses` with a fixture month (the real
+Rs 20,000 electricity bill plus three neighbour repayments, Rs 3,500 / 3,000 /
+2,500, in the same category, alongside ordinary Salaries/Rent/Maintenance rows)
+through a disposable devcheck route, screenshotted at 1152px and 400px both
+times. The second pass also clicked **Add expense** open and screenshotted the
+dialog itself. The month tile read the net Rs 11,000 for Electricity correctly
+throughout with no code changes to the total or the breakdown, the new
+Recovered tile read Rs 9,000 / 3 repayments, and the three recovery rows stayed
+readable as money coming back rather than as mistakes at both widths, and with
+the table now full-width instead of squeezed beside the old sidebar form.
+
+**Applied to the wrong Supabase project first — a genuinely useful mistake to
+write down.** Before adding 053, the live project was checked against
+`supabase/migrations/` rather than assumed to match, the same discipline this
+repo asks of live data — but "the live project" was taken to mean whichever one
+`list_projects` returned, without cross-checking it against `.env.local`, the
+file the app actually reads its connection from. The two were different
+projects. 052 was applied to the wrong one, appeared to be "missing" there
+(because it genuinely was, on that project), and got applied a second time
+before the mix-up was caught — by a check constraint refusing a live Rs 1 test
+entry with the OLD `amount > 0` message, which was the tell: 053 had reported
+success, so the only way the old constraint could still be firing was that it
+was answering from a different database than the one that had just been
+migrated. `.env.local`'s project ref settled it, and reconnecting the Supabase
+session to the account that actually owns that project confirmed 052 was
+already there (the owner's own memory of applying it was right) and only 053
+was missing. **The rule this leaves behind: match a project by its ref against
+`.env.local` (or the deploy's env vars) before treating any "the live
+database" as settled, never by name or by "it's the only one the tool
+returned" — a second Supabase account with its own project of a similar name
+is exactly the case a name-only match cannot catch.**
+
+**Reworked mid-review: a dialog instead of a standing form, and a third
+tile.** `ExpenseForm` stood open on the page beside the table when this shipped
+first, on the reasoning "recording an expense is the reason this page is
+opened" — and two things about actually using it argued the other way. Its
+success message used a bare `<FormMessage>`, so "Expense recorded." sat in the
+form through the next entry, the exact failure `<Toast>` exists to prevent (see
+`docs/UI_CONVENTIONS.md`'s "A date-driven page does not remount" and every
+dialog form's own comment on this). And a permanent 22rem sidebar column for a
+four-field form was the same trade `BankAccountForm`'s own comment already
+describes making the other way, for the same reason: a rare-ish job (well,
+daily here, but not the reason the page is loaded at that exact moment) does
+not need to cost the page its width every time it is open. `ExpenseForm` is now
+`Add expense` behind a dialog, built on the same shape as `BankAccountForm` —
+`useActionState` plus a `handled` ref that closes the dialog and raises a
+`<Toast>` exactly once per successful submission, `<FormMessage>` guarded by
+`state?.ok === false` so it never renders a stale success. The Paid out/
+Recovered toggle moved inside the dialog at this point, unchanged from before -
+see the next entry for where it actually ended up.
+
+A third StatTile, **Recovered in [month]**, was added beside Spent and
+Categories used — `moneyIn` icon, brand green, the recovered rows' total and
+count. `total` already nets recoveries out of "Spent" silently by construction
+(that is the whole point of the negative-row design above); the reader checking
+the month needs the two movements shown separately to see WHY the net figure is
+what it is, not just trust that it is. No new query - `recoveries` is the same
+`expenses` array the page already has, filtered by sign.
+
+**Reworked again: two buttons instead of a toggle.** The Paid out/Recovered
+switch inside one dialog was itself the wrong shape, once there was a dialog to
+put it in — a mode that has to be set correctly before typing the amount is
+exactly the kind of choice that gets missed under pressure, with nothing
+catching a wrong pick until the row is already the wrong sign in the table.
+`ExpenseForm` takes a `kind` prop ("paid" or "recovered") now, fixed for the
+life of one instance, and the page renders two of them: **Add expense**
+(`moneyOut`, `primary` — the common case) and **Add recovery** (`moneyIn`,
+`secondary`). Each is its own button and its own `<Dialog>`; there is nothing
+left inside either form that can be set to the wrong thing, because the choice
+was which button got pressed, not a field inside what opened. Every id inside
+the form is prefixed with `kind` (`idFor('amount')` → `paid_amount` /
+`recovered_amount`) since both instances are mounted on the page at once — only
+one dialog is open at a time, but both exist in the DOM throughout. See "Two
+buttons, not a toggle" in `docs/UI_CONVENTIONS.md` for the general shape of
+this: a choice between two options is not always a control to put inside a
+form — sometimes it is a choice of which form to open.
