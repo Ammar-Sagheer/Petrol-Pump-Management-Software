@@ -50,6 +50,7 @@ logins, one pump. Migrations run to **055**.
 | Expenses         | **A partial reimbursement can be recorded against an expense** — a bill paid in full upfront, repaid a little at a time. Stored as a second row in the same shape, amount negative, same category, dated when the cash actually comes back. `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`; no new table. Migration 053. Recording one moved to two dialogs, **Add expense** / **Add recovery**, plus a third "Recovered" stat tile. |
 | Settings         | **Set a new rate** and each tank's capacity/opening stock moved behind dialogs; the two current-rate cards fill edge to edge in the fuel's own colour (`solid`, the same blue/orange Readings and Stock wear) at `text-4xl`+, and each tank card now shows its live book stock plus a **last dipped** line (`getLastStockCheck`) so the book figure and the last physical check against it sit side by side. |
 | Dashboard        | **Total sold this month** — petrol and diesel litres for the calendar month shown, up to the day on screen. `get_daily_summary()` gains `month_by_fuel_type` (054 shipped this as a lifetime total first, corrected to month-to-date by 055); always rendered, even on a day with nothing entered yet. "By fuel type" now names the day it is for, the same fix. |
+| Dashboard        | **Regrouped into three zones** — Fuel, Lubricants, Trends — instead of five same-weight `.section-heading`s in a row, on the complaint "too much numbers on one page." Hierarchy by size only (never by shrinking to a caption style — `.section-heading`'s own comment already records why that was tried once and reverted). |
 
 **If you are porting this to Electron or another shell**, read
 `README.md` → "If you are porting this off Supabase" first. The short version:
@@ -5169,3 +5170,62 @@ the "By fuel type" cards directly above them on the same page (identical
 classes, same dot-plus-heading shape), which are proven in production - but
 that is a lower bar than an actual screenshot, and is written down as such
 rather than claimed as full verification.
+
+**Correction, one entry later: the screenshot was possible after all.** The
+lock only blocks a SECOND `next dev` *process* - it does not block requests to
+the one already running. A disposable devcheck route dropped into the live
+project gets picked up by the owner's own dev server's file watcher like any
+other edit, and a script can then point Playwright at `localhost:3000`
+directly, screenshot it, and delete the route again - no second server, and
+nothing the owner's own session notices beyond a route that briefly existed.
+Used for every visual check from the next entry onward, including the two
+below.
+
+## The Dashboard, grouped into zones instead of a flat list of sections
+
+**The complaint, verbatim: "too much numbers on one page, not separated into
+subsection or no layout design to make it read easier."** By the time the
+month total above landed, the Dashboard had grown to five top-level
+`.section-heading`s stacked in a column - By fuel type, Total sold this
+month, Tank stock, Lubricants, Last N days - each the same size, each reading
+as an unrelated topic, with nothing on the page saying that the first three
+were all facts about the same thing (fuel).
+
+**Regrouped into three zones - Fuel, Lubricants, Trends - each with its own
+larger heading, and the three fuel subsections (By fuel type, the month
+strip, Tank stock) sit under "Fuel" with smaller subsection labels instead of
+three more `.section-heading`s.** Hierarchy comes from SIZE alone
+(`text-xl` zone headings, `text-base` subsection labels, both bold and near-
+black) - deliberately NOT from shrinking a heading down to the small
+uppercase caption style `.figure-label` uses. `.section-heading`'s own
+comment in `globals.css` already records why that specific mistake was tried
+once and reverted: "IT MUST NOT LOOK LIKE `.figure-label`... a heading that is
+typeset as a caption does not read as a heading," and the owner said so
+himself about the Reports page at the time. A zone break also gets a hairline
+`border-t border-ink-200` and extra top margin, so a reader scanning down the
+page gets a visible pause between topics, not just a size change.
+
+**The month-to-date strip nearly repeated that exact mistake in miniature.**
+First version was `text-sm` (14px) throughout, in a flat-bordered box with no
+shadow - and the very next message back was "too small to be visibly seen,"
+followed by "father sees this daily," which is the answer to §0 of the
+small-business-ledger-app skill this repo already commits to: an older reader
+on a tablet, checking real figures. The type floor that skill sets - 16px
+body, 18px figures - is not a suggestion that shrinks for a block that looks
+minor in a mockup; it applies to every figure on the page equally, and this
+one had quietly fallen under it because "slim strip" was read as "small text"
+rather than "less width of information." Fixed to `text-base` labels and
+`text-lg font-bold` litres, and given the same `.card` shadow every other
+block on the page already has, so it reads as a card worth noticing rather
+than a caption to skim past.
+
+**Verified by screenshot this time** (see the correction above) - both the
+full page at 1100px and 400px, and the month strip alone before and after the
+type-size fix, via a devcheck route hitting the owner's own already-running
+dev server.
+
+**Left for the owner to approve or discard, on his own instruction: nothing
+here reached `main` until he said "push."** Worth recording as the pattern
+for a redesign of taste rather than a bugfix - build it, verify it renders
+correctly, hand it back for a live look, and only treat it as done once the
+person who has to read it every day says so.

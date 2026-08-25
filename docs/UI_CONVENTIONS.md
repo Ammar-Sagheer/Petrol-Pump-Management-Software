@@ -1739,6 +1739,53 @@ the sections on Reports "are not so prominent".
   share-of-total bar in a plain list is MUI's `LinearProgress`, which is what
   that component is for - see `CategoryBreakdown`.
 
+## A page with several `.section-heading`s in a row needs a second, bigger tier
+
+The Dashboard grew to five `.section-heading`s stacked in a column - By fuel
+type, Total sold this month, Tank stock, Lubricants, Last N days - each the
+same size as the others, which reads as five unrelated topics even where
+three of them are facts about the same thing (fuel). The complaint was blunt
+and worth keeping verbatim: "too much numbers on one page, not separated into
+subsection." Related `.section-heading`s do not automatically read as
+related just because they are near each other; nothing about the previous
+section says the next one belongs with it rather than after it.
+
+**The fix is a size UP, not a size down.** A zone heading (`text-xl font-bold
+text-ink-900`, one step above `.section-heading`'s `text-lg`) introduces a
+group - "Fuel" - and the `.section-heading`-shaped labels that used to stand
+alone become smaller subsection labels underneath it (`text-base font-bold
+text-ink-800` - still bold, still near-black, still NOT the small uppercase
+`.figure-label` treatment the section above this one exists to warn against).
+Getting this backwards - shrinking the group heading toward caption size to
+"de-emphasize" it - is the exact mistake `.section-heading` was already fixed
+once for; two headings can differ in importance without either of them
+looking like a caption.
+
+**A zone break also gets a visible pause, not just a size change**: extra top
+margin plus a hairline `border-t border-ink-200`, so a reader scanning down
+the page feels a stop between topics rather than noticing a font-size change.
+The first zone on a page (right after the headline stat row, which is its own
+visually distinct block already) skips the divider - nothing needs separating
+from a StatGrid - the same way `.section-heading`'s own `first:mt-0` treats
+the first heading on a page as a special case.
+
+**A secondary figure inside a zone is not automatically small text.** The
+Dashboard's month-to-date total was first built as a slim strip at `text-sm`
+throughout (14px, under this app's own 16px body floor for an older reader on
+a tablet - see the small-business-ledger-app skill, §0) reasoning that "less
+prominent" meant "smaller." It does not: "slim" is about how much WIDTH a
+block takes (one line instead of a card grid), not the size of the type
+inside it. Fixed to `text-base` labels and `text-lg font-bold` figures, with
+the same `.card` shadow every other block on the page carries - a secondary
+fact can occupy less space than a primary one without being harder to read
+than one.
+
+Reach for this two-tier heading whenever a page accumulates enough
+`.section-heading`s that some of them are actually facts about the same
+topic - three or more related sections is the threshold the Dashboard crossed.
+A page with two or three genuinely unrelated sections does not need it;
+`.section-heading` alone is still correct there.
+
 ## Free text that gets grouped needs a memory
 
 Expenses take a typed category, and the pump's real data shows the cost of

@@ -234,12 +234,22 @@ export default async function DashboardPage({ searchParams }) {
         />
       </StatGrid>
 
-      {/* ---- by fuel type ---- */}
-      {/* The heading alone did not say which day it was for, on a page that
-          can be stepped back through weeks of history with the arrows above -
-          the same "a figure that is a moment in time must name its moment"
-          rule the tank cards below already follow ("at the close of..."). */}
-      <h2 className="section-heading mb-1">By fuel type</h2>
+      {/* =====================================================================
+          FUEL — one zone rather than three same-weight sections. This used to
+          be "By fuel type", "Total sold in [month]" and "Tank stock" as three
+          separate `.section-heading`s in a row, reading as three unrelated
+          topics rather than three facts about the same thing. Grouped under
+          one zone heading with smaller subsection labels beneath it - bold
+          and dark like `.section-heading`, just a size down, NOT the small
+          uppercase caption style `.figure-label` uses: that was tried for
+          headings once already (see `.section-heading`'s own comment in
+          globals.css) and the owner reported the sections "are not so
+          prominent" - a heading typeset as a caption stops reading as a
+          heading. Hierarchy comes from SIZE here, never from shrinking a
+          heading down to caption weight. ===================================== */}
+      <h2 className="mb-4 mt-10 text-xl font-bold text-ink-900">Fuel</h2>
+
+      <h3 className="mb-1 text-base font-bold text-ink-800">By fuel type</h3>
       <p className="mb-3 text-sm text-ink-600">On {formatDate(date)}</p>
       {byFuel.length === 0 ? (
         <p className="card px-4 py-6 text-center text-base text-ink-600">
@@ -310,46 +320,45 @@ export default async function DashboardPage({ searchParams }) {
         </div>
       )}
 
-      {/* ---- month-to-date totals ---- */}
-      {/* Always rendered, unlike the section above - "By fuel type" collapses
-          to an empty state on a day with nothing entered, but a month running
-          total does not depend on today's own readings and has no empty day
-          of its own. Litres only, not sales/cash/credit: the question this
-          answers is "how much fuel has moved through this pump this month",
-          and a month's rupee figure is already the "Total sales" tile's own
-          job at the top of the page - repeating it here would be the same
-          fact stated twice in different scopes. The heading and the line
-          under it both name the exact moment for the same reason "By fuel
-          type" now does, just above: "this month" alone does not say WHICH
-          month once the date arrows have been used. */}
-      <h2 className="section-heading mb-1">Total sold in {formatMonth(summaryYear, summaryMonth)}</h2>
-      <p className="mb-3 text-sm text-ink-600">Up to {formatDate(date)}</p>
-      <div className="mb-1 grid gap-4 sm:grid-cols-2">
-        {FUEL_ORDER.filter((fuelType) => fuelType !== 'lubricant')
-          .map((fuelType) => ({ fuel_type: fuelType, litres: monthByFuel.get(fuelType) ?? 0 }))
-          .map((fuel) => {
-            const color = fuelColor(fuel.fuel_type);
+      {/* Month-to-date, ALWAYS rendered even when "By fuel type" above is an
+          empty state - see migration 055. A slim strip rather than two more
+          full cards - this is context beside the day's own figures, not a
+          second headline - but "slim" means less WIDTH of information, not
+          smaller TYPE: this page is read by the owner, on a tablet, and the
+          16px body / 18px figure floor from the small-business-ledger-app
+          skill applies here exactly as it does everywhere else, regardless
+          of how minor a block looks in a mockup. First version was
+          text-sm throughout (14px, under the floor) and hard to actually
+          see at arm's length - fixed to text-base/text-lg and given the same
+          `.card` weight (shadow) as every other block on the page instead of
+          a flat border, so it reads as a card to notice, not a caption to
+          skim past. */}
+      <div className="card mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4">
+        <p className="text-base text-ink-700">
+          <span className="font-bold text-ink-900">{formatMonth(summaryYear, summaryMonth)} so far</span>{' '}
+          — up to {formatDate(date)}
+        </p>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          {FUEL_ORDER.filter((fuelType) => fuelType !== 'lubricant').map((fuelType) => {
+            const color = fuelColor(fuelType);
             return (
-              <div key={fuel.fuel_type} className={`card border-t-4 p-4 ${color.accent}`}>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-inset ring-black/15"
-                    style={{ backgroundColor: color.raw }}
-                    aria-hidden="true"
-                  />
-                  <h3 className={`text-base font-bold ${color.onWhite}`}>{color.label}</h3>
-                </div>
-                <p className="tabular mt-2 whitespace-nowrap text-2xl font-bold text-ink-900">
-                  {formatLitres(fuel.litres)}
-                </p>
-                <p className="mt-1 text-sm text-ink-600">sold this month</p>
-              </div>
+              <span key={fuelType} className="inline-flex items-center gap-2">
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full ring-1 ring-inset ring-black/15"
+                  style={{ backgroundColor: color.raw }}
+                  aria-hidden="true"
+                />
+                <span className="text-base text-ink-700">{color.label}</span>
+                <span className="tabular whitespace-nowrap text-lg font-bold text-ink-900">
+                  {formatLitres(monthByFuel.get(fuelType) ?? 0)}
+                </span>
+              </span>
             );
           })}
+        </div>
       </div>
 
-      {/* ---- tanks ---- */}
-      <h2 className="section-heading">Tank stock</h2>
+      <h3 className="mb-3 mt-6 text-base font-bold text-ink-800">Tank stock</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         {[...tanks].sort(byFuelOrder).map((tank) => {
           /*
@@ -471,8 +480,15 @@ export default async function DashboardPage({ searchParams }) {
         </p>
       ) : null}
 
-      {/* ---- lubricants ---- */}
-      <h2 className="section-heading">Lubricants</h2>
+      {/* ===================================================================
+          LUBRICANTS — its own zone: a different product line from the tanks
+          above, not a fourth subsection of "Fuel". The divider and the extra
+          top margin are what a zone break looks like on this page now; see
+          the comment on the "Fuel" heading above for the rule behind the
+          two-tier sizing (never a caption-style heading). =================== */}
+      <h2 className="mb-4 mt-10 border-t border-ink-200 pt-6 text-xl font-bold text-ink-900">
+        Lubricants
+      </h2>
 
       {lubricantStock.length === 0 ? (
         <p className="card px-4 py-6 text-center text-base text-ink-600">
@@ -569,14 +585,16 @@ export default async function DashboardPage({ searchParams }) {
         </div>
       )}
 
-      {/* ---- trends ---- */}
-      {/* The heading and the control share a line, and the heading states the
-          span in full underneath. "Last 30 days" alone is ambiguous the moment
-          the reader has stepped back a week with the arrows above - these
-          charts end on the day the page is showing, not on today. */}
-      <div className="mb-3 mt-8 flex flex-wrap items-end justify-between gap-3">
+      {/* ===================================================================
+          TRENDS — its own zone, same divider-plus-size treatment as Fuel and
+          Lubricants above. The heading and the window control share a line,
+          and the heading states the span in full underneath: "Last 30 days"
+          alone is ambiguous the moment the reader has stepped back a week
+          with the arrows above - these charts end on the day the page is
+          showing, not on today. =============================================== */}
+      <div className="mb-3 mt-10 flex flex-wrap items-end justify-between gap-3 border-t border-ink-200 pt-6">
         <div>
-          <h2 className="section-heading mb-0 mt-0">Last {trendDays} days</h2>
+          <h2 className="mb-0 mt-0 text-xl font-bold text-ink-900">Last {trendDays} days</h2>
           <p className="mt-1 text-sm text-ink-600">
             {formatDate(trendFrom)} to {formatDate(date)}
           </p>
