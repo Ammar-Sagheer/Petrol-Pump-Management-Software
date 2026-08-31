@@ -5229,3 +5229,81 @@ here reached `main` until he said "push."** Worth recording as the pattern
 for a redesign of taste rather than a bugfix - build it, verify it renders
 correctly, hand it back for a live look, and only treat it as done once the
 person who has to read it every day says so.
+
+## Tightened for a short screen
+
+A photo of the Customers page on a friend's laptop, screen resolution set to
+1600×900, showed the table with a gap between rows big enough that only two
+rows and a sliver of a third fit before the card started scrolling - the
+owner circled the gap with an arrow. His own laptop is taller, so this had
+never shown up before.
+
+The row height was `.td`/`.th`'s `py-3` (12px top and bottom), the same
+padding the app uses for a button - but a table row is not a tap target, its
+only click is the name link inside it, so it does not need the `py-3` floor
+`docs/UI_CONVENTIONS.md` sets for buttons and tabs. Dropped to `py-2` on all
+three cell classes (`.th`, `.td`, `.td-num`), which is a change to every
+table in the app, not just Customers.
+
+The rest of the page's vertical rhythm was tightened to match: `<PageHeader>`'s
+bottom margin `mb-6` → `mb-4`, the `<main>` wrapper's `py-6 sm:py-8` →
+`py-4 sm:py-6` in `app/admin/layout.js`, and the `mb-4` spacer above the
+Customers stat row to match the new header margin. `PageHeader` and the admin
+`<main>` are shared by every page under `/admin`, so this is also an
+across-the-board change, not a Customers-only fix.
+
+**Verified with a devcheck route** rendering the real sidebar and fifteen
+fixture customers (names, phones, credit limits and balances shaped like the
+photographed list) through the actual `.th`/`.td` markup, screenshotted at
+1600×760 (1600×900 minus a realistic amount of browser chrome), 1024×768 and
+400px wide. At 1600×760 seven rows are now visible instead of two; at 1024
+and 400 nothing wraps or clips that did not already wrap or clip before -
+the existing horizontal table-scroll at 1024 and the stacked stat tiles at
+400 are unchanged.
+
+**Then asked to go to the bare minimum at that size and smaller.** `py-2`
+was still spending 8px of pure padding per row on a screen where every row
+mattered. Added `@media (max-width: 1600px) { .th, .td, .td-num { py-1 } }`
+right after the three cell classes in `globals.css` - one rule, not a
+duplicate set of classes - so 1600px and narrower (the reported laptop and
+everything smaller, phones included) drops to 4px top and bottom, and
+anything wider keeps the `py-2` a bigger screen has room for. Text size and
+line height are untouched; only the padding, which was the one part of the
+row that was air rather than something a reader needs. Re-screenshotted the
+same devcheck at 1600×760 (nine rows visible, up from seven), 1700×900 to
+confirm the media query does NOT fire above the threshold and `py-2` still
+holds, 1024×768 and 400px wide - no new wrapping or clipping at either
+narrow end.
+
+**Then an edit button on the same table**, so a misspelled name or a changed
+phone number no longer needs a trip into the customer's own page first.
+`EditCustomerButton` already existed - it is what "Edit details" opens on
+`/admin/customers/[id]` - so this is one new prop rather than a second form:
+`iconOnly` swaps its trigger for a pencil `IconButton`, the same row-action
+pattern Remove already uses, instead of the labelled button that page has
+room for and a table row does not. The dialog, the validation and the
+`updateCustomer` action underneath stay the single copy.
+
+The actions column used to be owner-only, rendered around `isOwner` in both
+the header and the body - because Remove is. Editing is not: `updateCustomer`
+accepts `data_entry` as well as `super_admin`, and the customer page already
+showed "Edit details" to both roles. So the column header goes back to
+rendering unconditionally, `EditCustomerButton` sits in it for every row
+regardless of role, and only `RemoveCustomerButton` beside it stays gated on
+`isOwner`.
+
+One shape mismatch to note for next time: `get_customer_balances` (the RPC
+this list is built from) names the primary key `customer_id`, but
+`get_customer_statement` - what the detail page reads, and what
+`EditCustomerButton` was written against - returns the raw `customers` row,
+where it's `id`. The list passes the button a small reshaped object
+(`{ id: customer.customer_id, name, vehicle_number, phone, credit_limit }`)
+rather than the row as-is, or the hidden `customer_id` field in the edit form
+would have posted `undefined`.
+
+Verified with a devcheck route rendering the real `EditCustomerButton` and
+`RemoveCustomerButton` in fixture rows: the two icons sit side by side at
+1600px and 1024px width (1024 already scrolls the table sideways before this
+change, for the same reason the Owes column does - unrelated), and clicking
+the pencil on a row opens the dialog pre-filled with THAT row's name and
+vehicle, not the first row's.

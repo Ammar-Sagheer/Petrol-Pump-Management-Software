@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }) {
   return (
     <div className="min-h-screen lg:pl-60">
       <AdminSidebar profile={profile} />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-4 sm:py-6">{children}</main>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { StatTile, StatGrid } from '@/app/_components/admin/AdminStats';
 import EmptyState from '@/app/_components/ui/EmptyState';
 import CustomerForm from '@/app/_components/admin/CustomerForm';
 import CustomerSearch from '@/app/_components/admin/CustomerSearch';
+import EditCustomerButton from '@/app/_components/admin/EditCustomerButton';
 import RemoveCustomerButton, {
   RestoreCustomerButton,
   PurgeCustomerButton,
@@ -136,7 +137,7 @@ export default async function CustomersPage({ searchParams }) {
            * count of who is over one was a figure about the minority of rows
            * that happened to have the field filled in.
            */}
-          <div className="mb-6">
+          <div className="mb-4">
             <StatGrid>
               <StatTile
                 icon="credit"
@@ -198,11 +199,9 @@ export default async function CustomersPage({ searchParams }) {
                     <th className="th">Phone</th>
                     <th className="th text-right">Credit limit</th>
                     <th className="th text-right">Owes</th>
-                    {isOwner ? (
-                      <th className="th">
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    ) : null}
+                    <th className="th">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-200">
@@ -292,15 +291,27 @@ export default async function CustomersPage({ searchParams }) {
                           ) : null}
                         </td>
 
-                        {isOwner ? (
-                          <td className="td">
-                            <RemoveCustomerButton
-                              customerId={customer.customer_id}
-                              name={customer.name}
-                              balance={balance}
+                        <td className="td">
+                          <div className="flex items-center justify-end gap-1">
+                            <EditCustomerButton
+                              customer={{
+                                id: customer.customer_id,
+                                name: customer.name,
+                                vehicle_number: customer.vehicle_number,
+                                phone: customer.phone,
+                                credit_limit: customer.credit_limit,
+                              }}
+                              iconOnly
                             />
-                          </td>
-                        ) : null}
+                            {isOwner ? (
+                              <RemoveCustomerButton
+                                customerId={customer.customer_id}
+                                name={customer.name}
+                                balance={balance}
+                              />
+                            ) : null}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}

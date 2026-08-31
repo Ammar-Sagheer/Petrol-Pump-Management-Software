@@ -361,18 +361,47 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   .th {
-    @apply px-3 py-3 text-left text-sm font-semibold uppercase tracking-wide text-ink-600;
+    @apply px-3 py-2 text-left text-sm font-semibold uppercase tracking-wide text-ink-600;
   }
 
+  /*
+   * py-2, not py-3. At a short-height laptop window (900px screen, and a lot
+   * less once the browser's own tabs and address bar take their share) a
+   * table capped at `.table-scroll`'s 70vh was showing two or three rows
+   * before it started scrolling - the row height was doing more work than a
+   * dense list of names and numbers needs. This is a cell's padding, not a
+   * tap target - the row's only click is the name link inside it - so it can
+   * run tighter than the py-3 floor `docs/UI_CONVENTIONS.md` sets for buttons.
+   */
   .td {
-    @apply px-3 py-3 text-base text-ink-800;
+    @apply px-3 py-2 text-base text-ink-800;
   }
 
   /* Figures never wrap - "Rs 2,500,000" split across two lines is unreadable,
      and "10,000 L" broken after the number looks like two separate values. */
   .td-num {
-    @apply whitespace-nowrap px-3 py-3 text-right text-base font-medium text-ink-800;
+    @apply whitespace-nowrap px-3 py-2 text-right text-base font-medium text-ink-800;
     font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * BARE-MINIMUM ROW HEIGHT, 1600px and narrower - the exact screen the
+   * owner's friend photographed (1600x900) and everything smaller than it,
+   * where vertical room is the scarcest thing on the page. py-2 is already
+   * tighter than a button's py-3 floor because a row's only click is the name
+   * link inside it, not the row itself; this drops the same cells to py-1
+   * (4px) at and below 1600px width, where a short window means the 70vh
+   * table cap was still only showing a handful of rows. Text size and line
+   * height are untouched - the padding is the only thing being spent, and it
+   * is the one part of the row that was pure air rather than something a
+   * reader needs to see.
+   */
+  @media (max-width: 1600px) {
+    .th,
+    .td,
+    .td-num {
+      @apply py-1;
+    }
   }
 
   /*
