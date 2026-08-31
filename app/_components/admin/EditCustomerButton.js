@@ -9,6 +9,7 @@ import Toast from '@/app/_components/ui/Toast';
 import Dialog from '@/app/_components/ui/Dialog';
 import NumberInput from '@/app/_components/ui/NumberInput';
 import Button from '@/app/_components/ui/Button';
+import IconButton from '@/app/_components/ui/IconButton';
 
 /**
  * Correcting a customer's details from their own page.
@@ -27,8 +28,15 @@ import Button from '@/app/_components/ui/Button';
  * opening balance - which belongs only at the moment the account is created,
  * because afterwards the honest way to move a balance is an entry that says
  * why.
+ *
+ * TWO TRIGGERS, ONE FORM. The customer's own page has room for a labelled
+ * "Edit details" button beside "Back to customers"; a row in the Customers
+ * table does not, and a repeated word down every row is the same noise
+ * `IconButton`'s own note describes for Remove. `iconOnly` swaps the trigger
+ * for a pencil icon - the row already names whose details it opens - while
+ * the dialog and the action underneath stay the one copy.
  */
-export default function EditCustomerButton({ customer }) {
+export default function EditCustomerButton({ customer, iconOnly = false }) {
   const formRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -46,17 +54,20 @@ export default function EditCustomerButton({ customer }) {
     }
   }, [state]);
 
+  function open() {
+    setShowResult(false);
+    setIsOpen(true);
+  }
+
   return (
     <>
-      <Button variant="secondary"
-        type="button"
-        onClick={() => {
-          setShowResult(false);
-          setIsOpen(true);
-        }}
-      >
-        Edit details
-      </Button>
+      {iconOnly ? (
+        <IconButton name="pencil" label={`Edit ${customer.name}`} onClick={open} />
+      ) : (
+        <Button variant="secondary" type="button" onClick={open}>
+          Edit details
+        </Button>
+      )}
 
       <Dialog
         open={isOpen}

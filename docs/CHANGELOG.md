@@ -5274,3 +5274,36 @@ same devcheck at 1600×760 (nine rows visible, up from seven), 1700×900 to
 confirm the media query does NOT fire above the threshold and `py-2` still
 holds, 1024×768 and 400px wide - no new wrapping or clipping at either
 narrow end.
+
+**Then an edit button on the same table**, so a misspelled name or a changed
+phone number no longer needs a trip into the customer's own page first.
+`EditCustomerButton` already existed - it is what "Edit details" opens on
+`/admin/customers/[id]` - so this is one new prop rather than a second form:
+`iconOnly` swaps its trigger for a pencil `IconButton`, the same row-action
+pattern Remove already uses, instead of the labelled button that page has
+room for and a table row does not. The dialog, the validation and the
+`updateCustomer` action underneath stay the single copy.
+
+The actions column used to be owner-only, rendered around `isOwner` in both
+the header and the body - because Remove is. Editing is not: `updateCustomer`
+accepts `data_entry` as well as `super_admin`, and the customer page already
+showed "Edit details" to both roles. So the column header goes back to
+rendering unconditionally, `EditCustomerButton` sits in it for every row
+regardless of role, and only `RemoveCustomerButton` beside it stays gated on
+`isOwner`.
+
+One shape mismatch to note for next time: `get_customer_balances` (the RPC
+this list is built from) names the primary key `customer_id`, but
+`get_customer_statement` - what the detail page reads, and what
+`EditCustomerButton` was written against - returns the raw `customers` row,
+where it's `id`. The list passes the button a small reshaped object
+(`{ id: customer.customer_id, name, vehicle_number, phone, credit_limit }`)
+rather than the row as-is, or the hidden `customer_id` field in the edit form
+would have posted `undefined`.
+
+Verified with a devcheck route rendering the real `EditCustomerButton` and
+`RemoveCustomerButton` in fixture rows: the two icons sit side by side at
+1600px and 1024px width (1024 already scrolls the table sideways before this
+change, for the same reason the Owes column does - unrelated), and clicking
+the pencil on a row opens the dialog pre-filled with THAT row's name and
+vehicle, not the first row's.
