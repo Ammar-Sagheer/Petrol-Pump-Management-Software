@@ -5229,3 +5229,34 @@ here reached `main` until he said "push."** Worth recording as the pattern
 for a redesign of taste rather than a bugfix - build it, verify it renders
 correctly, hand it back for a live look, and only treat it as done once the
 person who has to read it every day says so.
+
+## Tightened for a short screen
+
+A photo of the Customers page on a friend's laptop, screen resolution set to
+1600×900, showed the table with a gap between rows big enough that only two
+rows and a sliver of a third fit before the card started scrolling - the
+owner circled the gap with an arrow. His own laptop is taller, so this had
+never shown up before.
+
+The row height was `.td`/`.th`'s `py-3` (12px top and bottom), the same
+padding the app uses for a button - but a table row is not a tap target, its
+only click is the name link inside it, so it does not need the `py-3` floor
+`docs/UI_CONVENTIONS.md` sets for buttons and tabs. Dropped to `py-2` on all
+three cell classes (`.th`, `.td`, `.td-num`), which is a change to every
+table in the app, not just Customers.
+
+The rest of the page's vertical rhythm was tightened to match: `<PageHeader>`'s
+bottom margin `mb-6` → `mb-4`, the `<main>` wrapper's `py-6 sm:py-8` →
+`py-4 sm:py-6` in `app/admin/layout.js`, and the `mb-4` spacer above the
+Customers stat row to match the new header margin. `PageHeader` and the admin
+`<main>` are shared by every page under `/admin`, so this is also an
+across-the-board change, not a Customers-only fix.
+
+**Verified with a devcheck route** rendering the real sidebar and fifteen
+fixture customers (names, phones, credit limits and balances shaped like the
+photographed list) through the actual `.th`/`.td` markup, screenshotted at
+1600×760 (1600×900 minus a realistic amount of browser chrome), 1024×768 and
+400px wide. At 1600×760 seven rows are now visible instead of two; at 1024
+and 400 nothing wraps or clips that did not already wrap or clip before -
+the existing horizontal table-scroll at 1024 and the stacked stat tiles at
+400 are unchanged.

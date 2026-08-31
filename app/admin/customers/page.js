@@ -136,7 +136,7 @@ export default async function CustomersPage({ searchParams }) {
            * count of who is over one was a figure about the minority of rows
            * that happened to have the field filled in.
            */}
-          <div className="mb-6">
+          <div className="mb-4">
             <StatGrid>
               <StatTile
                 icon="credit"
