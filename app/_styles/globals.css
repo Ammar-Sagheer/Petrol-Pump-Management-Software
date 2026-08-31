@@ -385,6 +385,26 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   /*
+   * BARE-MINIMUM ROW HEIGHT, 1600px and narrower - the exact screen the
+   * owner's friend photographed (1600x900) and everything smaller than it,
+   * where vertical room is the scarcest thing on the page. py-2 is already
+   * tighter than a button's py-3 floor because a row's only click is the name
+   * link inside it, not the row itself; this drops the same cells to py-1
+   * (4px) at and below 1600px width, where a short window means the 70vh
+   * table cap was still only showing a handful of rows. Text size and line
+   * height are untouched - the padding is the only thing being spent, and it
+   * is the one part of the row that was pure air rather than something a
+   * reader needs to see.
+   */
+  @media (max-width: 1600px) {
+    .th,
+    .td,
+    .td-num {
+      @apply py-1;
+    }
+  }
+
+  /*
    * Tables scroll inside themselves rather than pushing the page sideways, and
    * are capped in height so the column headings can stay pinned while you read
    * down a long list. max-height costs nothing on a short table - it only bites

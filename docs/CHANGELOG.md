@@ -5260,3 +5260,17 @@ photographed list) through the actual `.th`/`.td` markup, screenshotted at
 and 400 nothing wraps or clips that did not already wrap or clip before -
 the existing horizontal table-scroll at 1024 and the stacked stat tiles at
 400 are unchanged.
+
+**Then asked to go to the bare minimum at that size and smaller.** `py-2`
+was still spending 8px of pure padding per row on a screen where every row
+mattered. Added `@media (max-width: 1600px) { .th, .td, .td-num { py-1 } }`
+right after the three cell classes in `globals.css` - one rule, not a
+duplicate set of classes - so 1600px and narrower (the reported laptop and
+everything smaller, phones included) drops to 4px top and bottom, and
+anything wider keeps the `py-2` a bigger screen has room for. Text size and
+line height are untouched; only the padding, which was the one part of the
+row that was air rather than something a reader needs. Re-screenshotted the
+same devcheck at 1600×760 (nine rows visible, up from seven), 1700×900 to
+confirm the media query does NOT fire above the threshold and `py-2` still
+holds, 1024×768 and 400px wide - no new wrapping or clipping at either
+narrow end.
