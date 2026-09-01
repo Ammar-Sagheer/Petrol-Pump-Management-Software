@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **058**.
+logins, one pump. Migrations run to **059**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -90,7 +90,12 @@ early whether a single-user offline build needs it at all.
    anywhere reintroduces a bug that showed a Rs 1.46m loss in a profitable
    month, and it reads perfectly reasonable while doing it. Anything that
    derives a per-day or per-week profit has to spread the cost of goods sold,
-   not the purchases.
+   not the purchases. And since 059 there are TWO stock questions:
+   `calculate_expected_stock()` is what the books say (a dip closing that day is
+   excluded, so a gain/loss means something) and `tank_stock_on_hand()` is what
+   the tank actually holds (that dip IS the answer). Valuation and profit ask the
+   second. Asking the first charged every month-end's stock loss to the month
+   after it.
 7. **A nozzle has a service window, and the reading sheet asks about a DATE.**
    Since 056 a unit can be replaced in place: `is_active` says whether a nozzle
    is on the forecourt *today*, `commissioned_on`/`retired_on` say which days it
@@ -5542,3 +5547,98 @@ confirmed to work, since that is what frees a position.
 **Screenshotted** at 1440, 1024 and 400px, and the form's own serialisation was
 dumped through `FormData` to confirm the index alignment survives the two
 opted-out fields.
+
+## Profit was charging each month-end's stock loss to the following month
+
+Found on 1 September 2026, by the owner, from the outside: September had
+nothing in it at all — no readings, no deliveries, no dips, no expenses — and
+the Reports page showed a **loss of Rs 9,585**. Its own working, printed under
+the tile, gave the shape of it away:
+
+> Rs 614,973 in the tanks at the start, plus Rs 0 bought, less Rs 605,389 still
+> there at the end — Rs 9,585
+
+Nothing had moved, so those cannot be two different stock levels. They are the
+**two sides of the 31 August dip**:
+
+| | books said | dip measured | |
+|---|---|---|---|
+| Diesel | 981.85 L | 971.00 L | −10.85 L |
+| Petrol | 759.67 L | 743.00 L | −16.67 L |
+
+27.52 litres really did go missing and the 31 August dip really did find them.
+Rs 9,585 is the right amount of money. It was in the wrong month.
+
+**Two different questions were being answered by one function.**
+
+`calculate_expected_stock(tank, d)` answers *"what do the books say should be in
+this tank at the close of d"*. It takes the last dip closing a day **strictly
+before** `d` and rolls purchases and sales forward — and that strictness is
+deliberate and correct where it lives (039): a dip closing `d` is the thing that
+figure is about to be **compared with**, so letting it be its own baseline would
+make expected equal actual and every gain/loss nought.
+
+`stock_value_at(d)` was reusing it, through `tank_stock_value()`, to answer a
+different question: *"what is the stock in this tank worth at the close of d"*.
+That wants the best available knowledge of what is physically in the tank — and
+when somebody dipped it that morning, **the dip is the best available
+knowledge**. Inheriting the exclusion made the valuation deliberately ignore its
+own most accurate measurement.
+
+The result is a one-day slip at every month boundary:
+
+- August closes on the **book** figure — the 31 Aug dip is excluded, being 31 Aug
+- September opens on that same figure, so the join looks continuous and nothing
+  appears wrong
+- September closes on the **measured** figure, because by 30 Sep that dip is
+  safely in the past
+
+and the shortfall falls through the crack between the two. This pump dips every
+day, so **every** month-end had it. In a trading month it is buried inside a
+six-figure cost of goods and roughly cancels against the month before, which is
+why it survived since 049. In a month with no trading it is the entire report.
+
+It had also been quietly contradicting the Stock page, which has shown 971 L and
+743 L since 31 August: `recalc_tank_stock` asks about *today*, no dip closes
+today, so nothing was excluded and it got the measured answer. The books
+disagreed with themselves depending on which screen asked.
+
+**The fix is a second function for the second question**, not a flag on the
+first. `tank_stock_on_hand(tank, d)` is `calculate_expected_stock` with
+`books_date <= p_date` instead of `<`; when a dip closes the day, that dip is the
+answer and the roll-forward adds nothing. `calculate_expected_stock` is
+untouched, so the Stock Checks page, the gain/loss figures, the daily summary,
+the stock register and `recalc_tank_stock` all keep asking the book question and
+all keep getting exactly the answers they got before.
+
+**The closing-litres table had to move with it.** The Reports page prints the
+working in a sentence (from `stock_value_at`) and then a per-tank closing-litres
+table underneath (from `calculate_expected_stock`). Fixing only the sentence
+would have left the page showing 981.85 L in a tank it had just valued at 971 L
+— so `get_monthly_report` and `get_month_export` had their `closing_litres`
+expression patched to `tank_stock_on_hand` as well. Patched rather than
+reproduced, using the technique 049 established on these same two functions and
+for the same reason: thousands of characters of report nobody re-reads, and
+hand-copying to change one expression is a chance to silently drop a line. It
+raises if the expression has moved, and re-running the migration proves that —
+it refuses the second time.
+
+**What actually changed, stated precisely, because it is a reported profit:**
+
+- **August 2026 profit drops by Rs 9,585** — the loss is charged to the month the
+  fuel went missing. The 31 July dip came out exactly level (0.00 on both tanks)
+  so August's opening figure does not move at all, and this is the whole of it.
+- **September 2026 profit becomes Rs 0**, which is what an empty month says.
+- Every earlier month shifts by the difference between its own month-end dip and
+  the one before it. That is the correction, not a side effect.
+- **No stored row changes.** Every one of these figures is derived on read.
+
+**Verified twice.** First against a local Postgres seeded to reproduce it — 1,000
+L bought in August, a dip finding 880, August charged Rs 0 and September charged
+Rs 30,000 before the fix; Rs 30,000 and Rs 0 after, with
+`calculate_expected_stock` still returning 1,000.00 and the dip's own gain/loss
+still −120.00. Then on the live project after applying: September's cost of stock
+sold is 0.00, stock value at 31 Aug and 30 Sep are both Rs 605,388.60, the 31 Aug
+dips still flag their −27.52 L, lifetime gain/loss is unchanged at 2,011.50, all
+186 readings are untouched, and the Stock page's 971/743 now agrees with the
+valuation instead of contradicting it.

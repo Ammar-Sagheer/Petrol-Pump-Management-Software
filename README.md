@@ -180,6 +180,15 @@ amount of application code can get around them.
   a day that traded. So enter days **oldest first**. If one is missed, clear
   everything after it and re-enter forwards — back-filling underneath a saved
   day is refused, and the message names the day to clear.
+- **Two questions about stock, and they are not the same question.**
+  `calculate_expected_stock(tank, d)` is what the **books say** should be in the
+  tank at the close of `d`, and it ignores a dip closing `d` on purpose — that
+  dip is the figure it is about to be compared against, so letting it be its own
+  baseline would make every gain/loss nought. `tank_stock_on_hand(tank, d)` is
+  what the tank **actually holds**, and it uses that dip. Valuing stock, and so
+  profit, asks the second one. Asking the first cost a month's profit a whole
+  month's stock loss — see migration 059.
+
 - **A reading cannot be dated to a day its nozzle was not there.** Since a unit
   can be replaced (see below), each nozzle carries the range of days it was
   actually standing on the forecourt, and a reading outside that range is
@@ -729,6 +738,7 @@ Applied in order:
 | `056_replacing_a_damaged_unit.sql` | **A unit was damaged and swapped for another one.** Nozzles gain a service window (`commissioned_on`, `retired_on`, `replaced_by`); `unique (unit_number, nozzle_label)` becomes a unique index over LIVE nozzles only, so the replacement keeps standing as Unit 1; a trigger refuses any reading dated outside the days its nozzle was actually on the forecourt; `get_reading_sheet()` filters by that window rather than by `is_active`, because the sheet asks about a DATE and `is_active` is a fact about today; `replace_unit()` retires the old nozzles and fits the new ones in one statement; and `set_nozzle_wiring()` now refuses a retired nozzle, whose tank decides which tank months of past sales came out of |
 | `057_replaced_units_in_the_activity_log.sql` | The audit trail's one-line summary for a nozzle carries its service window, so the four lines a replacement writes say *when* — "Unit 1 · Nozzle A · replaced 12 Aug 2026". `trg_write_activity()` reproduced whole, as in 048, since a plpgsql body cannot be patched one branch at a time |
 | `058_rearranging_the_forecourt.sql` | **The unit number and nozzle label become editable.** Rearranging the pumps is a rename, not a hardware event, so it belongs in Edit nozzle wiring — but a rearrangement is almost always a SWAP, which passes through a moment where two nozzles claim one position. `nozzles_live_unit_label_idx` (056) is therefore replaced by a **deferrable exclusion constraint** over the service window: no two nozzles may share a unit number and label over overlapping days, checked once at the end of the statement rather than row by row. Strictly stronger than the index it replaces, which said nothing about the past. `set_nozzle_wiring()` writes the two new fields, forces the deferred check so a clash comes back as a sentence, and still refuses to rewire a replaced nozzle's tank or meter — only its caption |
+| `059_stock_is_valued_at_what_the_tank_holds.sql` | **Profit was charging each month-end's stock loss to the following month.** September 2026 had nothing in it and still showed a Rs 9,585 loss — the two sides of the 31 August dip. `stock_value_at()` valued stock through `calculate_expected_stock()`, which deliberately ignores a dip closing the day being asked about; that exclusion is right for a gain/loss (the dip is the thing being compared) and wrong for a valuation (the dip is the best knowledge of what is in the tank). New `tank_stock_on_hand()` — the same function with `books_date <= p_date` — answers the valuation question, and `tank_stock_value()` uses it. `get_monthly_report` and `get_month_export` have their `closing_litres` patched to match, so the litres table cannot disagree with the value printed above it. `calculate_expected_stock()` is untouched |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
