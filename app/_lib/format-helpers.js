@@ -108,3 +108,30 @@ export function saleAmount(litres, rate) {
   const paisa = Math.floor(abs / 1000) + (abs % 1000 >= 500 ? 1 : 0);
   return (sign * paisa) / 100;
 }
+
+// ---------------------------------------------------------------------------
+// Litres and plain counts.
+//
+// Moved here from helpers.js when the nozzle wiring dialog needed to show a
+// replaced pump's starting meter: that dialog is a client component, and
+// helpers.js reads request cookies for the role checks, so importing it into
+// the browser bundle fails the build outright. Grouping is en-US style
+// (140,000); for the South Asian lakh style (1,40,000) change 'en-US' to
+// 'en-IN' here and in helpers.js's money formatter.
+// ---------------------------------------------------------------------------
+const numberFormat = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+/** 500 -> "500 L" */
+export function formatLitres(value) {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return '0 L';
+  return `${numberFormat.format(n)} L`;
+}
+
+export function formatNumber(value) {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? numberFormat.format(n) : '0';
+}

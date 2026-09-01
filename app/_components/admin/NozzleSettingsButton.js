@@ -3,6 +3,11 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { setNozzleWiring } from '@/app/_lib/actions';
+// format-helpers, NOT helpers: this is a client component, and helpers.js
+// reads request cookies for the role checks, so it can never enter a browser
+// bundle. formatLitres was moved across for exactly this import.
+import { formatLitres } from '@/app/_lib/format-helpers';
+import { formatDate } from '@/app/_lib/date-helpers';
 import Dialog from '@/app/_components/ui/Dialog';
 import FormMessage from '@/app/_components/ui/FormMessage';
 import SubmitButton from '@/app/_components/ui/SubmitButton';
@@ -11,15 +16,30 @@ import NumberInput from '@/app/_components/ui/NumberInput';
 import Button from '@/app/_components/ui/Button';
 
 /**
- * Which tank each nozzle draws from, and where its meter started - behind a
- * dialog for the same reason a bank account is: set once when the pump goes
- * onto the system and then almost never touched again.
+ * Where each pump stands, which tank it draws from, and where its meter
+ * started - behind a dialog for the same reason a bank account is: set once
+ * when the pump goes onto the system and then almost never touched again.
  *
- * ONE form for all six rows, not one per row. Describing how the place is
+ * ONE form for all the rows, not one per row. Describing how the place is
  * plumbed is a single job, and six Save buttons made it look like six - with
  * the row you had just edited indistinguishable from the five you had not. One
  * button also means one write, which is what stops half the nozzles ending up
  * pointing at the new tanks and half at the old.
+ *
+ * THE UNIT NUMBER AND THE LABEL ARE EDITABLE (058), and that is what makes one
+ * form load-bearing rather than merely tidy. Rearranging a forecourt is almost
+ * always a SWAP - the petrol pump becomes Unit 1 and the diesel one becomes
+ * Unit 2 - which passes through a moment where two nozzles both claim position
+ * 1. Saved as two writes that is refused halfway, in an order the owner cannot
+ * fix by trying again; saved as one it is a single deferred check at the end,
+ * when the forecourt is whole again.
+ *
+ * REPLACED NOZZLES ARE LISTED TOO, and only their caption can be edited. They
+ * still hold their old position for the days they worked, so leaving them out
+ * would make the swap above impossible - you cannot move a pump into position 1
+ * while something else still occupies it. Their tank and starting meter stay
+ * read-only: those are arithmetic behind readings that are already in the
+ * books, not captions.
  */
 export default function NozzleSettingsButton({ nozzles, tanks }) {
   const formRef = useRef(null);
@@ -64,7 +84,7 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
         title="Nozzle wiring"
         subtitle={
           <span className="text-sm text-ink-600">
-            Which tank each nozzle draws from, and where its meter started
+            Where each pump stands, which tank it draws from, and where its meter started
           </span>
         }
       >
@@ -77,19 +97,29 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
           className="space-y-4 p-4"
         >
           <p className="text-sm text-ink-600">
-            The tank decides which stock a sale comes out of. The starting reading is only used
-            until that nozzle has its first day entered — after that each day opens at the
-            previous day’s closing.
+            Change the unit number and nozzle label to match how the forecourt is arranged now.
+            The tank decides which stock a sale comes out of; the starting reading is only used
+            until that nozzle has its first day entered.
+          </p>
+
+          <p className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-xs text-ink-700">
+            <span className="font-semibold">Renaming applies to the whole history.</span> A pump
+            renumbered here shows under its new number on every day, including days already
+            entered — which is right when the pumps have been moved around and you will never
+            think of it by the old number again. For a pump that was actually swapped out for
+            different hardware, use{' '}
+            <span className="font-semibold">Replace this unit</span> instead: that keeps the old
+            readings under the old pump and starts the new one from its own meter.
           </p>
 
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-            Set the starting readings <span className="font-semibold">before</span> entering your
-            first day. Leaving them at 0 on a pump that has been trading makes that first day
-            count the meter’s whole lifetime as one day of sales.
+            Set a starting reading <span className="font-semibold">before</span>{' '}
+            that nozzle&apos;s first day is entered — left at 0 on a pump that has been trading, that first day counts
+            the meter&apos;s whole lifetime as one day of sales.
           </p>
 
           <div className="card table-scroll">
-            <table className="w-full min-w-[34rem]">
+            <table className="w-full min-w-[40rem]">
               <thead className="border-b border-ink-200 bg-ink-50">
                 <tr>
                   <th className="th">Unit</th>
@@ -99,48 +129,123 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100">
-                {nozzles.map((nozzle) => (
-                  <tr key={nozzle.id}>
-                    <td className="td font-medium">Unit {nozzle.unit_number}</td>
-                    <td className="td">Nozzle {nozzle.nozzle_label}</td>
-                    <td className="td">
-                      {/* The three fields repeat their names down the table.
-                          A form serialises repeated names in markup order, so
-                          the action can line the three lists up by index. */}
-                      <input type="hidden" name="nozzle_id" value={nozzle.id} />
-                      <label className="sr-only" htmlFor={`tank-${nozzle.id}`}>
-                        Tank for unit {nozzle.unit_number} nozzle {nozzle.nozzle_label}
-                      </label>
-                      <select
-                        id={`tank-${nozzle.id}`}
-                        name="tank_id"
-                        defaultValue={nozzle.tank_id ?? ''}
-                        className="input w-auto py-1.5 text-sm"
-                      >
-                        {tanks.map((tank) => (
-                          <option key={tank.id} value={tank.id}>
-                            {tank.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="td">
-                      <label className="sr-only" htmlFor={`start-${nozzle.id}`}>
-                        Starting meter reading for unit {nozzle.unit_number} nozzle{' '}
-                        {nozzle.nozzle_label}
-                      </label>
-                      <NumberInput
-                        id={`start-${nozzle.id}`}
-                        name="starting_reading"
-                        defaultValue={nozzle.starting_reading ?? 0}
-                        min="0"
-                        step="0.01"
-                        required
-                        className="input tabular w-32 py-1.5 text-sm"
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {nozzles.map((nozzle) => {
+                  const retired = Boolean(nozzle.retired_on);
+
+                  return (
+                    <tr key={nozzle.id} className={retired ? 'bg-ink-50/60' : undefined}>
+                      <td className="td">
+                        {/* INSIDE the cell, not a direct child of <tr>. An
+                            <input> parented by a row is invalid HTML, and the
+                            browser does not merely warn - it hoists the element
+                            out of the table on parse, which silently reorders
+                            the very sequence the index alignment below depends
+                            on. Caught as a hydration error in dev.
+
+                            `nozzle_id`, `unit_number` and `nozzle_label` repeat
+                            their names down the table. A form serialises
+                            repeated names in markup order, so the action lines
+                            those three lists up by index. The two frozen fields
+                            further down cannot join that scheme - a replaced
+                            row omits them, which would shorten their lists and
+                            shift every row after it - so they carry the id in
+                            their name instead. */}
+                        <input type="hidden" name="nozzle_id" value={nozzle.id} />
+                        <label className="sr-only" htmlFor={`unit-${nozzle.id}`}>
+                          Unit number for the nozzle currently called unit {nozzle.unit_number}{' '}
+                          nozzle {nozzle.nozzle_label}
+                        </label>
+                        <NumberInput
+                          id={`unit-${nozzle.id}`}
+                          name="unit_number"
+                          defaultValue={nozzle.unit_number}
+                          min="1"
+                          step="1"
+                          required
+                          className="input tabular w-20 py-1.5 text-sm"
+                        />
+                      </td>
+
+                      <td className="td">
+                        <label className="sr-only" htmlFor={`label-${nozzle.id}`}>
+                          Label for the nozzle currently called unit {nozzle.unit_number} nozzle{' '}
+                          {nozzle.nozzle_label}
+                        </label>
+                        <input
+                          id={`label-${nozzle.id}`}
+                          name="nozzle_label"
+                          defaultValue={nozzle.nozzle_label}
+                          maxLength={12}
+                          required
+                          className="input w-20 py-1.5 text-sm"
+                        />
+                        {/* WITH ITS DATE, not just the word. After a
+                            replacement the list holds two rows reading "2 · A"
+                            and two reading "2 · B", and the only thing that
+                            tells the old diesel pump from the new one is when
+                            each was on the forecourt. "replaced" alone left the
+                            reader to work out which of two identical rows he
+                            was renumbering. */}
+                        {retired ? (
+                          <span className="mt-1 block whitespace-nowrap text-xs text-ink-500">
+                            replaced {formatDate(nozzle.retired_on)}
+                          </span>
+                        ) : nozzle.commissioned_on ? (
+                          <span className="mt-1 block whitespace-nowrap text-xs text-ink-500">
+                            fitted {formatDate(nozzle.commissioned_on)}
+                          </span>
+                        ) : null}
+                      </td>
+
+                      {retired ? (
+                        // Read-only, and shown rather than hidden: the owner is
+                        // renumbering this row and needs to see WHICH pump it
+                        // is, and "Diesel Tank, 1,985,669.36" is how he knows.
+                        <>
+                          <td className="td text-ink-500">{nozzle.tank?.name ?? '—'}</td>
+                          <td className="td tabular whitespace-nowrap text-ink-500">
+                            {formatLitres(nozzle.starting_reading)}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="td">
+                            <label className="sr-only" htmlFor={`tank-${nozzle.id}`}>
+                              Tank for unit {nozzle.unit_number} nozzle {nozzle.nozzle_label}
+                            </label>
+                            <select
+                              id={`tank-${nozzle.id}`}
+                              name={`tank_id__${nozzle.id}`}
+                              defaultValue={nozzle.tank_id ?? ''}
+                              className="input w-auto py-1.5 text-sm"
+                            >
+                              {tanks.map((tank) => (
+                                <option key={tank.id} value={tank.id}>
+                                  {tank.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="td">
+                            <label className="sr-only" htmlFor={`start-${nozzle.id}`}>
+                              Starting meter reading for unit {nozzle.unit_number} nozzle{' '}
+                              {nozzle.nozzle_label}
+                            </label>
+                            <NumberInput
+                              id={`start-${nozzle.id}`}
+                              name={`starting_reading__${nozzle.id}`}
+                              defaultValue={nozzle.starting_reading ?? 0}
+                              min="0"
+                              step="0.01"
+                              required
+                              className="input tabular w-32 py-1.5 text-sm"
+                            />
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

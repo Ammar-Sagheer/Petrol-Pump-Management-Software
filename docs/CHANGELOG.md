@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **057**.
+logins, one pump. Migrations run to **058**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -97,7 +97,10 @@ early whether a single-user offline build needs it at all.
    was there at all, and `get_reading_sheet()` must filter on the window — using
    `is_active` there would hide a replaced unit's own past days from correction.
    A unit number outlives the hardware wearing it, so anything grouping nozzles
-   into units groups on unit number **and** `commissioned_on`.
+   into units groups on unit number **and** `commissioned_on`. Since 058 the
+   number is also EDITABLE and a position is guarded across all of history by a
+   deferrable exclusion constraint — never re-implement that check in JavaScript,
+   which does not have the windows and will refuse legitimate arrangements.
 
 ## Foundation
 
@@ -5429,3 +5432,113 @@ real regression came out of it and was fixed: at phone width "meter started at
 the fourth time this file has recorded that, and `whitespace-nowrap` on the
 figure is the fix every time. See "A figure and its unit must not be able to
 break apart" in `docs/UI_CONVENTIONS.md`.
+
+## The pumps were also moved around, which is a rename and not a replacement
+
+The replacement in 056/057 turned out to be half the story. What actually
+happened on the forecourt on 1 September 2026 was:
+
+- the diesel unit at position 1 was damaged and taken out;
+- the petrol unit that stood at position 2 was moved into position 1;
+- the new diesel unit was installed at position 2.
+
+Only the first of those is a hardware event. The petrol dispenser is the same
+object with the same meters, still counting up from 48,760.78 — it is simply
+called something else now. That is a **label**, and until this change the labels
+were the one part of the forecourt the owner could not touch without a
+migration.
+
+**So `unit_number` and `nozzle_label` became editable in Edit nozzle wiring**,
+which is where they belong: they are how he refers to a pump when he is standing
+in front of it, and if the app disagrees with the sticker on the machine, the app
+is wrong.
+
+**A rename applies to the whole history**, and the dialog says so in as many
+words. A pump renumbered here shows under its new number on days already
+entered. That is right for a rearrangement — the owner's own map has moved with
+the hardware and he will never again think of that pump as Unit 2 — and wrong
+for a pump genuinely swapped out, which is what Replace this unit is for. The
+two are used together: rename first so the position you want is free, then
+replace.
+
+**Migration 058 is mostly about one constraint**, and it is the interesting
+part:
+
+- **A straight swap has to be legal.** Renumbering 2 → 1 and 1 → 2 is the normal
+  case, and it passes through a moment where two nozzles both claim position 1.
+  A plain unique index checks per row as the UPDATE walks the table, so it
+  refuses the swap halfway through and *no ordering of the rows avoids it*. The
+  constraint therefore has to be **deferrable** — checked once, at the end, when
+  the forecourt is whole again. Same reasoning as 044's treasury guard.
+- **A position is only occupied for the days it is occupied.** 056's
+  `nozzles_live_unit_label_idx` said "one LIVE nozzle per unit and label", which
+  was enough when the only event was a replacement. It is not enough now: the
+  retired diesel pump still holds position 1 for every day up to 31 August, and
+  the petrol pump moving in must not claim those same days as well. Two pumps at
+  one position on one date is exactly the state that makes a day's sheet
+  unreadable.
+
+  So the rule became an **exclusion constraint** over the service window 056
+  already gave every nozzle — `exclude using gist (unit_number with =,
+  nozzle_label with =, daterange(commissioned_on, retired_on, '[]') with &&)`,
+  which needs `btree_gist` for the two equality columns. It is strictly stronger
+  than the index it replaces, and it is what makes the two halves of the
+  rearrangement safe to type **in either order**: retiring the diesel pump on 31
+  Aug and giving the petrol pump position 1 from 1 Sep do not overlap.
+
+`set_nozzle_wiring()` forces the deferred check with `set constraints …
+immediate` inside an exception block before it returns, so a clash comes back as
+a sentence about two pumps at one position rather than as a raw 23P01 at COMMIT,
+from underneath the Server Action, carrying the row numbers of a GiST index.
+
+**Replaced nozzles are listed in the dialog now**, with only their caption
+editable. Leaving them out would have made the swap impossible — you cannot move
+a pump into position 1 while something else still occupies it and is not on the
+list to be moved out of it. Their tank and starting meter stay read-only for
+056's reason, and are *shown* rather than hidden: the owner is renumbering that
+row and "Diesel Tank, 1,985,669.36 L" is how he knows which pump it is.
+
+**Two bugs found by rendering it, both real:**
+
+- **A hidden `<input>` was a direct child of `<tr>`.** Invalid HTML, and the
+  browser does not merely warn — it *hoists the element out of the table* on
+  parse, which silently reorders the very sequence the index alignment depends
+  on. Caught as a hydration error in the dev log, which is worth saying because
+  the screenshot looked perfect. The field went back inside the first `<td>`.
+- **A field that some rows opt out of cannot use the repeated-name-and-index
+  trick.** `tank_id` and `starting_reading` are omitted for replaced rows, so
+  their lists arrive shorter than `nozzle_id`'s and every row after the first
+  replaced one lines up against the wrong nozzle. They now carry the id in the
+  field name (`tank_id__<uuid>`) and are looked up per row. The repeated-name
+  scheme is still right for the three fields every row has.
+
+**`formatLitres` and `formatNumber` moved from `helpers.js` to
+`format-helpers.js`.** The dialog needed to show a replaced pump's starting
+meter, and it is a client component; `helpers.js` reads request cookies for the
+role checks, so importing it into the browser bundle fails the build outright.
+`helpers.js` re-exports both, so every existing caller is unchanged — this is
+the same move `formatRate` and `saleAmount` already made, for the same reason.
+
+**No duplicate-position check was added to the Server Action**, deliberately, and
+the code says why: two nozzles may share a unit number and label perfectly
+legitimately as long as they were not on the forecourt at the same time — the
+diesel pump replaced on 31 Aug and the one fitted on 1 Sep are both "Unit 2 ·
+Nozzle A" and both correct. Deciding that needs each nozzle's service window,
+which the action does not have. A cheaper check there would have been a check
+that was *wrong*, and it would have refused the one arrangement this whole
+feature exists to record.
+
+**Verified** against a local Postgres with all 58 migrations applied, seeded with
+the pump's real layout and its real 31 August closings (Unit 1 diesel at
+1,992,508.41 / 1,919,421.09; Unit 2 petrol at 48,760.78 / 24,835.72). The whole
+sequence was run: swap the two units in one save, then replace the diesel one.
+31 August still reads exactly as before; 1 September shows the petrol pump
+carrying on from 48,760.78 under its new number and the new diesel pump opening
+at 0. Every guard rail was made to fire — a live pump sent to a position a
+retired one still holds for August, a blanked label, a zero unit number, and a
+retired nozzle's tank. Renumbering a *retired* pair to Unit 4 and back was
+confirmed to work, since that is what frees a position.
+
+**Screenshotted** at 1440, 1024 and 400px, and the form's own serialisation was
+dumped through `FormData` to confirm the index alignment survives the two
+opted-out fields.

@@ -2628,3 +2628,70 @@ therefore unavailable as the thing that tells them apart.
   and correct on Readings exactly as before; what changes is which pump is
   offered on which date. The Settings history table says so once, in a line
   under it, rather than as a warning repeated on every row.
+
+## A field some rows opt out of cannot ride the repeated-name-and-index trick
+
+`NozzleSettingsButton` posts one row per nozzle, and the established pattern
+here is that every row repeats the same field names — `nozzle_id`,
+`unit_number`, `nozzle_label` — because a form serialises repeated names in
+markup order, so the Server Action can line the lists up by index. It is neat
+and it needs no ids in the markup.
+
+It breaks the moment a row *omits* one of those fields. A replaced nozzle's
+tank and starting meter are read-only (they are arithmetic behind readings
+already in the books), so those two rows post nothing for them — the
+`tank_id` list arrives shorter than the `nozzle_id` list, and **every row after
+the first read-only one silently lines up against the wrong nozzle.** No error,
+no missing value: a tank written onto the next pump down.
+
+The rule:
+
+- **Fields that EVERY row has** may use the repeated name and be paired by
+  index.
+- **Fields that only SOME rows have** carry the row's id in the name —
+  `tank_id__<uuid>` — and are looked up per row with `formData.get()`.
+
+Do not "fix" the mismatch by padding the short list with placeholders. That
+restores the index but leaves the action unable to tell "not editable on this
+row" from "empty on this row", which are different instructions.
+
+## A hidden input must still live in a cell
+
+Related, and found the same afternoon. A `<input type="hidden">` placed as a
+direct child of `<tr>` renders fine and screenshots fine — and the browser
+**hoists it out of the table** while parsing, because it is not valid there.
+The field survives, in a different place in the document, which reorders
+exactly the sequence the index pairing above depends on.
+
+Nothing in the rendered page shows this. It appears as `In HTML, <input> cannot
+be a child of <tr>` in the dev-server log, next to a hydration warning. So:
+**read the dev log as well as the screenshot** when a change touches table
+markup — this file's standing advice is that a DOM measurement is not a
+screenshot, and this is its opposite number.
+
+## Renaming a thing: say what it applies to, before it is saved
+
+Unit numbers and nozzle labels became editable, and "rename" turns out to be
+two different operations that look identical in a form:
+
+- the thing was always this, and the app had it wrong — the rename should apply
+  to the whole history;
+- the thing has *become* this, on a date — the history should keep the old name.
+
+A form that offers only the first while the user means the second will silently
+relabel months of records. So the dialog states which one it is doing, in a
+bordered note above the fields, and names the control that does the other one:
+*"Renaming applies to the whole history … For a pump that was actually swapped
+out, use Replace this unit instead."*
+
+Two rules fall out of it:
+
+- **Point at the alternative by name.** A warning that only says what will
+  happen leaves someone who wanted the other behaviour with nowhere to go, and
+  they will use this control anyway.
+- **Show enough of the frozen row to identify it.** The replaced pumps appear
+  in the list read-only so they can be renumbered — and their tank and meter are
+  displayed rather than hidden, because after a replacement two rows both read
+  "Unit 2 · Nozzle A" and "Diesel Tank, 1,985,669.36 L" is the only thing that
+  says which is which. Each row also carries its own date — *replaced 31 Aug
+  2026*, *fitted 01 Sep 2026*.

@@ -97,7 +97,6 @@ export default async function SettingsPage({ searchParams }) {
   const retiredUnits = allUnits
     .filter((unit) => unit.retiredOn)
     .sort((a, b) => (a.retiredOn < b.retiredOn ? 1 : -1));
-  const liveNozzles = nozzles.filter((nozzle) => !nozzle.retired_on);
 
   const today = todayISO();
 
@@ -110,10 +109,12 @@ export default async function SettingsPage({ searchParams }) {
         {/* Set up once and rarely touched again, same reasoning as adding a
             bank account: it does not deserve a form standing open on the page
             for the rest of this screen's life. */}
-        {/* Live nozzles only. A replaced one's tank decides which tank months
-            of past sales came out of, so migration 056 refuses to rewire it -
-            offering the row here would be offering a control that cannot work. */}
-        <NozzleSettingsButton nozzles={liveNozzles} tanks={tanks} />
+        {/* Every nozzle, replaced ones included. A replaced pump still holds
+            its old position for the days it worked, so nothing can be moved
+            into that position while it is not on the list to be moved out of
+            it - see 058. Its tank and meter are still frozen; the dialog
+            renders those two read-only rather than leaving the row out. */}
+        <NozzleSettingsButton nozzles={nozzles} tanks={tanks} />
       </PageHeader>
 
       {/* ---- pricing ---- */}

@@ -186,9 +186,19 @@ amount of application code can get around them.
   refused — naming the day the pump was fitted or carted away. Litres invented
   for a pump that was not there look like any other day's on every screen that
   adds them up.
+- **Two pumps cannot stand at the same position on the same day.** A unit
+  number and nozzle label together are a position on the forecourt, and the
+  rule holds across the whole history, not just today — a replaced pump still
+  occupies its old position for the days it worked. Enforced as an exclusion
+  constraint over each nozzle's service window, and *deferred*, so a straight
+  swap (petrol becomes Unit 1, diesel becomes Unit 2) saves as one statement
+  instead of being refused halfway through.
 - **A replaced nozzle cannot be rewired.** Its `tank_id` decides which tank
   every one of its past sales was drawn out of, so changing it would move
-  months of litres between tanks and make both tanks' gain/loss fiction.
+  months of litres between tanks and make both tanks' gain/loss fiction. Its
+  unit number and label *can* still be changed — those are captions on rows
+  that are already correct, and freezing them would make it impossible to move
+  another pump into the position it used to hold.
 
 - **The customer ledger is append-only.** No update, no delete, for anybody,
   including the owner and including the service-role key. A mistake is corrected
@@ -718,6 +728,7 @@ Applied in order:
 | `055_month_to_date_fuel_totals.sql` | Replaces 054's `lifetime_by_fuel_type` with `month_by_fuel_type` — the wrong window had been built; what was wanted was the running month, not the pump's whole history. Scoped to the calendar month `p_date` falls in, from the 1st through `p_date` itself, matching how every other window on this page ends on the day shown rather than on today |
 | `056_replacing_a_damaged_unit.sql` | **A unit was damaged and swapped for another one.** Nozzles gain a service window (`commissioned_on`, `retired_on`, `replaced_by`); `unique (unit_number, nozzle_label)` becomes a unique index over LIVE nozzles only, so the replacement keeps standing as Unit 1; a trigger refuses any reading dated outside the days its nozzle was actually on the forecourt; `get_reading_sheet()` filters by that window rather than by `is_active`, because the sheet asks about a DATE and `is_active` is a fact about today; `replace_unit()` retires the old nozzles and fits the new ones in one statement; and `set_nozzle_wiring()` now refuses a retired nozzle, whose tank decides which tank months of past sales came out of |
 | `057_replaced_units_in_the_activity_log.sql` | The audit trail's one-line summary for a nozzle carries its service window, so the four lines a replacement writes say *when* — "Unit 1 · Nozzle A · replaced 12 Aug 2026". `trg_write_activity()` reproduced whole, as in 048, since a plpgsql body cannot be patched one branch at a time |
+| `058_rearranging_the_forecourt.sql` | **The unit number and nozzle label become editable.** Rearranging the pumps is a rename, not a hardware event, so it belongs in Edit nozzle wiring — but a rearrangement is almost always a SWAP, which passes through a moment where two nozzles claim one position. `nozzles_live_unit_label_idx` (056) is therefore replaced by a **deferrable exclusion constraint** over the service window: no two nozzles may share a unit number and label over overlapping days, checked once at the end of the statement rather than row by row. Strictly stronger than the index it replaces, which said nothing about the past. `set_nozzle_wiring()` writes the two new fields, forces the deferred check so a clash comes back as a sentence, and still refuses to rewire a replaced nozzle's tank or meter — only its caption |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -747,6 +758,15 @@ the numbers are fast and cannot be altered client-side.
   so on a nozzle that has been trading it is dead data — setting it to 0 changes
   nothing, and the day you then try to enter opening at 0 is refused for running
   the meter backwards.
+
+- **Rearranging the pumps.** **Settings → Edit nozzle wiring** — the unit number
+  and nozzle label are editable there, so the app can be made to match how the
+  forecourt is actually laid out. A rename applies to the **whole history**: the
+  pump shows under its new number on days already entered too. That is right for
+  a rearrangement, where your own mental map has moved with the hardware; it is
+  the wrong tool for a pump that was genuinely swapped out, which is what
+  **Replace this unit** is for. The two are often used together — rename first
+  so the position you want is free, then replace.
 
 - **Nozzle wiring.** Unit 1 runs both nozzles on diesel; units 2 and 3 run both
   on petrol. Migration 004 originally guessed one of each per unit and 013

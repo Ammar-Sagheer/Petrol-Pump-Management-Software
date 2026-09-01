@@ -1584,34 +1584,80 @@ export async function setNozzleWiring(_prevState, formData) {
   }
 
   const ids = formData.getAll('nozzle_id').map((value) => String(value));
+  const units = formData.getAll('unit_number').map((value) => String(value).trim());
+  const labels = formData.getAll('nozzle_label').map((value) => String(value).trim());
   const tankIds = formData.getAll('tank_id').map((value) => String(value));
   const readings = formData.getAll('starting_reading').map((value) => String(value));
 
   if (ids.length === 0) return fail('Nothing to save.');
-  if (ids.length !== tankIds.length || ids.length !== readings.length) {
+  if (ids.length !== units.length || ids.length !== labels.length) {
     return fail('That form arrived incomplete. Reopen it and try again.');
   }
 
+  /*
+   * A REPLACED NOZZLE SENDS ONLY ITS CAPTION. Its tank and its starting meter
+   * are frozen (056: that tank decides which tank months of past sales came
+   * out of), so the dialog renders those two read-only and posts nothing for
+   * them - which means `tank_id` and `starting_reading` arrive SHORTER than
+   * the other two lists and cannot be lined up by the same index.
+   *
+   * Rather than pad them with placeholders and hope the order survives, the
+   * two frozen fields carry the nozzle id in their name (`tank_id__<id>`), so
+   * each is looked up by the row it belongs to instead of by position. The
+   * repeated-name-plus-index trick is still right for the fields EVERY row
+   * has; it stops being right the moment some rows opt out.
+   */
   const rows = [];
   for (let index = 0; index < ids.length; index += 1) {
-    const startingReading = Number(readings[index]);
+    const id = ids[index];
+    const unitNumber = Number(units[index]);
 
-    if (!ids[index] || !tankIds[index]) {
-      return fail('Every nozzle needs a tank. Check the list and try again.');
+    if (!id) return fail('That form arrived incomplete. Reopen it and try again.');
+    if (units[index] === '' || !Number.isInteger(unitNumber) || unitNumber <= 0) {
+      return fail('Every nozzle needs a unit number, and it has to be a whole number above zero.');
     }
-    if (readings[index].trim() === '' || !Number.isFinite(startingReading)) {
-      return fail('Every nozzle needs a starting meter reading, even if it is 0.');
-    }
-    if (startingReading < 0) {
-      return fail('A meter reading cannot be negative.');
+    if (labels[index] === '') {
+      return fail('Every nozzle needs a label — it is what is written on the machine.');
     }
 
-    rows.push({
-      nozzle_id: ids[index],
-      tank_id: tankIds[index],
-      starting_reading: roundMoney(startingReading),
-    });
+    const row = { nozzle_id: id, unit_number: unitNumber, nozzle_label: labels[index] };
+
+    // Present only for a nozzle still in service; omitted keys mean "leave
+    // this alone" to set_nozzle_wiring().
+    const tankId = formData.get(`tank_id__${id}`);
+    const reading = formData.get(`starting_reading__${id}`);
+
+    if (typeof tankId === 'string' || typeof reading === 'string') {
+      const startingReading = Number(String(reading ?? '').trim());
+
+      if (typeof tankId !== 'string' || tankId === '') {
+        return fail('Every nozzle needs a tank. Check the list and try again.');
+      }
+      if (String(reading ?? '').trim() === '' || !Number.isFinite(startingReading)) {
+        return fail('Every nozzle needs a starting meter reading, even if it is 0.');
+      }
+      if (startingReading < 0) {
+        return fail('A meter reading cannot be negative.');
+      }
+
+      row.tank_id = tankId;
+      row.starting_reading = roundMoney(startingReading);
+    }
+
+    rows.push(row);
   }
+
+  /*
+   * NO DUPLICATE-POSITION CHECK HERE, DELIBERATELY. Two nozzles may share a
+   * unit number and a label perfectly legitimately, as long as they were not on
+   * the forecourt at the same time - the diesel pump replaced on 31 Aug and the
+   * one fitted on 1 Sep are both "Unit 2 · Nozzle A" and both correct. Deciding
+   * that needs each nozzle's service window, which this action does not have
+   * and should not start carrying: the database holds the windows and
+   * `nozzles_one_pump_per_position` (058) is an exclusion constraint written
+   * over them. A cheaper check here would be a check that is WRONG, and it
+   * would refuse the one arrangement this whole feature exists to record.
+   */
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('set_nozzle_wiring', { p_rows: rows });
