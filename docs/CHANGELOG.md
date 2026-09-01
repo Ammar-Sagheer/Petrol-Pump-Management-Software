@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **055**.
+logins, one pump. Migrations run to **059**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -60,7 +60,7 @@ single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
 early whether a single-user offline build needs it at all.
 
-**Six things that are load-bearing and easy to break:**
+**Seven things that are load-bearing and easy to break:**
 
 1. **The database enforces the money rules, not the app.** Balanced days,
    append-only ledger, no overlapping meter readings, stock recalculated from
@@ -90,7 +90,22 @@ early whether a single-user offline build needs it at all.
    anywhere reintroduces a bug that showed a Rs 1.46m loss in a profitable
    month, and it reads perfectly reasonable while doing it. Anything that
    derives a per-day or per-week profit has to spread the cost of goods sold,
-   not the purchases.
+   not the purchases. And since 059 there are TWO stock questions:
+   `calculate_expected_stock()` is what the books say (a dip closing that day is
+   excluded, so a gain/loss means something) and `tank_stock_on_hand()` is what
+   the tank actually holds (that dip IS the answer). Valuation and profit ask the
+   second. Asking the first charged every month-end's stock loss to the month
+   after it.
+7. **A nozzle has a service window, and the reading sheet asks about a DATE.**
+   Since 056 a unit can be replaced in place: `is_active` says whether a nozzle
+   is on the forecourt *today*, `commissioned_on`/`retired_on` say which days it
+   was there at all, and `get_reading_sheet()` must filter on the window — using
+   `is_active` there would hide a replaced unit's own past days from correction.
+   A unit number outlives the hardware wearing it, so anything grouping nozzles
+   into units groups on unit number **and** `commissioned_on`. Since 058 the
+   number is also EDITABLE and a position is guarded across all of history by a
+   deferrable exclusion constraint — never re-implement that check in JavaScript,
+   which does not have the windows and will refuse legitimate arrangements.
 
 ## Foundation
 
@@ -5307,3 +5322,323 @@ Verified with a devcheck route rendering the real `EditCustomerButton` and
 change, for the same reason the Owes column does - unrelated), and clicking
 the pencil on a row opens the dialog pre-filled with THAT row's name and
 vehicle, not the first row's.
+
+## A unit was damaged and replaced, and its meters start again at zero
+
+The pump had been running normally for months when one of the dispensing units
+was damaged and had to be taken out. A new diesel unit was fitted in its place,
+with two nozzles whose meters start at 0.
+
+**The instinct is to reset the meter, and the instinct is wrong twice over.**
+Both ways of doing it fail, and the second fails loudly at the worst moment:
+
+- Editing `starting_reading` under **Edit nozzle wiring** does nothing at all.
+  That figure is only consulted until a nozzle has its FIRST saved reading
+  (migration 012, and the comment there says so); on a nozzle that has been
+  trading for months it is dead data. The owner would set it, see no change on
+  any screen, and reasonably conclude the app was broken.
+- Entering the next day opening at 0 is refused, correctly, by
+  `nozzle_readings_closing_gte_opening` and by the chain rules in 026/027 — a
+  meter does not run backwards. And if it were somehow allowed, `litres_sold`
+  for that day would be about **minus two million litres** of diesel, which the
+  tank trigger would then apply.
+
+**A new unit is new nozzles.** The thing standing on the forecourt is not the
+same object any more and neither are its meters, so the honest record is two new
+`nozzles` rows starting at 0, and the old rows kept untouched — every reading,
+every rupee of cash and credit and every litre drawn out of the diesel tank for
+the whole life of the old unit hangs off them by foreign key. Nothing about the
+past changes at all.
+
+**Migration 056** is what that needs:
+
+- **A service window on each nozzle** — `commissioned_on` and `retired_on`, both
+  inclusive, plus `replaced_by` for the lineage. `is_active` cannot do this job
+  and it is worth being clear about why: `is_active` is a fact about **today**,
+  and the reading sheet asks about a **date**. Deactivating the old nozzles
+  would hide them from 3 August as much as from today, so last month's readings
+  could no longer be opened or corrected. A check constraint ties the two
+  together (`retired_on is null or is_active = false`) so they cannot contradict
+  each other.
+- **The unit number freed up.** `unique (unit_number, nozzle_label)` from 001 was
+  right while a nozzle was forever; it is wrong the moment a unit is replaced in
+  place, because the new Unit 1 · Nozzle A collides with the old one. It is now
+  a unique index over LIVE nozzles only. The owner is not going to start calling
+  the pump Unit 4 because a database said so.
+- **A trigger, not a courtesy.** A reading dated outside its nozzle's window is
+  refused, naming the day the pump was fitted or carted away. Litres invented
+  for a pump that was not standing there look like any other day's on every
+  screen that adds them up.
+- **`replace_unit()` does the whole swap in one statement**, for the same reason
+  `set_nozzle_wiring()` exists (022): half a swap is worse than none, because
+  nothing on any screen would say which half took. It refuses to retire a unit
+  on a day it already has readings past — those would be stranded outside their
+  own window, still in the books and still in the tank's stock, but on days the
+  sheet would no longer open.
+- **`set_nozzle_wiring()` now refuses a retired nozzle.** Its `tank_id` decides
+  which tank months of past sales were drawn out of; pointing a retired diesel
+  nozzle at the petrol tank would silently move those litres between tanks and
+  make both tanks' gain/loss fiction. Safe while every nozzle was live, not now.
+
+**Migration 057** puts the service window into the audit trail's one-line
+summary, so the four lines a replacement writes say *when* — "Unit 1 · Nozzle A ·
+replaced 12 Aug 2026" rather than four lines reading "Unit 1 · Nozzle A". As in
+048, the whole of `trg_write_activity()` is reproduced to change one branch of
+its `case`; a plpgsql body cannot be patched in place.
+
+**Stock needed no correcting entry, and it is worth writing down why** so nobody
+goes looking for one. Tank stock is driven by `litres_sold`, which is a
+difference between two figures on the SAME reading — never between two nozzles
+or two meters. A meter starting again from zero on a new nozzle draws the diesel
+tank down exactly as the old one did. There is no gain/loss to explain.
+
+**The changeover day may belong to both units.** A dispenser is not always
+swapped overnight: the damaged one can sell in the morning and its replacement
+in the afternoon, so both have a real reading dated that day. `retired_on` and
+`commissioned_on` are inclusive and may be the same date, and on that one day
+the reading sheet holds two Unit 1s. Left alone that is four cards captioned
+"Unit 1" with nothing to tell them apart, on the evening when getting them the
+wrong way round would put the old pump's last figures onto the new pump's
+meters — so the Readings page now groups by unit number AND commissioning date
+(not by unit number alone, which would draw them as one four-nozzle pump that
+never existed) and each card carries *being replaced today* or *the new unit*.
+Words, not colour: both are the diesel pump, so both are correctly the same
+colour and colour has nothing left to say.
+
+**Settings grew a Dispensing units section.** The nozzle wiring dialog answers
+"how is the place plumbed", a standing fact; this answers "what is standing out
+there now, and what used to be", which is a history. A card per live unit with
+its nozzles, tank and meter starts and a **Replace this unit** button, then a
+read-only table of replaced units with the day each stopped.
+
+**The dialog's summary panel is the point of it.** This is done once every few
+years by someone who will not do it again for a long time, and the two dates are
+the part that is easy to get subtly wrong. So before anything is written the
+form says back, in plain words, which days belong to which pump — including
+whether the two overlap on the changeover day or leave the unit out of service
+for a stretch in between, worked out and stated rather than left to be inferred
+from two date boxes.
+
+**Verified** against a local Postgres with all 57 migrations applied: three days
+of readings on Unit 1, then a replacement, then the reading sheet checked on the
+day before (old unit only, still editable), the changeover day (both) and the
+day after (new unit only, opening at 0). Every guard rail was made to fire — a
+reading dated past retirement, one dated before commissioning, a replacement
+with readings already past the chosen last day, rewiring a retired nozzle, and
+two live nozzles claiming the same unit and label. The backup round trip was run
+end to end: export, restore into a freshly migrated database, nozzles identical
+including the new columns — and a *pre-056* file (the three keys absent) restores
+correctly too, since `jsonb_populate_recordset` leaves a missing key null and
+null is exactly "here from the beginning and still is".
+
+**Screenshotted** at 1440, 1024 and 400px with a disposable devcheck route. One
+real regression came out of it and was fixed: at phone width "meter started at
+1,487,293.55 L" broke after the number and left `L` alone on the next line —
+the fourth time this file has recorded that, and `whitespace-nowrap` on the
+figure is the fix every time. See "A figure and its unit must not be able to
+break apart" in `docs/UI_CONVENTIONS.md`.
+
+## The pumps were also moved around, which is a rename and not a replacement
+
+The replacement in 056/057 turned out to be half the story. What actually
+happened on the forecourt on 1 September 2026 was:
+
+- the diesel unit at position 1 was damaged and taken out;
+- the petrol unit that stood at position 2 was moved into position 1;
+- the new diesel unit was installed at position 2.
+
+Only the first of those is a hardware event. The petrol dispenser is the same
+object with the same meters, still counting up from 48,760.78 — it is simply
+called something else now. That is a **label**, and until this change the labels
+were the one part of the forecourt the owner could not touch without a
+migration.
+
+**So `unit_number` and `nozzle_label` became editable in Edit nozzle wiring**,
+which is where they belong: they are how he refers to a pump when he is standing
+in front of it, and if the app disagrees with the sticker on the machine, the app
+is wrong.
+
+**A rename applies to the whole history**, and the dialog says so in as many
+words. A pump renumbered here shows under its new number on days already
+entered. That is right for a rearrangement — the owner's own map has moved with
+the hardware and he will never again think of that pump as Unit 2 — and wrong
+for a pump genuinely swapped out, which is what Replace this unit is for. The
+two are used together: rename first so the position you want is free, then
+replace.
+
+**Migration 058 is mostly about one constraint**, and it is the interesting
+part:
+
+- **A straight swap has to be legal.** Renumbering 2 → 1 and 1 → 2 is the normal
+  case, and it passes through a moment where two nozzles both claim position 1.
+  A plain unique index checks per row as the UPDATE walks the table, so it
+  refuses the swap halfway through and *no ordering of the rows avoids it*. The
+  constraint therefore has to be **deferrable** — checked once, at the end, when
+  the forecourt is whole again. Same reasoning as 044's treasury guard.
+- **A position is only occupied for the days it is occupied.** 056's
+  `nozzles_live_unit_label_idx` said "one LIVE nozzle per unit and label", which
+  was enough when the only event was a replacement. It is not enough now: the
+  retired diesel pump still holds position 1 for every day up to 31 August, and
+  the petrol pump moving in must not claim those same days as well. Two pumps at
+  one position on one date is exactly the state that makes a day's sheet
+  unreadable.
+
+  So the rule became an **exclusion constraint** over the service window 056
+  already gave every nozzle — `exclude using gist (unit_number with =,
+  nozzle_label with =, daterange(commissioned_on, retired_on, '[]') with &&)`,
+  which needs `btree_gist` for the two equality columns. It is strictly stronger
+  than the index it replaces, and it is what makes the two halves of the
+  rearrangement safe to type **in either order**: retiring the diesel pump on 31
+  Aug and giving the petrol pump position 1 from 1 Sep do not overlap.
+
+`set_nozzle_wiring()` forces the deferred check with `set constraints …
+immediate` inside an exception block before it returns, so a clash comes back as
+a sentence about two pumps at one position rather than as a raw 23P01 at COMMIT,
+from underneath the Server Action, carrying the row numbers of a GiST index.
+
+**Replaced nozzles are listed in the dialog now**, with only their caption
+editable. Leaving them out would have made the swap impossible — you cannot move
+a pump into position 1 while something else still occupies it and is not on the
+list to be moved out of it. Their tank and starting meter stay read-only for
+056's reason, and are *shown* rather than hidden: the owner is renumbering that
+row and "Diesel Tank, 1,985,669.36 L" is how he knows which pump it is.
+
+**Two bugs found by rendering it, both real:**
+
+- **A hidden `<input>` was a direct child of `<tr>`.** Invalid HTML, and the
+  browser does not merely warn — it *hoists the element out of the table* on
+  parse, which silently reorders the very sequence the index alignment depends
+  on. Caught as a hydration error in the dev log, which is worth saying because
+  the screenshot looked perfect. The field went back inside the first `<td>`.
+- **A field that some rows opt out of cannot use the repeated-name-and-index
+  trick.** `tank_id` and `starting_reading` are omitted for replaced rows, so
+  their lists arrive shorter than `nozzle_id`'s and every row after the first
+  replaced one lines up against the wrong nozzle. They now carry the id in the
+  field name (`tank_id__<uuid>`) and are looked up per row. The repeated-name
+  scheme is still right for the three fields every row has.
+
+**`formatLitres` and `formatNumber` moved from `helpers.js` to
+`format-helpers.js`.** The dialog needed to show a replaced pump's starting
+meter, and it is a client component; `helpers.js` reads request cookies for the
+role checks, so importing it into the browser bundle fails the build outright.
+`helpers.js` re-exports both, so every existing caller is unchanged — this is
+the same move `formatRate` and `saleAmount` already made, for the same reason.
+
+**No duplicate-position check was added to the Server Action**, deliberately, and
+the code says why: two nozzles may share a unit number and label perfectly
+legitimately as long as they were not on the forecourt at the same time — the
+diesel pump replaced on 31 Aug and the one fitted on 1 Sep are both "Unit 2 ·
+Nozzle A" and both correct. Deciding that needs each nozzle's service window,
+which the action does not have. A cheaper check there would have been a check
+that was *wrong*, and it would have refused the one arrangement this whole
+feature exists to record.
+
+**Verified** against a local Postgres with all 58 migrations applied, seeded with
+the pump's real layout and its real 31 August closings (Unit 1 diesel at
+1,992,508.41 / 1,919,421.09; Unit 2 petrol at 48,760.78 / 24,835.72). The whole
+sequence was run: swap the two units in one save, then replace the diesel one.
+31 August still reads exactly as before; 1 September shows the petrol pump
+carrying on from 48,760.78 under its new number and the new diesel pump opening
+at 0. Every guard rail was made to fire — a live pump sent to a position a
+retired one still holds for August, a blanked label, a zero unit number, and a
+retired nozzle's tank. Renumbering a *retired* pair to Unit 4 and back was
+confirmed to work, since that is what frees a position.
+
+**Screenshotted** at 1440, 1024 and 400px, and the form's own serialisation was
+dumped through `FormData` to confirm the index alignment survives the two
+opted-out fields.
+
+## Profit was charging each month-end's stock loss to the following month
+
+Found on 1 September 2026, by the owner, from the outside: September had
+nothing in it at all — no readings, no deliveries, no dips, no expenses — and
+the Reports page showed a **loss of Rs 9,585**. Its own working, printed under
+the tile, gave the shape of it away:
+
+> Rs 614,973 in the tanks at the start, plus Rs 0 bought, less Rs 605,389 still
+> there at the end — Rs 9,585
+
+Nothing had moved, so those cannot be two different stock levels. They are the
+**two sides of the 31 August dip**:
+
+| | books said | dip measured | |
+|---|---|---|---|
+| Diesel | 981.85 L | 971.00 L | −10.85 L |
+| Petrol | 759.67 L | 743.00 L | −16.67 L |
+
+27.52 litres really did go missing and the 31 August dip really did find them.
+Rs 9,585 is the right amount of money. It was in the wrong month.
+
+**Two different questions were being answered by one function.**
+
+`calculate_expected_stock(tank, d)` answers *"what do the books say should be in
+this tank at the close of d"*. It takes the last dip closing a day **strictly
+before** `d` and rolls purchases and sales forward — and that strictness is
+deliberate and correct where it lives (039): a dip closing `d` is the thing that
+figure is about to be **compared with**, so letting it be its own baseline would
+make expected equal actual and every gain/loss nought.
+
+`stock_value_at(d)` was reusing it, through `tank_stock_value()`, to answer a
+different question: *"what is the stock in this tank worth at the close of d"*.
+That wants the best available knowledge of what is physically in the tank — and
+when somebody dipped it that morning, **the dip is the best available
+knowledge**. Inheriting the exclusion made the valuation deliberately ignore its
+own most accurate measurement.
+
+The result is a one-day slip at every month boundary:
+
+- August closes on the **book** figure — the 31 Aug dip is excluded, being 31 Aug
+- September opens on that same figure, so the join looks continuous and nothing
+  appears wrong
+- September closes on the **measured** figure, because by 30 Sep that dip is
+  safely in the past
+
+and the shortfall falls through the crack between the two. This pump dips every
+day, so **every** month-end had it. In a trading month it is buried inside a
+six-figure cost of goods and roughly cancels against the month before, which is
+why it survived since 049. In a month with no trading it is the entire report.
+
+It had also been quietly contradicting the Stock page, which has shown 971 L and
+743 L since 31 August: `recalc_tank_stock` asks about *today*, no dip closes
+today, so nothing was excluded and it got the measured answer. The books
+disagreed with themselves depending on which screen asked.
+
+**The fix is a second function for the second question**, not a flag on the
+first. `tank_stock_on_hand(tank, d)` is `calculate_expected_stock` with
+`books_date <= p_date` instead of `<`; when a dip closes the day, that dip is the
+answer and the roll-forward adds nothing. `calculate_expected_stock` is
+untouched, so the Stock Checks page, the gain/loss figures, the daily summary,
+the stock register and `recalc_tank_stock` all keep asking the book question and
+all keep getting exactly the answers they got before.
+
+**The closing-litres table had to move with it.** The Reports page prints the
+working in a sentence (from `stock_value_at`) and then a per-tank closing-litres
+table underneath (from `calculate_expected_stock`). Fixing only the sentence
+would have left the page showing 981.85 L in a tank it had just valued at 971 L
+— so `get_monthly_report` and `get_month_export` had their `closing_litres`
+expression patched to `tank_stock_on_hand` as well. Patched rather than
+reproduced, using the technique 049 established on these same two functions and
+for the same reason: thousands of characters of report nobody re-reads, and
+hand-copying to change one expression is a chance to silently drop a line. It
+raises if the expression has moved, and re-running the migration proves that —
+it refuses the second time.
+
+**What actually changed, stated precisely, because it is a reported profit:**
+
+- **August 2026 profit drops by Rs 9,585** — the loss is charged to the month the
+  fuel went missing. The 31 July dip came out exactly level (0.00 on both tanks)
+  so August's opening figure does not move at all, and this is the whole of it.
+- **September 2026 profit becomes Rs 0**, which is what an empty month says.
+- Every earlier month shifts by the difference between its own month-end dip and
+  the one before it. That is the correction, not a side effect.
+- **No stored row changes.** Every one of these figures is derived on read.
+
+**Verified twice.** First against a local Postgres seeded to reproduce it — 1,000
+L bought in August, a dip finding 880, August charged Rs 0 and September charged
+Rs 30,000 before the fix; Rs 30,000 and Rs 0 after, with
+`calculate_expected_stock` still returning 1,000.00 and the dip's own gain/loss
+still −120.00. Then on the live project after applying: September's cost of stock
+sold is 0.00, stock value at 31 Aug and 30 Sep are both Rs 605,388.60, the 31 Aug
+dips still flag their −27.52 L, lifetime gain/loss is unchanged at 2,011.50, all
+186 readings are untouched, and the Stock page's 971/743 now agrees with the
+valuation instead of contradicting it.

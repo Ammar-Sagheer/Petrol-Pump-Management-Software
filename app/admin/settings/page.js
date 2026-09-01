@@ -3,7 +3,9 @@ import {
   ROLES,
   formatDate,
   formatRate,
+  formatLitres,
   fullResetAllowed,
+  todayISO,
 } from '@/app/_lib/helpers';
 import {
   getTanks,
@@ -18,6 +20,7 @@ import Icon from '@/app/_components/ui/Icon';
 import FuelPriceForm from '@/app/_components/admin/FuelPriceForm';
 import TankForm from '@/app/_components/admin/TankForm';
 import NozzleSettingsButton from '@/app/_components/admin/NozzleSettingsButton';
+import ReplaceUnitButton from '@/app/_components/admin/ReplaceUnitButton';
 import FullResetPanel from '@/app/_components/admin/FullResetPanel';
 import BackupPanel from '@/app/_components/admin/BackupPanel';
 import FuelPriceTable from '@/app/_components/admin/FuelPriceTable';
@@ -62,6 +65,41 @@ export default async function SettingsPage({ searchParams }) {
     }),
   );
 
+  /*
+   * THE UNIT, NOT THE NOZZLE, IS WHAT THE OWNER REPLACES. A dispenser is one
+   * object standing on the forecourt with two nozzles bolted to it, and it is
+   * swapped as one object - so this page groups by unit the same way the
+   * Readings page does.
+   *
+   * The group key is unit number AND commissioning date, not unit number
+   * alone. Since migration 056 a unit number outlives the hardware wearing it:
+   * a replaced Unit 1 and the Unit 1 that took its place share the number, and
+   * grouping on that alone would draw them as one four-nozzle pump that never
+   * existed.
+   */
+  const unitsByKey = new Map();
+  for (const nozzle of nozzles) {
+    const key = `${nozzle.unit_number}|${nozzle.commissioned_on ?? 'original'}`;
+    if (!unitsByKey.has(key)) {
+      unitsByKey.set(key, {
+        key,
+        unitNumber: nozzle.unit_number,
+        commissionedOn: nozzle.commissioned_on,
+        retiredOn: nozzle.retired_on,
+        nozzles: [],
+      });
+    }
+    unitsByKey.get(key).nozzles.push(nozzle);
+  }
+
+  const allUnits = [...unitsByKey.values()];
+  const liveUnits = allUnits.filter((unit) => !unit.retiredOn);
+  const retiredUnits = allUnits
+    .filter((unit) => unit.retiredOn)
+    .sort((a, b) => (a.retiredOn < b.retiredOn ? 1 : -1));
+
+  const today = todayISO();
+
   return (
     <>
       <PageHeader
@@ -71,6 +109,11 @@ export default async function SettingsPage({ searchParams }) {
         {/* Set up once and rarely touched again, same reasoning as adding a
             bank account: it does not deserve a form standing open on the page
             for the rest of this screen's life. */}
+        {/* Every nozzle, replaced ones included. A replaced pump still holds
+            its old position for the days it worked, so nothing can be moved
+            into that position while it is not on the list to be moved out of
+            it - see 058. Its tank and meter are still frozen; the dialog
+            renders those two read-only rather than leaving the row out. */}
         <NozzleSettingsButton nozzles={nozzles} tanks={tanks} />
       </PageHeader>
 
@@ -204,6 +247,119 @@ export default async function SettingsPage({ searchParams }) {
           <TankForm key={tank.id} tank={tank} lastDip={lastDips[index]} />
         ))}
       </div>
+
+      {/* ---- dispensing units ---- */}
+      {/*
+       * WHY THIS SECTION EXISTS AT ALL, when the nozzle wiring dialog in the
+       * header already lists every nozzle. Because the dialog answers "how is
+       * the place plumbed", which is a standing fact, and this answers "what is
+       * standing out there now, and what used to be" - which is a history. The
+       * day a unit was damaged and swapped is a real event in the books, and
+       * until now there was nowhere in the app it could be recorded or read.
+       */}
+      <h2 className="section-heading">Dispensing units</h2>
+
+      <div className="mb-4 grid gap-4 @container sm:grid-cols-2">
+        {liveUnits.map((unit) => {
+          // A unit is normally plumbed to one tank. Where it is not, neither
+          // fuel's colour would be honest about the pair - the same fallback
+          // the Readings page unit header makes, for the same reason.
+          const fuels = new Set(unit.nozzles.map((nozzle) => nozzle.tank?.fuel_type));
+          const color = fuels.size === 1 ? fuelColor([...fuels][0]) : null;
+
+          return (
+            <div key={unit.key} className="card overflow-hidden">
+              <div
+                className={`fuel-band flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 ${
+                  color ? color.solid : 'bg-ink-100 text-ink-900'
+                }`}
+              >
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/25 ring-1 ring-inset ring-black/10"
+                  aria-hidden="true"
+                >
+                  <Icon name="fuelPump" className="h-4 w-4" />
+                </span>
+                <h3 className="text-base font-bold uppercase tracking-wide">
+                  Unit {unit.unitNumber}
+                </h3>
+                <span className="badge ml-auto bg-white/25 ring-1 ring-inset ring-black/10">
+                  {unit.nozzles.length} {unit.nozzles.length === 1 ? 'nozzle' : 'nozzles'}
+                </span>
+              </div>
+
+              <div className="space-y-1 px-4 py-3">
+                {unit.nozzles.map((nozzle) => (
+                  <p key={nozzle.id} className="text-sm text-ink-700">
+                    <span className="font-semibold text-ink-900">Nozzle {nozzle.nozzle_label}</span>{' '}
+                    — {nozzle.tank?.name ?? 'no tank'}, meter started at{' '}
+                    {/* nowrap, because at a phone width this line wraps and the
+                        default break put "1,487,293.55" on one line and its "L"
+                        on the next - a figure split from its unit, which is the
+                        exact regression docs/CHANGELOG.md keeps catching. The
+                        sentence may wrap; the number may not. */}
+                    <span className="tabular whitespace-nowrap">
+                      {formatLitres(nozzle.starting_reading)}
+                    </span>
+                  </p>
+                ))}
+
+                <p className="pt-1 text-xs text-ink-500">
+                  {unit.commissionedOn
+                    ? `Fitted ${formatDate(unit.commissionedOn)}`
+                    : 'Here since the pump went onto the system'}
+                </p>
+
+                <div className="pt-2">
+                  <ReplaceUnitButton unit={unit} tanks={tanks} today={today} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {retiredUnits.length > 0 ? (
+        <div className="mb-8">
+          <p className="mb-2 text-sm text-ink-600">Replaced units</p>
+          <div className="card table-scroll">
+            <table className="w-full min-w-[30rem]">
+              <thead className="border-b border-ink-200 bg-ink-50">
+                <tr>
+                  <th className="th">Unit</th>
+                  <th className="th">Nozzles</th>
+                  <th className="th">Drew from</th>
+                  <th className="th">Last day</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {retiredUnits.map((unit) => (
+                  <tr key={unit.key}>
+                    <td className="td font-medium">Unit {unit.unitNumber}</td>
+                    <td className="td">
+                      {unit.nozzles.map((nozzle) => nozzle.nozzle_label).join(', ')}
+                    </td>
+                    <td className="td">
+                      {[...new Set(unit.nozzles.map((nozzle) => nozzle.tank?.name ?? '—'))].join(
+                        ', ',
+                      )}
+                    </td>
+                    <td className="td tabular">{formatDate(unit.retiredOn)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Said once, here, rather than as a warning on every row: the reason
+              these rows are read-only is not obvious, and it is the whole
+              reason they are still in the database at all. */}
+          <p className="mt-2 text-xs text-ink-500">
+            Kept, and not editable. Every reading these nozzles ever took is still in the books and
+            still drawing on the tank they were plumbed to — their days can be opened and corrected
+            on Readings exactly as before.
+          </p>
+        </div>
+      ) : null}
 
       {/* ---- backup ---- */}
       {/* Here rather than on Reports, where it was first put. A backup is not a

@@ -2569,3 +2569,129 @@ missing space between a figure and a word reads as a typo in a money total.
 
 Neither is visible to a build, a type check, or the clipping report — the text
 was not overflowing anything. Both were caught by reading a screenshot at 400px.
+
+## A rare, hard-to-undo action says back what it is about to do
+
+**Settings → Dispensing units → Replace this unit** (`ReplaceUnitButton`) is the
+first control in this app that is used perhaps once every few years, by someone
+who will not have done it before and will not do it again for a long time. It is
+not destructive — nothing is deleted, and migration 056 refuses anything
+genuinely dangerous — but it is hard to undo, and its two date fields are the
+part that is easy to get subtly wrong in a way no error message will catch.
+
+So the dialog carries an **"After saving" panel** that restates the form's own
+inputs as consequences, live, before anything is written:
+
+> Unit 1's 2 nozzles (A, B) can be entered up to and including **10 Aug 2026**,
+> and not after.
+> Unit 1 gets 2 new nozzles, enterable from **14 Aug 2026**.
+> The 3 days in between have no Unit 1 to enter at all, which is right if the
+> pump stood out of service.
+
+Three things make it worth copying rather than a decoration:
+
+- **It states a derived fact the form does not show.** "The 3 days in between"
+  is arithmetic on two date boxes that nobody performs in their head reliably,
+  and it is exactly the mistake worth catching. A panel that only echoes the
+  fields back would not be worth the room.
+- **It is not a confirmation step.** `ConfirmAction`'s "are you sure?" is right
+  for a delete, where the question is only yes-or-no. Here the answer is not yes
+  or no, it is *are these the right two dates* — and a second dialog asking
+  again would add a click without adding an answer.
+- **The impossible case disables the submit and says why**, in the panel, in the
+  same place the consequences would otherwise be. A first day before the last
+  day is refused by the database anyway; saying so before the round trip is what
+  keeps the panel the place to look.
+
+Reach for this whenever an action is rare, its inputs interact, and its effect
+is a *range* or a *boundary* rather than a single value.
+
+## Two generations of one thing on screen at once
+
+The day a dispensing unit is replaced, the reading sheet holds two Unit 1s — the
+one being carted away, which sold that morning, and the one that took its place.
+Both are diesel pumps, so both are correctly the same fuel colour, and colour is
+therefore unavailable as the thing that tells them apart.
+
+- **The distinguishing badge is words, not colour**, sitting beside the heading:
+  *being replaced today* / *the new unit*. Colour already carries fuel here, and
+  giving it a second meaning on one day a decade would break the one meaning it
+  carries every day.
+- **It appears only on the day both are present.** The Readings page counts the
+  generations per unit number and shows the badge only where that count is above
+  one — a permanent "the new unit" caption would still be there in five years,
+  describing nothing.
+- **The group key is the identity, not the label.** Grouping by unit number
+  alone drew the two as a single four-nozzle pump that never existed. Anything
+  grouping nozzles into units keys on unit number **and** `commissioned_on`.
+- **The retired generation stays reachable, not hidden.** Its days still open
+  and correct on Readings exactly as before; what changes is which pump is
+  offered on which date. The Settings history table says so once, in a line
+  under it, rather than as a warning repeated on every row.
+
+## A field some rows opt out of cannot ride the repeated-name-and-index trick
+
+`NozzleSettingsButton` posts one row per nozzle, and the established pattern
+here is that every row repeats the same field names — `nozzle_id`,
+`unit_number`, `nozzle_label` — because a form serialises repeated names in
+markup order, so the Server Action can line the lists up by index. It is neat
+and it needs no ids in the markup.
+
+It breaks the moment a row *omits* one of those fields. A replaced nozzle's
+tank and starting meter are read-only (they are arithmetic behind readings
+already in the books), so those two rows post nothing for them — the
+`tank_id` list arrives shorter than the `nozzle_id` list, and **every row after
+the first read-only one silently lines up against the wrong nozzle.** No error,
+no missing value: a tank written onto the next pump down.
+
+The rule:
+
+- **Fields that EVERY row has** may use the repeated name and be paired by
+  index.
+- **Fields that only SOME rows have** carry the row's id in the name —
+  `tank_id__<uuid>` — and are looked up per row with `formData.get()`.
+
+Do not "fix" the mismatch by padding the short list with placeholders. That
+restores the index but leaves the action unable to tell "not editable on this
+row" from "empty on this row", which are different instructions.
+
+## A hidden input must still live in a cell
+
+Related, and found the same afternoon. A `<input type="hidden">` placed as a
+direct child of `<tr>` renders fine and screenshots fine — and the browser
+**hoists it out of the table** while parsing, because it is not valid there.
+The field survives, in a different place in the document, which reorders
+exactly the sequence the index pairing above depends on.
+
+Nothing in the rendered page shows this. It appears as `In HTML, <input> cannot
+be a child of <tr>` in the dev-server log, next to a hydration warning. So:
+**read the dev log as well as the screenshot** when a change touches table
+markup — this file's standing advice is that a DOM measurement is not a
+screenshot, and this is its opposite number.
+
+## Renaming a thing: say what it applies to, before it is saved
+
+Unit numbers and nozzle labels became editable, and "rename" turns out to be
+two different operations that look identical in a form:
+
+- the thing was always this, and the app had it wrong — the rename should apply
+  to the whole history;
+- the thing has *become* this, on a date — the history should keep the old name.
+
+A form that offers only the first while the user means the second will silently
+relabel months of records. So the dialog states which one it is doing, in a
+bordered note above the fields, and names the control that does the other one:
+*"Renaming applies to the whole history … For a pump that was actually swapped
+out, use Replace this unit instead."*
+
+Two rules fall out of it:
+
+- **Point at the alternative by name.** A warning that only says what will
+  happen leaves someone who wanted the other behaviour with nowhere to go, and
+  they will use this control anyway.
+- **Show enough of the frozen row to identify it.** The replaced pumps appear
+  in the list read-only so they can be renumbered — and their tank and meter are
+  displayed rather than hidden, because after a replacement two rows both read
+  "Unit 2 · Nozzle A" and "Diesel Tank, 1,985,669.36 L" is the only thing that
+  says which is which. Each row also carries its own date — *replaced 31 Aug
+  2026*, *fitted 01 Sep 2026*.

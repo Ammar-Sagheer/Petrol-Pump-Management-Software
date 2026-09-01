@@ -155,11 +155,6 @@ export async function requirePageRole(...allowedRoles) {
 // lakh style (1,40,000), change 'en-US' to 'en-IN' in the two formatters below.
 // ---------------------------------------------------------------------------
 
-const numberFormat = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-
 const moneyFormat = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
@@ -195,18 +190,6 @@ export function formatPKR(value) {
  * up to a rupee, and the running balance would drift from the rows above it.
  */
 
-/** 500 -> "500 L" */
-export function formatLitres(value) {
-  const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return '0 L';
-  return `${numberFormat.format(n)} L`;
-}
-
-export function formatNumber(value) {
-  const n = Number(value ?? 0);
-  return Number.isFinite(n) ? numberFormat.format(n) : '0';
-}
-
 /*
  * Dates live in date-helpers.js so the client forms can import the same
  * implementation - this module cannot go in a browser bundle. Re-exported here
@@ -226,7 +209,13 @@ export {
  * Same arrangement for the formatters the client forms also need - see
  * format-helpers.js.
  */
-export { formatRate, formatLitresFine, saleAmount } from './format-helpers';
+export {
+  formatRate,
+  formatLitresFine,
+  saleAmount,
+  formatLitres,
+  formatNumber,
+} from './format-helpers';
 
 /**
  * Whether the "empty everything" button exists on this deployment.

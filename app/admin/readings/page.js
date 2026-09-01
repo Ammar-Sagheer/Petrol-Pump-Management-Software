@@ -102,9 +102,37 @@ export default async function ReadingsPage({ searchParams }) {
   const units = [];
   for (const row of sheet) {
     const last = units[units.length - 1];
-    if (last && last.unitNumber === row.unit_number) last.rows.push(row);
-    else units.push({ unitNumber: row.unit_number, rows: [row] });
+    if (last && last.unitNumber === row.unit_number && last.commissionedOn === row.commissioned_on) {
+      last.rows.push(row);
+    } else {
+      units.push({
+        key: `${row.unit_number}|${row.commissioned_on ?? 'original'}`,
+        unitNumber: row.unit_number,
+        commissionedOn: row.commissioned_on,
+        retiredOn: row.retired_on,
+        rows: [row],
+      });
+    }
   }
+
+  /*
+   * THE ONE DAY A UNIT NUMBER MEANS TWO PUMPS.
+   *
+   * A dispenser is not always swapped overnight: the damaged one can sell fuel
+   * in the morning and its replacement in the afternoon, so both have a real
+   * reading dated the changeover day (migration 056 makes `retired_on` and
+   * `commissioned_on` inclusive precisely so they can). On that one date the
+   * sheet holds two Unit 1s.
+   *
+   * Left alone that is four cards captioned "Unit 1" with nothing to tell them
+   * apart, on the evening when getting them the wrong way round would put the
+   * old pump's last figures onto the new pump's meters. So on that day, and
+   * only that day, each card says which of the two it is.
+   */
+  const generationsPerUnit = units.reduce((count, unit) => {
+    count.set(unit.unitNumber, (count.get(unit.unitNumber) ?? 0) + 1);
+    return count;
+  }, new Map());
 
   return (
     <>
@@ -229,10 +257,19 @@ export default async function ReadingsPage({ searchParams }) {
           const unitColor = fuels.size === 1 ? fuelColor([...fuels][0]) : NEUTRAL_FUEL;
           const headerClass = unitColor.solid;
 
+          // Both generations of this unit are on today's sheet - see the note
+          // above `generationsPerUnit`.
+          const changeoverDay = (generationsPerUnit.get(unit.unitNumber) ?? 1) > 1;
+          const outgoing = Boolean(unit.retiredOn);
+
           return (
             <section
-              key={unit.unitNumber}
-              aria-label={`Unit ${unit.unitNumber}`}
+              key={unit.key}
+              aria-label={
+                changeoverDay
+                  ? `Unit ${unit.unitNumber}, ${outgoing ? 'the unit being replaced' : 'the replacement unit'}`
+                  : `Unit ${unit.unitNumber}`
+              }
               className="card unit-card overflow-hidden"
             >
               {/* Everything inside the header takes its colour from the band
@@ -261,6 +298,15 @@ export default async function ReadingsPage({ searchParams }) {
                 <h2 className="text-base font-bold uppercase tracking-wide">
                   Unit {unit.unitNumber}
                 </h2>
+
+                {/* Words, not a colour: the two cards are the same fuel and so
+                    the same colour, which is correct - they are both the diesel
+                    pump - and leaves colour with nothing to say here. */}
+                {changeoverDay ? (
+                  <span className="badge bg-white/25 ring-1 ring-inset ring-black/10">
+                    {outgoing ? 'being replaced today' : 'the new unit'}
+                  </span>
+                ) : null}
 
                 {/* How far through this unit is, so a finished pump can be
                     skipped without reading both of its rows. The bar says the
