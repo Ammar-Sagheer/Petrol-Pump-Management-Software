@@ -180,6 +180,16 @@ amount of application code can get around them.
   a day that traded. So enter days **oldest first**. If one is missed, clear
   everything after it and re-enter forwards — back-filling underneath a saved
   day is refused, and the message names the day to clear.
+- **A reading cannot be dated to a day its nozzle was not there.** Since a unit
+  can be replaced (see below), each nozzle carries the range of days it was
+  actually standing on the forecourt, and a reading outside that range is
+  refused — naming the day the pump was fitted or carted away. Litres invented
+  for a pump that was not there look like any other day's on every screen that
+  adds them up.
+- **A replaced nozzle cannot be rewired.** Its `tank_id` decides which tank
+  every one of its past sales was drawn out of, so changing it would move
+  months of litres between tanks and make both tanks' gain/loss fiction.
+
 - **The customer ledger is append-only.** No update, no delete, for anybody,
   including the owner and including the service-role key. A mistake is corrected
   by posting a new entry pointing the other way, so the history always adds up.
@@ -706,6 +716,8 @@ Applied in order:
 | `053_expense_recovery_rows.sql` | **Partial reimbursements against an expense.** `expenses.amount` relaxed from `check (amount > 0)` to `check (amount <> 0)`, so a reimbursement (a neighbour repaying his share of a shared electricity bill, paid one instalment at a time) can be stored as a second row in the same shape — same category, dated when the cash actually comes back, amount negative. No new table: every RPC that already sums `expenses.amount` nets it out automatically |
 | `054_lifetime_fuel_totals.sql` | `get_daily_summary()` gains `lifetime_by_fuel_type` — litres sold per fuel across every reading ever saved, not just the day on screen. Folded into the existing function rather than a new RPC, since the Dashboard already calls it once per render and the figure does not depend on the date shown |
 | `055_month_to_date_fuel_totals.sql` | Replaces 054's `lifetime_by_fuel_type` with `month_by_fuel_type` — the wrong window had been built; what was wanted was the running month, not the pump's whole history. Scoped to the calendar month `p_date` falls in, from the 1st through `p_date` itself, matching how every other window on this page ends on the day shown rather than on today |
+| `056_replacing_a_damaged_unit.sql` | **A unit was damaged and swapped for another one.** Nozzles gain a service window (`commissioned_on`, `retired_on`, `replaced_by`); `unique (unit_number, nozzle_label)` becomes a unique index over LIVE nozzles only, so the replacement keeps standing as Unit 1; a trigger refuses any reading dated outside the days its nozzle was actually on the forecourt; `get_reading_sheet()` filters by that window rather than by `is_active`, because the sheet asks about a DATE and `is_active` is a fact about today; `replace_unit()` retires the old nozzles and fits the new ones in one statement; and `set_nozzle_wiring()` now refuses a retired nozzle, whose tank decides which tank months of past sales came out of |
+| `057_replaced_units_in_the_activity_log.sql` | The audit trail's one-line summary for a nozzle carries its service window, so the four lines a replacement writes say *when* — "Unit 1 · Nozzle A · replaced 12 Aug 2026". `trg_write_activity()` reproduced whole, as in 048, since a plpgsql body cannot be patched one branch at a time |
 
 All reporting is done as Postgres aggregate RPCs rather than in the browser, so
 the numbers are fast and cannot be altered client-side.
@@ -713,6 +725,28 @@ the numbers are fast and cannot be altered client-side.
 ---
 
 ## Things worth knowing
+
+- **Replacing a damaged unit.** **Settings → Dispensing units → Replace this
+  unit.** A dispenser that is damaged and swapped is not the same object any
+  more, and neither are its meters — so the replacement gets *new nozzles*,
+  starting wherever its meters actually start (0 for a brand new one), and the
+  old nozzles keep every reading they ever took. Nothing in the books changes:
+  the old rows still hold their litres, cash, credit and tank movement, and
+  their days can still be opened and corrected on Readings. What changes is
+  which pump is offered for entry on which date.
+
+  Give it two dates: the **last day the old unit dispensed** and the **first
+  day the new one did**. They may be the same day — a unit swapped over one
+  morning sold on both — and that day shows both pumps on the reading sheet,
+  labelled *being replaced today* and *the new unit*. Leave days between them
+  and those days simply have no such unit to enter, which is right if it stood
+  out of service.
+
+  **Do not try to do this by editing the starting reading.** A starting reading
+  is only consulted until a nozzle has its first saved reading (migration 012),
+  so on a nozzle that has been trading it is dead data — setting it to 0 changes
+  nothing, and the day you then try to enter opening at 0 is refused for running
+  the meter backwards.
 
 - **Nozzle wiring.** Unit 1 runs both nozzles on diesel; units 2 and 3 run both
   on petrol. Migration 004 originally guessed one of each per unit and 013

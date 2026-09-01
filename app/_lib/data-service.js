@@ -37,6 +37,22 @@ export async function getTanks() {
   return [...tanks].sort(byFuelOrder);
 }
 
+/*
+ * Every nozzle the pump has ever had, live and retired alike.
+ *
+ * ORDERED BY GENERATION WITHIN A UNIT, not by label. Since migration 056 a unit
+ * number can carry two sets of nozzles - the dispenser that was damaged and the
+ * one that replaced it - and `commissioned_on` is what tells them apart: null
+ * (or the earlier date) is the older pump. Ordering by unit and label alone
+ * would interleave the two generations of Unit 1, so the retired A would sit
+ * above the new A with the retired B between them and nothing on screen saying
+ * which pump was which.
+ *
+ * Retired rows are returned rather than filtered out on purpose: Settings shows
+ * them, so that the record of what stood on the forecourt and when is somewhere
+ * the owner can read it. Anything that wants only the live ones filters on
+ * `retired_on === null`.
+ */
 export async function getNozzles() {
   const supabase = await createClient();
   return unwrap(
@@ -44,6 +60,7 @@ export async function getNozzles() {
       .from('nozzles')
       .select('*, tank:tanks(id, name, fuel_type)')
       .order('unit_number')
+      .order('commissioned_on', { nullsFirst: true })
       .order('nozzle_label'),
     'the nozzles',
   );

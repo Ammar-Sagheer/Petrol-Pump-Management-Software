@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **055**.
+logins, one pump. Migrations run to **057**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -60,7 +60,7 @@ single thing to reproduce is the activity log (035) — one PL/pgSQL trigger on
 eighteen tables that diffs `jsonb` and writes an English sentence. Decide
 early whether a single-user offline build needs it at all.
 
-**Six things that are load-bearing and easy to break:**
+**Seven things that are load-bearing and easy to break:**
 
 1. **The database enforces the money rules, not the app.** Balanced days,
    append-only ledger, no overlapping meter readings, stock recalculated from
@@ -91,6 +91,13 @@ early whether a single-user offline build needs it at all.
    month, and it reads perfectly reasonable while doing it. Anything that
    derives a per-day or per-week profit has to spread the cost of goods sold,
    not the purchases.
+7. **A nozzle has a service window, and the reading sheet asks about a DATE.**
+   Since 056 a unit can be replaced in place: `is_active` says whether a nozzle
+   is on the forecourt *today*, `commissioned_on`/`retired_on` say which days it
+   was there at all, and `get_reading_sheet()` must filter on the window — using
+   `is_active` there would hide a replaced unit's own past days from correction.
+   A unit number outlives the hardware wearing it, so anything grouping nozzles
+   into units groups on unit number **and** `commissioned_on`.
 
 ## Foundation
 
@@ -5307,3 +5314,118 @@ Verified with a devcheck route rendering the real `EditCustomerButton` and
 change, for the same reason the Owes column does - unrelated), and clicking
 the pencil on a row opens the dialog pre-filled with THAT row's name and
 vehicle, not the first row's.
+
+## A unit was damaged and replaced, and its meters start again at zero
+
+The pump had been running normally for months when one of the dispensing units
+was damaged and had to be taken out. A new diesel unit was fitted in its place,
+with two nozzles whose meters start at 0.
+
+**The instinct is to reset the meter, and the instinct is wrong twice over.**
+Both ways of doing it fail, and the second fails loudly at the worst moment:
+
+- Editing `starting_reading` under **Edit nozzle wiring** does nothing at all.
+  That figure is only consulted until a nozzle has its FIRST saved reading
+  (migration 012, and the comment there says so); on a nozzle that has been
+  trading for months it is dead data. The owner would set it, see no change on
+  any screen, and reasonably conclude the app was broken.
+- Entering the next day opening at 0 is refused, correctly, by
+  `nozzle_readings_closing_gte_opening` and by the chain rules in 026/027 — a
+  meter does not run backwards. And if it were somehow allowed, `litres_sold`
+  for that day would be about **minus two million litres** of diesel, which the
+  tank trigger would then apply.
+
+**A new unit is new nozzles.** The thing standing on the forecourt is not the
+same object any more and neither are its meters, so the honest record is two new
+`nozzles` rows starting at 0, and the old rows kept untouched — every reading,
+every rupee of cash and credit and every litre drawn out of the diesel tank for
+the whole life of the old unit hangs off them by foreign key. Nothing about the
+past changes at all.
+
+**Migration 056** is what that needs:
+
+- **A service window on each nozzle** — `commissioned_on` and `retired_on`, both
+  inclusive, plus `replaced_by` for the lineage. `is_active` cannot do this job
+  and it is worth being clear about why: `is_active` is a fact about **today**,
+  and the reading sheet asks about a **date**. Deactivating the old nozzles
+  would hide them from 3 August as much as from today, so last month's readings
+  could no longer be opened or corrected. A check constraint ties the two
+  together (`retired_on is null or is_active = false`) so they cannot contradict
+  each other.
+- **The unit number freed up.** `unique (unit_number, nozzle_label)` from 001 was
+  right while a nozzle was forever; it is wrong the moment a unit is replaced in
+  place, because the new Unit 1 · Nozzle A collides with the old one. It is now
+  a unique index over LIVE nozzles only. The owner is not going to start calling
+  the pump Unit 4 because a database said so.
+- **A trigger, not a courtesy.** A reading dated outside its nozzle's window is
+  refused, naming the day the pump was fitted or carted away. Litres invented
+  for a pump that was not standing there look like any other day's on every
+  screen that adds them up.
+- **`replace_unit()` does the whole swap in one statement**, for the same reason
+  `set_nozzle_wiring()` exists (022): half a swap is worse than none, because
+  nothing on any screen would say which half took. It refuses to retire a unit
+  on a day it already has readings past — those would be stranded outside their
+  own window, still in the books and still in the tank's stock, but on days the
+  sheet would no longer open.
+- **`set_nozzle_wiring()` now refuses a retired nozzle.** Its `tank_id` decides
+  which tank months of past sales were drawn out of; pointing a retired diesel
+  nozzle at the petrol tank would silently move those litres between tanks and
+  make both tanks' gain/loss fiction. Safe while every nozzle was live, not now.
+
+**Migration 057** puts the service window into the audit trail's one-line
+summary, so the four lines a replacement writes say *when* — "Unit 1 · Nozzle A ·
+replaced 12 Aug 2026" rather than four lines reading "Unit 1 · Nozzle A". As in
+048, the whole of `trg_write_activity()` is reproduced to change one branch of
+its `case`; a plpgsql body cannot be patched in place.
+
+**Stock needed no correcting entry, and it is worth writing down why** so nobody
+goes looking for one. Tank stock is driven by `litres_sold`, which is a
+difference between two figures on the SAME reading — never between two nozzles
+or two meters. A meter starting again from zero on a new nozzle draws the diesel
+tank down exactly as the old one did. There is no gain/loss to explain.
+
+**The changeover day may belong to both units.** A dispenser is not always
+swapped overnight: the damaged one can sell in the morning and its replacement
+in the afternoon, so both have a real reading dated that day. `retired_on` and
+`commissioned_on` are inclusive and may be the same date, and on that one day
+the reading sheet holds two Unit 1s. Left alone that is four cards captioned
+"Unit 1" with nothing to tell them apart, on the evening when getting them the
+wrong way round would put the old pump's last figures onto the new pump's
+meters — so the Readings page now groups by unit number AND commissioning date
+(not by unit number alone, which would draw them as one four-nozzle pump that
+never existed) and each card carries *being replaced today* or *the new unit*.
+Words, not colour: both are the diesel pump, so both are correctly the same
+colour and colour has nothing left to say.
+
+**Settings grew a Dispensing units section.** The nozzle wiring dialog answers
+"how is the place plumbed", a standing fact; this answers "what is standing out
+there now, and what used to be", which is a history. A card per live unit with
+its nozzles, tank and meter starts and a **Replace this unit** button, then a
+read-only table of replaced units with the day each stopped.
+
+**The dialog's summary panel is the point of it.** This is done once every few
+years by someone who will not do it again for a long time, and the two dates are
+the part that is easy to get subtly wrong. So before anything is written the
+form says back, in plain words, which days belong to which pump — including
+whether the two overlap on the changeover day or leave the unit out of service
+for a stretch in between, worked out and stated rather than left to be inferred
+from two date boxes.
+
+**Verified** against a local Postgres with all 57 migrations applied: three days
+of readings on Unit 1, then a replacement, then the reading sheet checked on the
+day before (old unit only, still editable), the changeover day (both) and the
+day after (new unit only, opening at 0). Every guard rail was made to fire — a
+reading dated past retirement, one dated before commissioning, a replacement
+with readings already past the chosen last day, rewiring a retired nozzle, and
+two live nozzles claiming the same unit and label. The backup round trip was run
+end to end: export, restore into a freshly migrated database, nozzles identical
+including the new columns — and a *pre-056* file (the three keys absent) restores
+correctly too, since `jsonb_populate_recordset` leaves a missing key null and
+null is exactly "here from the beginning and still is".
+
+**Screenshotted** at 1440, 1024 and 400px with a disposable devcheck route. One
+real regression came out of it and was fixed: at phone width "meter started at
+1,487,293.55 L" broke after the number and left `L` alone on the next line —
+the fourth time this file has recorded that, and `whitespace-nowrap` on the
+figure is the fix every time. See "A figure and its unit must not be able to
+break apart" in `docs/UI_CONVENTIONS.md`.

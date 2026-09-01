@@ -2569,3 +2569,62 @@ missing space between a figure and a word reads as a typo in a money total.
 
 Neither is visible to a build, a type check, or the clipping report — the text
 was not overflowing anything. Both were caught by reading a screenshot at 400px.
+
+## A rare, hard-to-undo action says back what it is about to do
+
+**Settings → Dispensing units → Replace this unit** (`ReplaceUnitButton`) is the
+first control in this app that is used perhaps once every few years, by someone
+who will not have done it before and will not do it again for a long time. It is
+not destructive — nothing is deleted, and migration 056 refuses anything
+genuinely dangerous — but it is hard to undo, and its two date fields are the
+part that is easy to get subtly wrong in a way no error message will catch.
+
+So the dialog carries an **"After saving" panel** that restates the form's own
+inputs as consequences, live, before anything is written:
+
+> Unit 1's 2 nozzles (A, B) can be entered up to and including **10 Aug 2026**,
+> and not after.
+> Unit 1 gets 2 new nozzles, enterable from **14 Aug 2026**.
+> The 3 days in between have no Unit 1 to enter at all, which is right if the
+> pump stood out of service.
+
+Three things make it worth copying rather than a decoration:
+
+- **It states a derived fact the form does not show.** "The 3 days in between"
+  is arithmetic on two date boxes that nobody performs in their head reliably,
+  and it is exactly the mistake worth catching. A panel that only echoes the
+  fields back would not be worth the room.
+- **It is not a confirmation step.** `ConfirmAction`'s "are you sure?" is right
+  for a delete, where the question is only yes-or-no. Here the answer is not yes
+  or no, it is *are these the right two dates* — and a second dialog asking
+  again would add a click without adding an answer.
+- **The impossible case disables the submit and says why**, in the panel, in the
+  same place the consequences would otherwise be. A first day before the last
+  day is refused by the database anyway; saying so before the round trip is what
+  keeps the panel the place to look.
+
+Reach for this whenever an action is rare, its inputs interact, and its effect
+is a *range* or a *boundary* rather than a single value.
+
+## Two generations of one thing on screen at once
+
+The day a dispensing unit is replaced, the reading sheet holds two Unit 1s — the
+one being carted away, which sold that morning, and the one that took its place.
+Both are diesel pumps, so both are correctly the same fuel colour, and colour is
+therefore unavailable as the thing that tells them apart.
+
+- **The distinguishing badge is words, not colour**, sitting beside the heading:
+  *being replaced today* / *the new unit*. Colour already carries fuel here, and
+  giving it a second meaning on one day a decade would break the one meaning it
+  carries every day.
+- **It appears only on the day both are present.** The Readings page counts the
+  generations per unit number and shows the badge only where that count is above
+  one — a permanent "the new unit" caption would still be there in five years,
+  describing nothing.
+- **The group key is the identity, not the label.** Grouping by unit number
+  alone drew the two as a single four-nozzle pump that never existed. Anything
+  grouping nozzles into units keys on unit number **and** `commissioned_on`.
+- **The retired generation stays reachable, not hidden.** Its days still open
+  and correct on Readings exactly as before; what changes is which pump is
+  offered on which date. The Settings history table says so once, in a line
+  under it, rather than as a warning repeated on every row.

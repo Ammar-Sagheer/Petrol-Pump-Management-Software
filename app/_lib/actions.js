@@ -1626,6 +1626,109 @@ export async function setNozzleWiring(_prevState, formData) {
   return ok(`Saved. ${saved} ${saved === 1 ? 'nozzle' : 'nozzles'} updated.`);
 }
 
+/**
+ * A dispensing unit was damaged and swapped for another one.
+ *
+ * WHAT THIS IS NOT. It is not a way to set a meter back to zero. The old unit's
+ * nozzles keep every reading they ever took, exactly as they took them - months
+ * of litres, cash, credit and tank movement hang off those rows - and the new
+ * unit gets nozzles of its own, starting wherever its meters actually start.
+ * See migration 056 for why editing the existing rows is the wrong answer and
+ * what it would do to the books.
+ *
+ * ALL THE REAL CHECKING IS IN replace_unit(). What is validated here is only
+ * the shape of the form: whether a date is a date and a number is a number.
+ * Whether the unit exists, whether it already has readings past the day it is
+ * being retired on, whether the new labels collide - those are questions about
+ * the state of the database at the moment of the write, and answering them here
+ * would be answering them a second earlier than the answer is worth anything.
+ */
+export async function replaceUnit(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const unitNumber = number(formData, 'unit_number');
+  const newUnitNumber = number(formData, 'new_unit_number');
+  const oldLastDay = text(formData, 'old_last_day');
+  const newFirstDay = text(formData, 'new_first_day');
+  const tankId = text(formData, 'tank_id');
+
+  if (!Number.isInteger(unitNumber) || unitNumber <= 0) {
+    return fail('Pick the unit that was replaced.');
+  }
+  if (newUnitNumber !== null && (!Number.isInteger(newUnitNumber) || newUnitNumber <= 0)) {
+    return fail('A unit number has to be a whole number above zero.');
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(oldLastDay)) {
+    return fail('Give the last day the old unit dispensed.');
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newFirstDay)) {
+    return fail('Give the first day the new unit dispensed.');
+  }
+  if (newFirstDay < oldLastDay) {
+    return fail('The new unit cannot have started before the old one stopped.');
+  }
+  if (!tankId) {
+    return fail('Choose which tank the new unit draws from.');
+  }
+
+  // The three fields repeat their names down the table, the same way the
+  // nozzle wiring dialog does - a form serialises repeated names in markup
+  // order, so the two lists line up by index.
+  const labels = formData.getAll('nozzle_label').map((value) => String(value).trim());
+  const starts = formData.getAll('starting_reading').map((value) => String(value).trim());
+
+  if (labels.length === 0) return fail('The new unit needs at least one nozzle.');
+  if (labels.length !== starts.length) {
+    return fail('That form arrived incomplete. Reopen it and try again.');
+  }
+
+  const nozzles = [];
+  for (let index = 0; index < labels.length; index += 1) {
+    const startingReading = Number(starts[index]);
+
+    if (!labels[index]) return fail('Every nozzle on the new unit needs a label.');
+    if (starts[index] === '' || !Number.isFinite(startingReading)) {
+      return fail('Every nozzle needs a starting meter reading, even if it is 0.');
+    }
+    if (startingReading < 0) return fail('A meter reading cannot be negative.');
+
+    nozzles.push({
+      nozzle_label: labels[index],
+      starting_reading: roundMoney(startingReading),
+    });
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('replace_unit', {
+    p_unit_number: unitNumber,
+    p_old_last_day: oldLastDay,
+    p_new_first_day: newFirstDay,
+    p_tank_id: tankId,
+    p_nozzles: nozzles,
+    p_new_unit_number: newUnitNumber ?? unitNumber,
+  });
+
+  if (error) return fail(describe(error, 'Could not record the replacement.'));
+
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin/readings');
+  revalidatePath('/admin/activity');
+  revalidatePath('/admin');
+
+  const added = Number(data?.added ?? nozzles.length);
+  const finalUnit = Number(data?.new_unit_number ?? unitNumber);
+
+  return ok(
+    `Unit ${unitNumber} was retired after ${formatDate(oldLastDay)}. ` +
+      `Unit ${finalUnit} now has ${added} new ${added === 1 ? 'nozzle' : 'nozzles'}, ` +
+      `starting ${formatDate(newFirstDay)}.`,
+  );
+}
+
 export async function updateTank(_prevState, formData) {
   try {
     await requireRole(ROLES.SUPER_ADMIN);
