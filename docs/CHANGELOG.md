@@ -6108,3 +6108,42 @@ This is the second thing the 1152 → 1360 widening turned up (the first being
 prose measure), which is the entry's real lesson: **anything laid out as a
 fraction of the page wants re-checking after a width change, especially where
 the number of items varies.**
+
+### Checked Stock and the Dashboard for the same fault — they do not have it
+
+Asked to check the other two pages with variable-count grids after the customer
+card was fixed. Worth recording the negative result, because the obvious next
+move is to "fix" them the same way and it would make both worse.
+
+**What was surveyed.** Every `grid-cols-*` on `/admin` and `/admin/stock-checks`
+that sits over a `.map()`:
+
+| Where | Over | Verdict |
+| --- | --- | --- |
+| Dashboard, *By fuel type* | `by_fuel_type` — only fuels with readings that day | **Varies**, but fine — see below |
+| Dashboard, *Tank stock* | `tanks` | Fixed at 2 |
+| Stock, tank cards | `tanks` | Fixed at 2 |
+| Dashboard, lubricant panels | two hard-coded sections | Not a map |
+| Dashboard, month-so-far strip | a flex row, not a grid | Not a grid |
+| Stock, lubricants | a table | Not a grid |
+
+**Tanks are genuinely fixed**, not merely two today: `actions.js` only ever
+*updates* a tank and there is no add-a-tank UI, so the count is what migrations
+004/012/013 seeded. Coupled, but not variable.
+
+**The Dashboard's by-fuel grid does vary** — `get_daily_summary` builds
+`by_fuel_type` by grouping the day's `nozzle_readings`, so a day with only
+petrol entered yields one entry. (No such day exists in the data yet; every day
+so far has both.) **It still does not want the customer page's fix.** Rendered
+one-fuel three ways at 1600px — as it is, full width, and held to half — and
+full width was plainly the worst: the litres figure ends a hand's width from its
+own heading and the three money figures spread across 1,300px.
+
+**The distinction, which is now in `UI_CONVENTIONS.md`:** the customer page's
+grid was *inside a card*, so its empty half was white card surface with nothing
+on it — which reads as a figure that failed to load, and is exactly how the
+owner read it. These sit on page background, where one card in a two-column row
+reads as one card and the space beside it is simply the page.
+
+**Ask what is behind the gap, not whether the count varies.** Card surface is a
+hole; page background is a margin. No code changed.

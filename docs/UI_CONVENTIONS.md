@@ -2909,6 +2909,21 @@ Two rules from it:
   fraction of the page is worth re-checking after a width change, especially
   where the item count varies.
 
+**But the rule is about grids INSIDE a card, and only those.** Checked
+afterwards on the Dashboard and Stock pages, where the same `sm:grid-cols-2`
+sits over a variable list — and it is fine there, because those cards sit on
+page background. One card in a two-column row reads as *one card*; the space
+beside it is the page, and the page is allowed to be empty. On the customer
+page the grid was inside a card, so the empty half was white card surface with
+nothing on it, which reads as a figure that has not loaded.
+
+Rendered all three to be sure rather than reasoning it out, and full width was
+plainly the worst of them for the Dashboard: the litres figure ends up a hand's
+width from its own heading and the three money figures spread across 1,300px.
+
+So the question to ask is not "does the item count vary" but **"what is behind
+the gap?"** Card surface is a hole. Page background is a margin.
+
 **And a lone tile should spread, not stack.** Full width, a badge with two
 numbers stacked under it leaves a stretch of empty paper to their right. Badge
 one side, figures the other, reads as a single line — *Petrol … 68.63 L,
