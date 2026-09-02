@@ -6199,3 +6199,55 @@ client-side navigation, full reload, hide, reload again — each step asserting
 `data-nav`, the column's computed display, the burger bar's, the content
 padding and the cookie. Plus a phone check that the burger still opens the
 overlay and does not pin.
+
+## Dialogs that fit the laptop they are read on
+
+Reported from the 1600x900 laptop: *"some forms appear with a scroll bar ...
+it looks so bad"*, with the suggestion to make them wider or tighten the
+spacing. Both, as it turned out.
+
+**Measured first.** At 780px of viewport a dialog may be 702px tall (90dvh at
+the time). Four were over it:
+
+| | before | after |
+| --- | --- | --- |
+| Correct this entry | 153px over | fits |
+| Replace this unit | 215px over | fits |
+| Edit nozzle wiring | 326px over | fits (its table scrolls) |
+| Manual adjustment | 687 of 702 — over as soon as the preview appeared | 657, comfortable |
+
+Record a payment, Edit details and the daily reading form already fitted.
+
+**What changed.** The three dialog sizes grew — 32/48/64rem to 38/56/72rem —
+because a thousand pixels of width sat unused beside a 512px panel, and width
+buys height back: a notice that took four lines takes three, and paired fields
+share a row. The cap went 90dvh to 94dvh. On short screens (`max-height: 860px`)
+a dialog form's block gaps and the panel's vertical padding tighten. Amount and
+date now share a row in *Correct this entry*; the nozzle table and the summary
+share one in *Replace this unit*; the two notices share one in *Edit nozzle
+wiring*. And `dialog .table-scroll` is capped at `min(22rem, 38vh)` rather than
+`.table-scroll`'s page-scale 70vh.
+
+**Type was not touched.** Shrinking text to fit would solve this with the one
+resource that is not spare on this screen — the app is read by a man in his
+sixties.
+
+**The bug inside the fix, which cost two measurements.** The spacing rules were
+written inside `@layer components`. Tailwind's utilities are a *later layer*,
+and layer order beats specificity outright, so `.p-4` won over `dialog form.p-4`
+and the rules did nothing at all — the numbers came back byte-identical twice
+before I stopped tuning them and looked at the cascade. They live outside the
+layer now, at the end of globals.css, which is where anything that must beat a
+utility belongs.
+
+**The second bug, caught by testing a screen nobody asked about.** The table cap
+was written inside the short-screen query, so *Edit nozzle wiring* fitted at
+1600x780 and scrolled at 1920x1000 — the taller screen fell outside the query,
+the cap came off, and 70vh of a 1000px window is 700px of table. A table in a
+dialog competes with the dialog's chrome at every height, so the rule applies at
+every height.
+
+**Verified** at 1600x780, 1920x1000 and 400x860, asserting two things per dialog
+rather than one: does the dialog body scroll, and is the Save button on screen.
+All six pass on both desktop heights. The phone still scrolls its full-screen
+sheet with the button below the fold, which is the mobile pattern and unchanged.

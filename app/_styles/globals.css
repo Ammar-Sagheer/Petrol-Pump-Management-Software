@@ -628,3 +628,97 @@ input[type='number']::-webkit-inner-spin-button {
     @apply px-0;
   }
 }
+
+
+/*
+ * ---------------------------------------------------------------------------
+ * OUTSIDE @layer ON PURPOSE, and this is the whole reason the rule works.
+ *
+ * Everything above lives in `@layer components`. Tailwind's utilities are a
+ * LATER layer, and layer order beats specificity outright - so `.p-4` in the
+ * utilities layer wins over `dialog form.p-4` in the components layer no matter
+ * how many selectors are stacked in front of it. The first two attempts at
+ * this rule changed nothing at all and the measurements came back identical,
+ * which is what sent me looking.
+ *
+ * Unlayered CSS outranks every layer, so these sit here at the end of the file
+ * rather than being escalated to !important. If a rule below needs to beat a
+ * Tailwind utility, this is where it goes.
+ * ---------------------------------------------------------------------------
+ */
+/*
+ * A DIALOG'S OWN VERTICAL RHYTHM, ON A SHORT SCREEN.
+ *
+ * The same trade as the table-row rule below, in the same place and for the
+ * same reader: on a 1600x900 laptop the viewport is about 780px, a dialog may
+ * be 94dvh of that, and four forms were taller than the room they had. The
+ * gaps between a form's blocks are the one part of it that is pure air - the
+ * labels, the inputs and their type are all doing work - so that is what gets
+ * spent, and nothing else. Text size and input height are untouched.
+ *
+ * Tailwind's `space-y-*` is a margin-top on every child after the first, so
+ * that is what this overrides. Scoped to `dialog` so a page's own spacing is
+ * left alone: a page can scroll without it looking like a mistake, and there
+ * is no 94dvh cap making the decision for it.
+ *
+ * 860px rather than 780 so it covers the laptop with its window not quite
+ * maximised, which is how a window usually is.
+ */
+@media (max-height: 860px) {
+  dialog .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.5rem;
+  }
+  dialog .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.625rem;
+  }
+  dialog .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem;
+  }
+
+  /*
+   * And the panel's own top and bottom padding, which is the last 16px and
+   * was worth exactly two forms: it took "Correct this entry" from 8px over
+   * to fitting, and "Replace this unit" from 14px over. Sides untouched -
+   * horizontal padding is what keeps a field off the edge of the panel, and
+   * there is no shortage of width.
+   */
+  /*
+   * The class is IN the selector on purpose. `dialog form` is three element
+   * selectors and loses to Tailwind's own `.p-4` - a single class outranks
+   * any number of elements - so the first version of this rule did nothing
+   * at all and the measurement was unchanged. `form.p-4` outranks it.
+   */
+  dialog > div > header.py-3 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  dialog form.p-4 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+/*
+ * A TABLE INSIDE A DIALOG SCROLLS ITSELF, WELL BEFORE 70vh.
+ *
+ * `.table-scroll`'s own cap is written for a table that owns its page. In a
+ * dialog it is competing with a heading, two or three notices and a Save button
+ * for the same 94dvh, and at 70vh it wins - taking the Save button off the
+ * bottom of the panel with it. That is the part of a scrolling dialog that
+ * actually costs something: not the scrollbar, but the button you came to press
+ * disappearing below it.
+ *
+ * Capped, the chrome stays put and only the rows move - which is what
+ * `.table-scroll` was built for, since it already pins the heading.
+ *
+ * NOT INSIDE THE SHORT-SCREEN QUERY, and that was a bug for one measurement.
+ * Written there first, the wiring dialog fitted at 1600x780 and scrolled at
+ * 1920x1000 - the taller screen fell outside the query, the cap came off, and
+ * 70vh of a 1000px window is 700px of table. A table in a dialog is competing
+ * with the dialog's own chrome at every height, so the rule belongs at every
+ * height too.
+ */
+dialog .table-scroll {
+  max-height: min(22rem, 38vh);
+}

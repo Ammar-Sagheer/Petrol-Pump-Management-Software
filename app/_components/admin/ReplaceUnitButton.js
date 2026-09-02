@@ -106,7 +106,7 @@ export default function ReplaceUnitButton({ unit, tanks, today }) {
       <Dialog
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        size="lg"
+        size="xl"
         title={`Replace Unit ${unit.unitNumber}`}
         subtitle={
           <span className="text-sm text-ink-600">
@@ -124,9 +124,9 @@ export default function ReplaceUnitButton({ unit, tanks, today }) {
           <input type="hidden" name="unit_number" value={unit.unitNumber} />
 
           <p className="text-sm text-ink-600">
-            Nothing already in the books changes. Unit {unit.unitNumber}&apos;s existing nozzles keep
-            every reading, every rupee and every litre they drew out of the tank — they simply stop
-            being offered for entry after their last day. The replacement gets nozzles of its own.
+            Nothing already in the books changes. Unit {unit.unitNumber}&apos;s nozzles keep every
+            reading, rupee and litre they drew — they simply stop being offered after their last
+            day, and the replacement gets nozzles of its own.
           </p>
 
           {/* ---- the two dates ---- */}
@@ -208,6 +208,13 @@ export default function ReplaceUnitButton({ unit, tanks, today }) {
             </div>
           </div>
 
+          {/* THE NOZZLE TABLE AND THE SUMMARY SHARE A ROW on a wide dialog.
+              Stacked they put this form 116px past what a 1600x900 laptop
+              leaves it, and it scrolled. They also read better beside each
+              other: the summary is a sentence ABOUT the table, and having to
+              scroll away from the meters to read what will happen to them was
+              never the intent. Below `lg` they stack as before. */}
+          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
           {/* ---- the new unit's nozzles ---- */}
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -305,7 +312,7 @@ export default function ReplaceUnitButton({ unit, tanks, today }) {
           </div>
 
           {/* ---- what is about to happen, in words ---- */}
-          <div className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-800">
+          <div className="self-start rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-800">
             <p className="mb-2 font-semibold">After saving</p>
             {datesBackwards ? (
               <p className="text-red-800">
@@ -342,6 +349,7 @@ export default function ReplaceUnitButton({ unit, tanks, today }) {
                 )}
               </ul>
             )}
+          </div>
           </div>
 
           {/* A failure stays put; a success has already closed the dialog. */}

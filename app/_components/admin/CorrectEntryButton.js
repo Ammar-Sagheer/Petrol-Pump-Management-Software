@@ -135,35 +135,43 @@ export default function CorrectEntryButton({ entry, customerId, balance = 0 }) {
 
           {!remove ? (
             <>
-              <div>
-                <label className="label" htmlFor={`correct-amount-${entry.id}`}>
-                  What it should have been
-                </label>
-                <NumberInput
-                  id={`correct-amount-${entry.id}`}
-                  name="amount"
-                  step="1"
-                  min="1"
-                  required
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  className="input-number"
-                  placeholder="0"
-                />
-              </div>
+              {/* THE AMOUNT AND THE DATE SHARE A ROW, which is what keeps this
+                  dialog off a scrollbar. Stacked, the form was 102px taller
+                  than the 1600x900 laptop leaves it, and a form with a
+                  scrollbar down the middle is the thing that was reported. The
+                  two belong together anyway - they are the entry's two facts,
+                  and the amount is the one being changed. */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label" htmlFor={`correct-amount-${entry.id}`}>
+                    What it should have been
+                  </label>
+                  <NumberInput
+                    id={`correct-amount-${entry.id}`}
+                    name="amount"
+                    step="1"
+                    min="1"
+                    required
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                    className="input-number"
+                    placeholder="0"
+                  />
+                </div>
 
-              <div>
-                <label className="label" htmlFor={`correct-date-${entry.id}`}>
-                  Date
-                </label>
-                <input
-                  id={`correct-date-${entry.id}`}
-                  name="entry_date"
-                  type="date"
-                  required
-                  defaultValue={entry.entry_date}
-                  className="input"
-                />
+                <div>
+                  <label className="label" htmlFor={`correct-date-${entry.id}`}>
+                    Date
+                  </label>
+                  <input
+                    id={`correct-date-${entry.id}`}
+                    name="entry_date"
+                    type="date"
+                    required
+                    defaultValue={entry.entry_date}
+                    className="input"
+                  />
+                </div>
               </div>
 
               <div>

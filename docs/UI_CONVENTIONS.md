@@ -2981,3 +2981,51 @@ Three rules came out of building it:
   Sagheer · Owner"* onto two lines. The block is centred and the logo row leaves
   the corner empty, so the button overlaps nothing and the padding was simply
   wrong.
+
+
+## A dialog that scrolls is a Save button you cannot see
+
+Four forms on the 1600x900 laptop opened with a scrollbar down the middle. The
+viewport there is about 780px, a dialog may be 94dvh of it, and the forms were
+taller than that — while a thousand pixels of the screen's WIDTH sat unused
+beside a 512px panel.
+
+**Width buys height back.** A notice that took four lines at 32rem takes three
+at 38rem; two fields that stacked can share a row. The three dialog sizes grew
+to 38 / 56 / 72rem, and the two forms that still did not fit went up a size.
+Nothing about the type got smaller — this is read by a man in his sixties, and
+shrinking text to fit is solving the wrong problem with the one resource that
+is not spare.
+
+**Then spend the air, and only the air.** On a short screen (`max-height:
+860px`) the gaps between a dialog form's blocks tighten and the panel's top and
+bottom padding shrinks. Labels, inputs and type are untouched — the gaps are the
+one part of a form doing no work.
+
+**A table inside a dialog is capped at every height.** `.table-scroll`'s own
+70vh is written for a table that owns its page; in a dialog it is competing with
+a heading, notices and a Save button for the same 94dvh, and at 70vh it wins.
+`dialog .table-scroll` caps it to `min(22rem, 38vh)`, so the chrome stays put
+and only the rows move — which is what that class was built for, since it
+already pins the heading.
+
+**Measure the right thing.** "Does anything scroll" is not the question — a
+table scrolling inside a dialog is the design working. The two that matter are
+*does the dialog body scroll* and *is the Save button on screen*, and a check
+that conflates them reports a fix as a regression.
+
+## Unlayered CSS is how you beat a Tailwind utility
+
+Two attempts at the spacing rule above changed nothing, and the measurements
+came back byte-identical both times. The rules were written inside `@layer
+components`; **Tailwind's utilities are a later layer, and layer order beats
+specificity outright**, so `.p-4` won over `dialog form.p-4` no matter how many
+selectors were stacked in front of it.
+
+Unlayered CSS outranks every layer. Anything in this file that has to beat a
+utility lives at the end, outside `@layer components`, and that is where the
+short-screen block sits. Reach for that before `!important`.
+
+The tell is worth remembering: **a CSS change that produces no measurable
+difference at all is usually not being applied**, rather than being too small
+to see. Check the cascade before tuning the number.

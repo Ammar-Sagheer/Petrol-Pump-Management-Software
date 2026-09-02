@@ -95,7 +95,7 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
       <Dialog
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        size="lg"
+        size="xl"
         title="Nozzle wiring"
         subtitle={
           <span className="text-sm text-ink-600">
@@ -117,6 +117,12 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
             nozzle has its first day entered; the starting reading is only used until then too.
           </p>
 
+          {/* THE TWO GREY NOTICES SHARE A ROW on a wide dialog. They are the
+              two ways this form can rewrite the past and they are read once,
+              together, before anything is typed - stacked they took 200px off
+              the top of a dialog that has a seven-row table underneath and a
+              1600x900 laptop to fit into. */}
+          <div className="grid gap-3 lg:grid-cols-2">
           <p className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-xs text-ink-700">
             <span className="font-semibold">Renaming applies to the whole history.</span> A pump
             renumbered here shows under its new number on every day, including days already
@@ -140,6 +146,7 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
             its last day and the new fuel its first, and carry the meter across at the figure it
             stands at.
           </p>
+          </div>
 
           {/* THE DEADLINE, AND NOW ALSO THE SECOND REASON TO USE IT. A starting
               reading is consulted until that nozzle's first saved day and is
@@ -150,14 +157,21 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
               about leaving it at 0) did not cover. */}
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
             Set a starting reading <span className="font-semibold">before</span>{' '}
-            that nozzle&apos;s first day is entered — it is what that first day opens on. Left at 0
-            on a pump that has been trading, the first day counts the meter&apos;s whole lifetime as
-            one day of sales; set below the true reading, it counts the difference as sales nobody
-            paid for. Once the first day is saved the box goes grey, because the figure has moved
-            into that reading: to change it then, delete the day on the Readings screen, correct
-            the meter here, and enter the day again.
+            that nozzle&apos;s first day is entered — it is what that day opens on, and a figure
+            below the true reading counts the difference as sales nobody paid for. Afterwards the
+            box goes grey: to change it then, delete the day on Readings, correct the meter here,
+            and enter the day again.
           </p>
 
+          {/* THE TABLE IS WHAT SCROLLS HERE, NOT THE DIALOG. With the notices
+              above it and the Save button below, the full list of nozzles put
+              this form well past what a 1600x900 laptop leaves it - and a
+              dialog that scrolls as a whole takes the Save button off screen
+              with it, which is the part of "it looks bad" that actually costs
+              something. Capped, the notices and the button stay put and only
+              the list moves. `.table-scroll` already pins the heading, so
+              scrolling it is the pattern this table was built for. The cap
+              itself is in globals.css, for every table in every dialog. */}
           <div className="card table-scroll">
             <table className="w-full min-w-[40rem]">
               <thead className="border-b border-ink-200 bg-ink-50">

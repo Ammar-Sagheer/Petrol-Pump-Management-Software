@@ -14,11 +14,23 @@ import { useEffect, useRef } from 'react';
  * small display.
  *
  * `size="lg"` widens the desktop dialog for content that does not fit the
- * default 32rem without scrolling sideways inside it - a table, mainly. `"xl"`
+ * default width without scrolling sideways inside it - a table, mainly. `"xl"`
  * goes wider again, for a table that is wide in its own right: the nine-column
  * daily-sales one is 46rem at its narrowest, which `lg` fits only by giving up
  * its own padding. Phones are unaffected by any of them; the sheet already
  * fills the screen.
+ *
+ * THE THREE WIDTHS GREW FOR A SHORT SCREEN, WHICH SOUNDS BACKWARDS. On the
+ * 1600x900 laptop this is read on there is about 780px of viewport, so a dialog
+ * may be 702px tall - and four of them were taller than that and scrolling
+ * inside themselves, with a scrollbar down the middle of a form. Meanwhile
+ * 1,000px of the screen's WIDTH sat unused beside a 512px panel.
+ *
+ * Width buys height back. A notice that took four lines at 32rem takes three at
+ * 38rem; a pair of fields that stacked can sit side by side. Nothing about the
+ * type gets smaller, which matters - this is read by a man in his sixties and
+ * shrinking the text to fit would be solving the wrong problem with the one
+ * resource that is not spare.
  *
  * Deliberately NO click-outside-to-close. Every dialog here holds a form
  * someone is part-way through typing, and a click event fires on the nearest
@@ -71,11 +83,11 @@ export default function Dialog({ open, onClose, title, subtitle, size = 'md', ch
       aria-label={title}
       className={`m-0 max-h-none w-full max-w-none bg-transparent p-0
                  backdrop:bg-ink-900/60 backdrop:backdrop-blur-sm
-                 sm:m-auto sm:max-h-[90dvh] ${
+                 sm:m-auto sm:max-h-[94dvh] ${
                    {
-                     xl: 'sm:w-[min(64rem,calc(100vw-2rem))]',
-                     lg: 'sm:w-[min(48rem,calc(100vw-2rem))]',
-                   }[size] ?? 'sm:w-[min(32rem,calc(100vw-2rem))]'
+                     xl: 'sm:w-[min(72rem,calc(100vw-2rem))]',
+                     lg: 'sm:w-[min(56rem,calc(100vw-2rem))]',
+                   }[size] ?? 'sm:w-[min(38rem,calc(100vw-2rem))]'
                  }`}
     >
       {/*
@@ -102,7 +114,7 @@ export default function Dialog({ open, onClose, title, subtitle, size = 'md', ch
        */}
       <div
         className="flex h-dvh w-full flex-col whitespace-normal bg-white text-left
-                   sm:h-auto sm:max-h-[90dvh] sm:rounded-xl sm:shadow-2xl"
+                   sm:h-auto sm:max-h-[94dvh] sm:rounded-xl sm:shadow-2xl"
       >
         <header className="flex items-start justify-between gap-3 border-b border-ink-200 px-4 py-3">
           <div className="min-w-0">
