@@ -5855,3 +5855,51 @@ taken* and *Paid*, which have never been true of a manual adjustment and are now
 also not true of a correction — both are debits that are not fuel. Renaming them
 to something like *Owed* / *Paid* would fix it and would change a heading the
 owner reads every day, so it is left alone until he asks.
+
+### Unit 1's diesel meters were set forward 157 L on 2 September (data, not code)
+
+Not a migration and nothing in the schema — recorded here because the figures
+look wrong on their own and a future session would otherwise try to "fix" them.
+
+When the ex-petrol pump was re-piped onto diesel it had closed 31 August on
+48,760.78 (A) and 24,835.72 (B). The owner read the meters again on 2 September
+and they stood at **48,872.79** and **24,880.70** — 112.01 L and 44.98 L further
+on, **156.99 L** between them. Those are now the two nozzles'
+`starting_reading`, so the first September day opens on the real meters.
+
+**This was settable at all only because the nozzles had no readings yet.**
+`starting_reading` is consulted until a nozzle's first saved day and is dead
+data afterwards (012), and 061 had created these two rows on 1 September with
+nothing entered against them. Once September is entered, the same change would
+have to be a correction to the reading, not a change to this field.
+
+**Why it does not touch profit, and what would have.** The pump was run with its
+lines empty while it was being shifted, so the meter counted air: it advanced
+157 L without a litre leaving the tank. That is the whole explanation, and it is
+the reason this is a meter change and not a stock movement. The readings start
+from the new figures, those litres are never counted as sold, and the books and
+the tank still agree — diesel expects 971 L and the 1 September dip measured
+971 L.
+
+It is worth keeping the phrase, because it will happen again the next time a
+pump is moved: **a dispenser run dry still counts.** The meter is a mechanical
+totaliser on the outlet, not a measurement of fuel, so any dry running during a
+shift shows up as litres the books must be told not to charge anyone for. The
+fix each time is this one — set the new nozzle's `starting_reading` to what the
+meter actually reads before the first day is entered.
+
+Had the fuel actually been drawn out — flushing the lines, calibration — it
+could NOT have been kept out of profit, and that is worth writing down because
+it will be asked again whenever a meter and a tank disagree. Profit is
+`sales − (opening + purchases − closing) − expenses`, and since 059 closing
+stock is valued at what the tank physically HOLDS. Fuel that leaves without a
+sale therefore lowers closing stock and lowers profit by its cost — about
+157 × Rs 365.60 ≈ **Rs 57,400** here — whatever is entered anywhere. Nobody paid
+for it, so it cannot be free; the only choice available is whether it shows as
+unexplained shrinkage at the next dip or as a named commissioning draw. There is
+no third answer, and offering one would have been a lie in the owner's own
+books.
+
+**What to watch:** the reading above is that no fuel moved, so a coming diesel
+dip should come out clean. If one instead lands roughly 157 L short, some of it
+did leave after all and this entry is the place to start.
