@@ -385,6 +385,20 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   /*
+   * A LINE OF EXPLANATION HAS A MAXIMUM USEFUL LENGTH, and it is not the width
+   * of the page. The content column was widened from 1152px to 1360px for the
+   * 1600x900 laptop this app is read on - which is right for a table, where
+   * every extra pixel is a column that no longer has to be scrolled to, and
+   * wrong for a paragraph, where it is a line the eye has to track back across.
+   *
+   * The paragraphs that needed it carry `max-w-[70ch]` at the call site rather
+   * than a class here, because there are four of them and they are the
+   * multi-sentence notes; a one-line statement of a figure ("2,000 L delivered
+   * on this date, costing Rs 731,200") is not prose and looks wrong boxed into
+   * a narrow measure. The rule is in docs/UI_CONVENTIONS.md.
+   */
+
+  /*
    * BARE-MINIMUM ROW HEIGHT, 1600px and narrower - the exact screen the
    * owner's friend photographed (1600x900) and everything smaller than it,
    * where vertical room is the scarcest thing on the page. py-2 is already

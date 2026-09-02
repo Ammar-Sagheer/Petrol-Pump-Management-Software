@@ -2834,3 +2834,58 @@ navigation and housekeeping, and stays outlined.
 Worth checking on any change that converts an inline form to a dialog: the
 conversion is not finished until the trigger carries the weight the form used
 to.
+
+
+## The content column is 1360px, and prose is not
+
+The app is read on one 1600x900 laptop. With the 240px sidebar that leaves
+1360px, and the content column was capped at `max-w-6xl` (1152px) — so 104px of
+empty page sat down each side while the widest tables scrolled sideways inside
+themselves to fit. The cap is now `max-w-[85rem]` (1360px) in `app/admin/layout.js`,
+with `ReadingsCashUpBar` carrying the same number because it is fixed to the
+bottom of the window and has to line up with the content above it.
+
+**Not wider than that.** A bigger monitor gains nothing from a longer line, and
+1360 is the screen this is for rather than a number chosen to fill whatever is
+plugged in.
+
+**Extra width goes to tables, never to paragraphs.** Every pixel a table gains
+is a column that no longer has to be scrolled to. Every pixel a paragraph gains
+is a line the eye has to track further back across — at 1328px an ordinary note
+ran to 107 characters, well past the ~75 that is comfortable. The four
+multi-sentence notes at page level therefore carry `max-w-[70ch]`.
+
+Applied at the call site rather than as a class, because it is a judgement about
+each one: **a single-line statement of a figure is not prose** and looks wrong
+boxed into a narrow measure — *"2,000 L delivered on this date, costing
+Rs 731,200"* stays full width. Ask whether it is something to read or something
+to glance at.
+
+Nothing else needed changing: `StatGrid` and the Readings unit cards are already
+container-queried (`@[50rem]`, `@[54rem]`, `@[62rem]`), so they picked up the
+new width by themselves and were already at their widest layout at 1152.
+
+## A sidebar costs width, and width is not what a short screen lacks
+
+Asked whether the sidebar should collapse to a burger at 1600x900, the answer
+was measured rather than argued, and it was no:
+
+| | content width | rows visible |
+| --- | --- | --- |
+| as it was | 1152px | 16 |
+| sidebar hidden behind a burger | 1152px | 16 |
+| sidebar kept, cap widened | 1360px | 16 |
+
+The burger changed **nothing** — the container cap, not the sidebar, was what
+held the content at 1152, so hiding the nav moved the empty space from beside
+the content to beside the content. And rows visible never moved in any of the
+three, because **a sidebar occupies width and a short screen is short of
+height.** Hiding it would have cost a click on every navigation and bought
+nothing at all.
+
+The sidebar does already collapse to a burger below `lg` (1024px), which is
+where the trade actually turns: there, width is genuinely scarce.
+
+The general rule: **before hiding a control to make room, measure which
+dimension is short.** The instinct to reclaim space reaches for whatever is
+biggest on screen rather than for whatever is actually constraining the content.

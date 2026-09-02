@@ -151,7 +151,7 @@ export default async function CustomerDetailPage({ params, searchParams }) {
         <section>
           <h2 className="section-heading">Transaction history</h2>
 
-          <p className="mb-3 text-sm text-ink-600">
+          <p className="mb-3 max-w-[70ch] text-sm text-ink-600">
             Fuel taken on credit reaches this ledger by itself, from the readings screen. Nothing
             here is ever edited or deleted — a mistake is corrected with a new entry pointing the
             other way, so the history always adds up.

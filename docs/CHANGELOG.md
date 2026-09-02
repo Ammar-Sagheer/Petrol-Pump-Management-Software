@@ -6019,3 +6019,61 @@ no-op-control rule that came out of the owner's own question.
 **And the payment button is green.** It went into the page header at the default
 outlined style when it left the side column, so four grey buttons sat in a row
 and the action the page exists for read like *Back to customers*.
+
+## Sized for the 1600x900 laptop it is read on
+
+The owner's father uses this app on a 1600x900 laptop and asked for it to be
+optimised for that screen, and separately whether the sidebar should become a
+burger there.
+
+**What was measured first.** At 1600x900 the browser leaves about 780px of
+viewport. The sidebar takes 240px, so 1360px is available for content — and the
+content column was capped at `max-w-6xl`, 1152px. **104px of empty page down
+each side**, while the widest tables (the Sale & Stock Register, daily sales,
+the month export) scrolled sideways inside themselves to fit.
+
+**The cap is now `max-w-[85rem]` (1360px)** — exactly what that screen has, and
+deliberately no more: a bigger monitor gains nothing from a longer line of
+prose. `ReadingsCashUpBar` carries the same number, because it is fixed to the
+bottom of the window and any disagreement shows as the bar's edges not lining up
+with the table it is summing.
+
+**Prose got a measure instead.** At 1328px of text an ordinary explanatory note
+ran to 107 characters a line, well past the ~75 that reads comfortably. The four
+multi-sentence page-level notes now carry `max-w-[70ch]` (measured back to 71).
+The one-line statements of a figure were deliberately left full width — they are
+glanced at, not read, and look wrong boxed narrow.
+
+**The burger question, answered with a measurement rather than an opinion:**
+
+| | content width | rows visible |
+| --- | --- | --- |
+| as it was | 1152px | 16 |
+| sidebar hidden behind a burger | 1152px | 16 |
+| sidebar kept, cap widened | 1360px | 16 |
+
+Hiding the sidebar changed nothing, because the container cap — not the sidebar
+— was what held the content at 1152px. And rows visible never moved in any of
+the three: **a sidebar costs width, and a short screen is short of height.** It
+would have cost a click on every navigation and bought nothing. (Below 1024px it
+already collapses to a burger, which is where that trade does turn.)
+
+**Nothing else needed touching.** `StatGrid` and the Readings unit cards are
+container-queried rather than viewport-queried, so they took the new width by
+themselves — and were already at their widest layout at 1152, which is why the
+gain lands on tables where it is wanted.
+
+**Two comments were corrected rather than left stale.** `TreasuryEntryForm` and
+the Treasury page both record the measurement that sent the entry form behind a
+dialog: 736px of table needed, 504px available beside a 22rem form column at the
+1152px cap. At 1360 the split would clear it (952px). The dialog stays — the
+page still has to work below 1360, where the original measurement is unchanged,
+and the answer should not depend on how wide the window happens to be — but the
+arithmetic in the comment now says which cap it was measured against.
+
+**Verified** at 1600x780 (the real viewport of a 1600x900 laptop), 1152x700 and
+400x860: no page-level sideways scroll at any of them, the phone layout
+unchanged. The check was run against a representative table page with realistic
+data rather than against all twenty routes; the change is a single layout-level
+cap plus four paragraph caps, and the container-queried components were reasoned
+about rather than each rendered.

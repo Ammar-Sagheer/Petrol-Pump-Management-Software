@@ -187,7 +187,7 @@ export default async function StockChecksPage({ searchParams }) {
             </table>
           </div>
 
-          <p className="mb-8 mt-3 rounded-lg border border-ink-200 bg-white px-4 py-3 text-xs text-ink-600">
+          <p className="mb-8 mt-3 max-w-[70ch] rounded-lg border border-ink-200 bg-white px-4 py-3 text-xs text-ink-600">
             A book figure, not a measured one — there is no dip stick for a shelf of tins. It is
             opening stock plus everything bought, minus everything sold, up to {formatDate(date)}.
             Sales are recorded under{' '}

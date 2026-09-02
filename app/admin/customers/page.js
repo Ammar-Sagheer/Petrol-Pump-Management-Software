@@ -336,7 +336,7 @@ export default async function CustomersPage({ searchParams }) {
       {retired.length > 0 ? (
         <>
           <h2 className="section-heading">Removed</h2>
-          <p className="mb-3 text-sm text-ink-600">
+          <p className="mb-3 max-w-[70ch] text-sm text-ink-600">
             Off the customer list and off the credit-slip dropdown. Everything they ever took or
             paid still counts towards the months it belongs to. A name added by mistake can be
             deleted for good from here — only if it never actually traded, and the app will say so

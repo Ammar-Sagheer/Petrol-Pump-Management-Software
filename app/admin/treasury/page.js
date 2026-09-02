@@ -273,7 +273,12 @@ export default async function TreasuryPage({ searchParams }) {
 
           {/* The table gets the whole page: five columns, three of them money
               that must not wrap, is more than the 1fr track of a
-              form-beside-a-table split can hold at this app's max-w-6xl cap. */}
+              form-beside-a-table split can hold once the window is anything
+              short of the 1360px cap. The cap moved from 1152 to 1360 for the
+              laptop this is read on, which does now leave room for the split
+              at full width - but the page still has to work at 1152 and below,
+              where it does not, and a layout that rearranges itself around one
+              screen size is worse than one that reads the same everywhere. */}
           <div>
             <div>
               {/* The day IS the heading, because the day is the page. Every row

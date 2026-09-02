@@ -32,10 +32,17 @@ const money = (value) => {
  * page exists for and it is used five or six times a day, so a tap in front of
  * every entry is a real cost — but the sheet has six columns (date, reason,
  * in, out, balance, remove), three of them money that must not wrap, and it
- * needs about 736px. Beside a 22rem form column at the page's max-w-6xl cap
- * the table gets 504px, and rendered that way THE BALANCE COLUMN WAS OFF THE
- * RIGHT-HAND EDGE, inside the table's own scroller — the one column this page
- * exists to show, and the DOM check reported no clipping while it happened.
+ * needs about 736px. Beside a 22rem form column at the 1152px cap the page
+ * carried at the time, the table got 504px, and rendered that way THE BALANCE
+ * COLUMN WAS OFF THE RIGHT-HAND EDGE, inside the table's own scroller — the one
+ * column this page exists to show, and the DOM check reported no clipping while
+ * it happened.
+ *
+ * The cap has since moved to 1360px for the 1600x900 laptop this is read on,
+ * which would leave the table 952px and clear the 736px it needs. The dialog
+ * stays anyway: the page still has to work below 1360, where the original
+ * measurement is unchanged, and the answer should not depend on how wide the
+ * window happens to be.
  * See "Layout: form beside a table" in docs/UI_CONVENTIONS.md, which says
  * exactly this: when the table does not fit the 1fr track, put the form behind
  * a dialog rather than fight the split.

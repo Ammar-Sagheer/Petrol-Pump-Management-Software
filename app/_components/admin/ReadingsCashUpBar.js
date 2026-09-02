@@ -78,7 +78,10 @@ export default function ReadingsCashUpBar({ watchId, entered, total, litres, cas
                   transition-transform duration-200 ease-out
                   ${showing ? 'translate-y-0' : 'translate-y-full'}`}
     >
-      <div className="@container mx-auto w-full max-w-6xl px-4 pb-3">
+      {/* The same cap as the admin <main>, and it has to stay the same: this
+          bar is fixed to the bottom of the window, so any disagreement shows
+          up as the bar's edges not lining up with the table it is summing. */}
+      <div className="@container mx-auto w-full max-w-[85rem] px-4 pb-3">
         <div className="pointer-events-auto flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-ink-900 px-4 py-3 shadow-lg">
           {/* Progress first, because it answers "am I finished" - and it is
               the one figure here the tiles state as a fraction rather than as

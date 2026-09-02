@@ -141,7 +141,7 @@ export default async function PurchasesPage({ searchParams }) {
         ) : null}
 
         {lubricants.length === 0 && lubricantPurchases.length === 0 ? (
-          <p className="mb-4 rounded-lg border border-ink-200 bg-white px-4 py-3 text-sm text-ink-600">
+          <p className="mb-4 max-w-[70ch] rounded-lg border border-ink-200 bg-white px-4 py-3 text-sm text-ink-600">
             No lubricants have been set up yet, so only fuel can be recorded here. Add the brands
             the pump stocks under Lubricants and they will appear in this list too.
           </p>
