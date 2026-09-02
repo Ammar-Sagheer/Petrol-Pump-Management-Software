@@ -58,7 +58,14 @@ export async function getNozzles() {
   return unwrap(
     await supabase
       .from('nozzles')
-      .select('*, tank:tanks(id, name, fuel_type)')
+      // The reading COUNT, not the readings. Settings needs one bit per
+      // nozzle - has any day been entered against it - because a nozzle that
+      // has traded may no longer be re-pointed at another tank (060), and the
+      // dialog freezes that cell rather than letting the owner discover the
+      // rule from an error. An embedded count is one round trip and never
+      // grows; pulling the rows to length-check them would drag six months of
+      // readings into a settings page.
+      .select('*, tank:tanks(id, name, fuel_type), readings:nozzle_readings(count)')
       .order('unit_number')
       .order('commissioned_on', { nullsFirst: true })
       .order('nozzle_label'),

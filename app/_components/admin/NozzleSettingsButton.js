@@ -40,6 +40,13 @@ import Button from '@/app/_components/ui/Button';
  * while something else still occupies it. Their tank and starting meter stay
  * read-only: those are arithmetic behind readings that are already in the
  * books, not captions.
+ *
+ * AND THE TANK IS READ-ONLY ON ANY NOZZLE THAT HAS TRADED (060), retired or
+ * not. It was the one field here that could quietly rewrite the past: it says
+ * which tank every litre that nozzle ever sold came out of, with no date on it,
+ * so re-pointing a pump that had been trading all August moved a month of
+ * petrol into the diesel tank. That is a replacement - a date dividing before
+ * from after - and the dialog next door already does it properly.
  */
 export default function NozzleSettingsButton({ nozzles, tanks }) {
   const formRef = useRef(null);
@@ -98,8 +105,8 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
         >
           <p className="text-sm text-ink-600">
             Change the unit number and nozzle label to match how the forecourt is arranged now.
-            The tank decides which stock a sale comes out of; the starting reading is only used
-            until that nozzle has its first day entered.
+            The tank decides which stock a sale comes out of, so it can only be picked before that
+            nozzle has its first day entered; the starting reading is only used until then too.
           </p>
 
           <p className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-xs text-ink-700">
@@ -110,6 +117,20 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
             different hardware, use{' '}
             <span className="font-semibold">Replace this unit</span> instead: that keeps the old
             readings under the old pump and starts the new one from its own meter.
+          </p>
+
+          {/* THE TWO NOTICES ARE THE TWO WAYS THIS DIALOG CAN LIE ABOUT THE
+              PAST, and they share one remedy, so they read as one box. Split
+              into three the panel became a wall the owner scrolls past to reach
+              the table - and the tank rule is the one he most needs to have
+              read, because it is the one that moved a month of August. */}
+          <p className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-xs text-ink-700">
+            <span className="font-semibold">So does the fuel a pump draws.</span> The tank is fixed
+            once a nozzle has days entered against it, because it is what decides which stock every
+            one of those days came out of — changing it would move months of litres from one tank
+            to the other. A pump re-piped onto another fuel is a replacement too: give the old fuel
+            its last day and the new fuel its first, and carry the meter across at the figure it
+            stands at.
           </p>
 
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
@@ -131,6 +152,11 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
               <tbody className="divide-y divide-ink-100">
                 {nozzles.map((nozzle) => {
                   const retired = Boolean(nozzle.retired_on);
+                  // Has any day been entered against this nozzle. Carried from
+                  // getNozzles() as an embedded count rather than derived here,
+                  // because the answer is a fact about the books, not about
+                  // anything this dialog can see.
+                  const traded = (nozzle.readings?.[0]?.count ?? 0) > 0;
 
                   return (
                     <tr key={nozzle.id} className={retired ? 'bg-ink-50/60' : undefined}>
@@ -197,51 +223,71 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
                         ) : null}
                       </td>
 
-                      {retired ? (
-                        // Read-only, and shown rather than hidden: the owner is
-                        // renumbering this row and needs to see WHICH pump it
-                        // is, and "Diesel Tank, 1,985,669.36" is how he knows.
-                        <>
-                          <td className="td text-ink-500">{nozzle.tank?.name ?? '—'}</td>
-                          <td className="td tabular whitespace-nowrap text-ink-500">
-                            {formatLitres(nozzle.starting_reading)}
-                          </td>
-                        </>
+                      {/* THE TANK IS FROZEN THE MOMENT THE NOZZLE HAS TRADED
+                          (060), not merely when it is retired. tank_id is a
+                          single undated fact, and every litre this nozzle has
+                          ever sold is counted against whichever tank it names
+                          RIGHT NOW - so changing it here rewrites months of
+                          stock, gain/loss and litres-by-fuel silently, which is
+                          what happened to August on 2 Sep 2026. Read-only
+                          rather than hidden, for the same reason a replaced
+                          row's is: the owner is renumbering this row and needs
+                          to see WHICH pump it is. */}
+                      {retired || traded ? (
+                        <td className="td whitespace-nowrap text-ink-500">
+                          {nozzle.tank?.name ?? '—'}
+                          {!retired ? (
+                            <span className="mt-0.5 block text-xs text-ink-500">
+                              set — this nozzle has days entered
+                            </span>
+                          ) : null}
+                        </td>
                       ) : (
-                        <>
-                          <td className="td">
-                            <label className="sr-only" htmlFor={`tank-${nozzle.id}`}>
-                              Tank for unit {nozzle.unit_number} nozzle {nozzle.nozzle_label}
-                            </label>
-                            <select
-                              id={`tank-${nozzle.id}`}
-                              name={`tank_id__${nozzle.id}`}
-                              defaultValue={nozzle.tank_id ?? ''}
-                              className="input w-auto py-1.5 text-sm"
-                            >
-                              {tanks.map((tank) => (
-                                <option key={tank.id} value={tank.id}>
-                                  {tank.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="td">
-                            <label className="sr-only" htmlFor={`start-${nozzle.id}`}>
-                              Starting meter reading for unit {nozzle.unit_number} nozzle{' '}
-                              {nozzle.nozzle_label}
-                            </label>
-                            <NumberInput
-                              id={`start-${nozzle.id}`}
-                              name={`starting_reading__${nozzle.id}`}
-                              defaultValue={nozzle.starting_reading ?? 0}
-                              min="0"
-                              step="0.01"
-                              required
-                              className="input tabular w-32 py-1.5 text-sm"
-                            />
-                          </td>
-                        </>
+                        <td className="td">
+                          <label className="sr-only" htmlFor={`tank-${nozzle.id}`}>
+                            Tank for unit {nozzle.unit_number} nozzle {nozzle.nozzle_label}
+                          </label>
+                          <select
+                            id={`tank-${nozzle.id}`}
+                            name={`tank_id__${nozzle.id}`}
+                            defaultValue={nozzle.tank_id ?? ''}
+                            className="input w-auto py-1.5 text-sm"
+                          >
+                            {tanks.map((tank) => (
+                              <option key={tank.id} value={tank.id}>
+                                {tank.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
+
+                      {/* The starting meter stays editable on a live nozzle
+                          even once it has traded. Unlike the tank it is not
+                          load-bearing after the first day is entered - 012 only
+                          ever consults it until then - so freezing it would buy
+                          nothing and take away the field the warning above
+                          tells him to use. */}
+                      {retired ? (
+                        <td className="td tabular whitespace-nowrap text-ink-500">
+                          {formatLitres(nozzle.starting_reading)}
+                        </td>
+                      ) : (
+                        <td className="td">
+                          <label className="sr-only" htmlFor={`start-${nozzle.id}`}>
+                            Starting meter reading for unit {nozzle.unit_number} nozzle{' '}
+                            {nozzle.nozzle_label}
+                          </label>
+                          <NumberInput
+                            id={`start-${nozzle.id}`}
+                            name={`starting_reading__${nozzle.id}`}
+                            defaultValue={nozzle.starting_reading ?? 0}
+                            min="0"
+                            step="0.01"
+                            required
+                            className="input tabular w-32 py-1.5 text-sm"
+                          />
+                        </td>
                       )}
                     </tr>
                   );

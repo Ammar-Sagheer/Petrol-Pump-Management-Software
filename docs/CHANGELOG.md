@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **059**.
+logins, one pump. Migrations run to **061**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -5642,3 +5642,90 @@ sold is 0.00, stock value at 31 Aug and 30 Sep are both Rs 605,388.60, the 31 Au
 dips still flag their −27.52 L, lifetime gain/loss is unchanged at 2,011.50, all
 186 readings are untouched, and the Stock page's 971/743 now agrees with the
 valuation instead of contradicting it.
+
+## The tank a nozzle draws from is not a caption (migrations 060, 061)
+
+**What happened, and it is worth reading before touching `nozzles` again.** The
+forecourt was rearranged on 1 September 2026. The diesel pump at position 1 was
+damaged and scrapped; the petrol pump at position 2 was moved into position 1
+and re-piped onto **diesel**; a new pump was set down at position 2 on
+**petrol**; Unit 3 was untouched. Three events, and the owner recorded the first
+two exactly right — a rename (058) for the move, "Replace this unit" (056) for
+the scrapped pump, both on the correct dates.
+
+The third he recorded on 2 September by opening **Edit nozzle wiring** and
+changing the moved pump's tank from Petrol to Diesel. Forwards that is true.
+Backwards it is not, and `nozzles.tank_id` has no date on it — so it applied
+backwards too:
+
+|                | as the books read | as it actually happened |
+| -------------- | ----------------- | ----------------------- |
+| August diesel  | 32,213.62 L       | 12,920.36 L             |
+| August petrol  | 30,605.16 L       | 49,898.42 L             |
+
+19,293.26 litres of August petrol became diesel in one dropdown. Every figure
+that asks *which tank did this litre come out of* — stock, gain/loss, litres by
+fuel, the profit split, the month export — answers it by joining
+`nozzle_readings` to `nozzles` and reading `tank_id` **as it stands now**.
+
+**The money was never wrong.** `rate_per_litre` and `sale_amount` are stored on
+each reading, so cash, credit, customer balances, the treasury and total revenue
+were all intact throughout. So was the *current* stock figure: both tanks were
+dipped on 1 September, and `calculate_expected_stock` measures from the latest
+dip, so nothing before it reaches today's number. What moved was August.
+
+**060 closes the door.** `set_nozzle_wiring()` now refuses to change `tank_id`
+on a nozzle that has any reading against it, and the message names the dialog
+that does the job properly. 056 had already frozen `tank_id` on a *retired*
+nozzle and had written down exactly this reason — "its tank_id decides which
+tank every one of its past sales was drawn out of". The argument was always
+about the readings, never about the retirement; retirement was just the only
+case anyone had hit. The rule is now the one 012 already applies to
+`starting_reading`: **settable until the nozzle's first saved reading, history
+after it.** A nozzle with no readings can still be re-pointed freely, which is
+how a freshly fitted pump gets corrected — and is why the other half of the
+owner's 2 September change (the new Unit 2 pair, which had never traded) was
+harmless.
+
+**061 puts August back**, and does it by saying what actually happened rather
+than by undoing a field. The pump is recorded the way the books already know how
+to record a pump whose fuel changed on a day: Unit 1 · A and B go back onto the
+petrol tank and are **retired 31 Aug**; two new Unit 1 nozzles are **fitted 1
+Sep** on the diesel tank, with `starting_reading` set to each meter's 31 August
+closing — 48,760.78 and 24,835.72, not 0, because the meter did not go back to
+zero, only the fuel behind it changed. `replaced_by` links them. That is
+`replace_unit()` in every respect except that the hardware did not change, which
+the books do not care about: a nozzle row *is* "a meter, drawing from a tank,
+over a span of days".
+
+**Why not date `tank_id` instead.** Because a dated nozzle already exists —
+`commissioned_on`/`retired_on` — and a second, parallel notion of "this row's
+tank, but only for these days" would have to be learned by every one of the
+dozen places that join a reading to a tank, each of them a money figure. A new
+nozzle row costs one insert and every existing query is already correct against
+it.
+
+**Verified against the live schema in a rolled-back transaction**, since the
+scenario only exists there: after the repair August reads 49,898.42 L petrol and
+12,920.36 L diesel (the "as it happened" column above), `set constraints all
+immediate` accepts the forecourt so `nozzles_one_pump_per_position` is satisfied
+on both sides of 31 August, `recalc_tank_stock` leaves the tanks at 971 and
+5,743 exactly as before, and the 060 guard blocks a traded nozzle while still
+allowing an untraded one. Nothing was written; the migration is the thing to
+run.
+
+**The dialog shows the rule rather than teaching it by error.** The tank cell is
+read-only on any nozzle that has traded, captioned *"set — this nozzle has days
+entered"*, and the notice above the table gained a second paragraph folded into
+the existing renaming one — not a third box, because three notices is a wall the
+owner scrolls past, and this is the one he most needs to have read. The starting
+meter stays editable on a live nozzle: unlike the tank it is dead data after the
+first day (012), so freezing it would buy nothing and take away the field the
+amber warning tells him to use. `getNozzles()` carries an embedded
+`nozzle_readings(count)` to answer "has it traded" in one round trip.
+
+**One thing for the owner, not a bug.** The new Unit 2's meters were set to
+41.04 and 44.26 rather than 0 — litres that left the petrol tank during
+commissioning and will never be a sale. If they were drawn *after* the 1
+September dip, they will surface as a petrol stock loss at the next dip. That is
+correct bookkeeping; it is only surprising if you have forgotten why.

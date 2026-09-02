@@ -2695,3 +2695,41 @@ Two rules fall out of it:
   "Unit 2 · Nozzle A" and "Diesel Tank, 1,985,669.36 L" is the only thing that
   says which is which. Each row also carries its own date — *replaced 31 Aug
   2026*, *fitted 01 Sep 2026*.
+
+## A field that rewrites the past is disabled, not merely warned about
+
+The section above is about a field whose reach is *stated*. This is its harder
+case: a field whose reach cannot be stated usefully, because there is no reading
+of it the user could have meant that is safe.
+
+`nozzles.tank_id` was that field. It says which tank every litre a nozzle has
+ever sold came out of, with no date on it, and it sat in the wiring dialog as an
+ordinary dropdown next to two captions. Picking the other tank on a pump that
+had been trading all August moved 19,293.26 litres of petrol into the diesel
+tank — silently, because nothing on the screen was about August. The full story
+is in `docs/CHANGELOG.md` under "The tank a nozzle draws from is not a caption".
+
+The rule that came out of it:
+
+- **If the only correct answer is a date the form cannot ask for, take the field
+  away and name the control that can.** The tank cell is now read-only on any
+  nozzle with a reading against it, captioned *"set — this nozzle has days
+  entered"*, and the notice points at **Replace this unit**, which asks for the
+  two dates and carries the meter across. A warning would not have been enough:
+  the owner was doing the right thing to the forecourt and had no reason to
+  suspect the form of reaching backwards.
+- **Freeze the field that is load-bearing, not every field on the row.** The
+  starting meter stays editable on the same rows, because after a nozzle's first
+  day it is dead data (012) and the amber notice above the table tells the owner
+  to set it. Freezing a row wholesale is easier to write and worse to use.
+- **Disable from a fact about the books, fetched as a count.** `getNozzles()`
+  embeds `nozzle_readings(count)`; the dialog reads one integer per row. Do not
+  infer "has it traded" from anything already on the screen — the screen is
+  about the forecourt today, and this question is about every day.
+- **The database still says no.** `set_nozzle_wiring()` (060) refuses the change
+  whatever the form sends. The read-only cell is the courtesy; the guard is the
+  rule.
+
+Where three notices would stack above a table, fold the new one into an existing
+box rather than adding a third — the owner scrolls past a wall to reach the
+fields, and the rule he most needs to have read is the one that gets skipped.
