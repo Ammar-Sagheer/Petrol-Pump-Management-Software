@@ -70,8 +70,15 @@ export default async function CustomerDetailPage({ params, searchParams }) {
       <div className="space-y-6">
         {/* THE TWO SUMMARIES SIDE BY SIDE, so the ledger below gets the whole
             width. They are read once on arrival - what is owed, what has been
-            taken - and then the eye goes to the table and stays there. */}
-        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+            taken - and then the eye goes to the table and stays there.
+
+            `items-start` so each card is only as tall as what is in it. A grid
+            stretches its children to the tallest by default, which gave a
+            customer with one fuel a band at the top of the card and a hand's
+            width of empty paper under it - the thing that reads as broken
+            rather than merely uneven. Two cards of different heights is what a
+            summary row normally looks like. */}
+        <div className="grid items-start gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           {/* ---- balance ---- */}
           <section className="card p-5">
             <p className="figure-label">
@@ -119,25 +126,47 @@ export default async function CustomerDetailPage({ params, searchParams }) {
           {statement.fuel_taken?.length > 0 ? (
             <section className="card p-5">
               <h2 className="mb-3 text-sm font-bold text-ink-900">Fuel taken in total</h2>
-              {/* These two tiles used to hard-code `bg-sky-50` for petrol and
+              {/* These tiles used to hard-code `bg-sky-50` for petrol and
                   `bg-amber-50` for diesel, which is precisely the drift
                   fuel-colors.js exists to stop - the fuels changed to blue and
                   orange everywhere else and this corner stayed on the old
                   pair. It reads from the module now, and wears the badge
-                  rather than its own hand-written label. */}
-              <div className="grid gap-3 sm:grid-cols-2">
+                  rather than its own hand-written label.
+
+                  THE COLUMN COUNT FOLLOWS THE DATA, and this was a real bug
+                  rather than a nicety. `sm:grid-cols-2` was unconditional, so a
+                  customer who has only ever bought one fuel - most of them -
+                  got one tile in the left half and a hole in the right, which
+                  read as though the page were waiting for a diesel figure to
+                  arrive. Widening the page to 1360px made a small oddity into
+                  half an empty card. Only the fuels actually taken are ever in
+                  `fuel_taken`, so the grid asks how many there are.
+
+                  AND THE BAND IS HORIZONTAL, badge one side, figures the
+                  other. Stacked, a full-width tile is a label with two numbers
+                  under it and a stretch of empty paper to their right; spread
+                  apart they read as one line - "Petrol ... 68.63 L, Rs 23,101"
+                  - which is how the same pair reads on the Stock page. It also
+                  survives the narrow case, where two bands sit side by side. */}
+              <div
+                className={`grid gap-3 ${
+                  statement.fuel_taken.length > 1 ? 'sm:grid-cols-2' : ''
+                }`}
+              >
                 {statement.fuel_taken.map((row) => {
                   const color = fuelColor(row.fuel_type);
                   return (
                     <div
                       key={row.fuel_type}
-                      className={`rounded-lg border-l-4 bg-ink-50 p-3 ${color.border}`}
+                      className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border-l-4 bg-ink-50 p-3 ${color.border}`}
                     >
                       <FuelBadge fuelType={row.fuel_type} />
-                      <p className="tabular mt-2 text-xl font-bold text-ink-900">
-                        {formatLitres(row.litres)}
-                      </p>
-                      <p className="tabular text-sm text-ink-600">{formatPKR(row.amount)}</p>
+                      <div className="text-right">
+                        <p className="tabular text-xl font-bold text-ink-900">
+                          {formatLitres(row.litres)}
+                        </p>
+                        <p className="tabular text-sm text-ink-600">{formatPKR(row.amount)}</p>
+                      </div>
                     </div>
                   );
                 })}

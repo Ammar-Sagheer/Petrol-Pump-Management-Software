@@ -2889,3 +2889,39 @@ where the trade actually turns: there, width is genuinely scarce.
 The general rule: **before hiding a control to make room, measure which
 dimension is short.** The instinct to reclaim space reaches for whatever is
 biggest on screen rather than for whatever is actually constraining the content.
+
+
+## A grid of "however many there are" must not hard-code how many
+
+The customer page's *Fuel taken in total* card carried `sm:grid-cols-2` because
+the pump sells two fuels. Most customers have only ever bought one, so most of
+the time it rendered one tile in the left half and a hole in the right — which
+does not read as "this customer buys one fuel", it reads as **a figure that has
+not arrived yet.** The owner asked whether the page was waiting for a diesel
+entry. It was not; the list only ever contains fuels actually taken.
+
+Two rules from it:
+
+- **Let the column count follow the data** — `rows.length > 1 ? 'sm:grid-cols-2' : ''`.
+  A fixed column count is only safe when the number of items is fixed too.
+- **Widening a page turns small oddities into obvious ones.** This was mildly
+  untidy at 1152px and half an empty card at 1360px. Anything laid out as a
+  fraction of the page is worth re-checking after a width change, especially
+  where the item count varies.
+
+**And a lone tile should spread, not stack.** Full width, a badge with two
+numbers stacked under it leaves a stretch of empty paper to their right. Badge
+one side, figures the other, reads as a single line — *Petrol … 68.63 L,
+Rs 23,101* — and still works when two sit side by side.
+
+## `items-start` on a summary row, so a short card stays short
+
+A grid stretches its children to the height of the tallest by default. A
+one-line fuel card next to the taller balance card therefore became a band at
+the top with a hand's width of blank card beneath it — the thing that reads as
+broken, where two cards of honestly different heights read as normal. Summary
+rows here take `items-start`.
+
+The general form: **stretch-to-match is right when the cards hold comparable
+amounts, and wrong when one of them is a single line.** Ask which you have
+before accepting the default.

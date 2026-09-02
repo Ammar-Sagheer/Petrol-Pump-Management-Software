@@ -6077,3 +6077,34 @@ unchanged. The check was run against a representative table page with realistic
 data rather than against all twenty routes; the change is a single layout-level
 cap plus four paragraph caps, and the container-queried components were reasoned
 about rather than each rendered.
+
+### The one-fuel customer's summary card
+
+Reported straight after the width change, and a real bug the wider page merely
+exposed: *Fuel taken in total* rendered one tile in the left half of a
+two-column grid and nothing in the right, for the majority of customers who have
+only ever bought one fuel. The owner's own reading of it — *"is it waiting for
+diesel entry too?"* — is exactly the problem: an empty half looks like a pending
+figure, not like an absent one. It is not waiting; `fuel_taken` only ever holds
+fuels actually taken (checked against the live data for the customer in the
+screenshot: four petrol slips, no diesel ever).
+
+Three changes, all on `/admin/customers/[id]`:
+
+- **The column count follows the data** — `sm:grid-cols-2` only when there is
+  more than one fuel. `sm:grid-cols-2` was unconditional.
+- **The band is horizontal**, badge one side and figures the other, so a
+  full-width tile reads as one line rather than a label with two numbers under
+  it and empty paper to their right. It still reads correctly in the narrow case
+  where two bands sit side by side.
+- **`items-start` on the summary row**, so the card is only as tall as what is
+  in it. The grid had been stretching it to match the taller balance card,
+  leaving a hand's width of blank card under a single band.
+
+Rendered at 1600x900 and 400x900 with both cases — one fuel and two — side by
+side on one page, so the comparison was looked at rather than reasoned about.
+
+This is the second thing the 1152 → 1360 widening turned up (the first being
+prose measure), which is the entry's real lesson: **anything laid out as a
+fraction of the page wants re-checking after a width change, especially where
+the number of items varies.**
