@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **061**.
+logins, one pump. Migrations run to **062**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -5729,3 +5729,41 @@ amber warning tells him to use. `getNozzles()` carries an embedded
 commissioning and will never be a sale. If they were drawn *after* the 1
 September dip, they will surface as a petrol stock loss at the next dip. That is
 correct bookkeeping; it is only surprising if you have forgotten why.
+
+### August keeps the numbers August had (migration 062)
+
+A follow-on, and only possible because of 061. `unit_number` is one field per
+nozzle row, so the 1 September renumbering had taken each pump's whole August
+with it — leaving August captioned as the mirror image of the forecourt that
+actually stood there: Unit 1 reading petrol (the pump that later moved) and
+Unit 2 reading diesel (the pump that was scrapped).
+
+061 had split the moved pump into two rows, petrol to 31 Aug and diesel from 1
+Sep, because its *fuel* changed on a date. Its *position* changed on the same
+date — so once there were two rows there was somewhere to put the two answers,
+and the fix is a relabel of rows that already carry the right dates. The
+scrapped pump goes back to Unit 1, where it stood every day it dispensed; the
+moved pump's August rows go back to Unit 2, where it stood every day those
+readings were taken. September is untouched.
+
+**August now reads as it was:** Unit 1 diesel 12,920.36 L, Unit 2 petrol
+19,293.26 L, Unit 3 petrol 30,605.16 L. **September onward reads as it is:**
+Unit 1 diesel from 48,760.78, Unit 2 petrol from 41.04, Unit 3 unchanged. No
+reading, rupee or litre moved — `unit_number` is a caption, and which tank a
+sale came out of is `tank_id`, which 061 had already put right.
+
+**One statement, because it is a swap.** The relabel passes through a moment
+where two rows claim Unit 1, so it lives in a single DO block and lets
+`nozzles_one_pump_per_position` (deferred, 058) check once at the end. This is
+the same reason 058 made that constraint deferrable in the first place.
+
+**The scrapped pump's `replaced_by` had to move too.** It pointed at the new
+*petrol* pump — true only in the sense that both wore the number 2 for a day,
+because "Replace this unit" was run on Unit 2 at a moment when the renumbering
+had already happened. It now points at the pump standing at Unit 1 on diesel,
+which is what took over its position and its fuel. That leaves the September
+diesel row with two predecessors and both are true: same machine as the August
+Unit 2 petrol row (it moved), successor at position 1 to the August Unit 1
+diesel row (it took over). `replaced_by` is a record read by nothing in the
+app, so the fan-in costs nothing and naming only one of the two would be the
+lie.
