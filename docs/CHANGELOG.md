@@ -6147,3 +6147,55 @@ reads as one card and the space beside it is simply the page.
 
 **Ask what is behind the gap, not whether the count varies.** Card surface is a
 hole; page background is a margin. No code changed.
+
+## The sidebar: a burger on the laptop, and pinnable
+
+Two requests, one after the other. The sidebar was a permanent 240px column
+above 1024px, so a 14in 1600x900 laptop carried it always — and it only became a
+burger if the window was dragged narrower than 1024. And there was no way to
+keep the menu open once it was: the drawer closed itself on every navigation.
+
+**Asked once before and answered with a measurement that said no.** That
+measurement was right about what it measured — hiding the sidebar bought zero
+extra rows, because the *content cap* and not the sidebar was holding the page
+at 1152px, and a sidebar costs width where a short screen is short of height.
+What it did not weigh is that 240px of permanent nav on a physically small 14in
+panel is a real cost even when the pixel count says otherwise, and that the same
+screen answering two different ways as you resize is its own annoyance. Asked
+again with that context, the answer changes.
+
+**The breakpoint moves to 1620px** — where a window can hold the 240px column
+and the 1360px content cap together. Picked so the content width barely moves
+across it: 1360 with a burger at 1600, 1360 with the column at 1620. A
+breakpoint that reflows the page is worse than either side of it.
+
+**And the reader overrides it.** The burger pins the column open on anything but
+a phone, and it stays across navigations and reloads until the close button in
+its header puts it away. Below 1024px the burger still opens the overlay,
+because a pinned column over a 400px screen leaves nothing to pin it beside.
+
+**The choice is a cookie the ROOT layout reads**, stamping `data-nav` onto
+`<html>` server-side — so the first paint is already right. Read on the client it
+would paint one layout and jump to the other on every navigation. The toggle
+writes both: the attribute for this instant, the cookie for the next request.
+
+**Three classes, not repeated Tailwind variants**, because four elements in
+three files have to agree about whether the column is standing: the column, the
+burger bar, the drawer, and the content padding — which is applied in the admin
+layout *and* in `ReadingsCashUpBar`. That is not a hypothetical: the bar carried
+its own copy of the breakpoint, the layout's copy moved, and the bar sat
+indented 240px for a column that was no longer there. `.nav-column`,
+`.nav-when-burger` and `.nav-offset` in globals.css now hang off the one
+attribute.
+
+**One regression caught in review of my own change:** `pr-12` on the column
+header, added to clear the close button, pushed *"Muhammad Sagheer · Owner"*
+onto two lines — the exact squeeze the drawer's own comment warns about. The
+block is centred and the logo row leaves the corner empty, so the button sits
+over nothing and the padding was dropped.
+
+**Verified at 1600x780 through the whole cycle** — fresh (burger), pin,
+client-side navigation, full reload, hide, reload again — each step asserting
+`data-nav`, the column's computed display, the burger bar's, the content
+padding and the cookie. Plus a phone check that the burger still opens the
+overlay and does not pin.

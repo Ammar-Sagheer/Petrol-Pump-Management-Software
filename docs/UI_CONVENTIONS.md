@@ -2940,3 +2940,44 @@ rows here take `items-start`.
 The general form: **stretch-to-match is right when the cards hold comparable
 amounts, and wrong when one of them is a single line.** Ask which you have
 before accepting the default.
+
+
+## The sidebar is the reader's choice, not the breakpoint's
+
+The nav was a permanent 240px column above 1024px and a burger below. On a 14in
+1600x900 laptop that meant a fixed column on a physically small screen, which
+only went away if the window was dragged narrower than 1024 — the same screen
+answered two different ways, and the wrong way at the size the app is used at.
+
+**The breakpoint is now 1620px**, which is where a window can hold the 240px
+column *and* the 1360px content cap at once. Below it the column is taking width
+out of the thing being read. It was picked so the content width barely moves
+across it — 1360 either side — because **a breakpoint that visibly reflows the
+page is worse than either of the layouts it switches between.**
+
+**And the reader overrides it.** The burger pins the column open on anything but
+a phone; it stays open across navigations and reloads until the close button in
+its header puts it away. Below 1024px the burger still opens the overlay drawer:
+a 240px column pinned over a 400px screen leaves nothing to pin it beside, so
+there the menu stays a thing you visit and dismiss.
+
+Three rules came out of building it:
+
+- **A layout preference is read on the server, not the client.** The choice is a
+  cookie; `app/layout.js` reads it and stamps `data-nav` onto `<html>` in the
+  first response. Read in a `useEffect` instead, the page paints one layout and
+  jumps to the other — on every navigation. Write both on toggle: the attribute
+  for this instant, the cookie for the next request.
+- **When several elements must agree about one layout fact, give them a class,
+  not a repeated variant.** Four elements in three files depend on whether the
+  column is standing: the column, the burger bar, the drawer, and the padding
+  that keeps content clear — and that padding is applied in two files.
+  `.nav-column` / `.nav-when-burger` / `.nav-offset` hang off `data-nav` in
+  globals.css. The repeated-variant version had already failed once:
+  `ReadingsCashUpBar` kept its own copy of the breakpoint, the layout's moved,
+  and the bar sat indented 240px for a column that was not there.
+- **Don't reserve space for a control that can sit over empty space.** `pr-12`
+  on the column header, to clear the new close button, pushed *"Muhammad
+  Sagheer · Owner"* onto two lines. The block is centred and the logo row leaves
+  the corner empty, so the button overlaps nothing and the padding was simply
+  wrong.
