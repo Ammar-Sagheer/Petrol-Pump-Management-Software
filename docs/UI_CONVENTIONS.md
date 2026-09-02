@@ -2801,5 +2801,17 @@ sales.
 
 And **say the deadline where the field is**, not only in the schema comment. A
 starting reading does nothing once that nozzle has a saved day, so the notice
-now says what happens after: the meter has to be corrected on the reading
-itself. A field that quietly stops working is worse than one that is disabled.
+says what happens after and the box itself goes grey, captioned *fixed — the
+first day holds it*.
+
+That last part was a correction. The meter was first left editable on a nozzle
+that had traded, reasoning that a dead field can do no HARM. It was the owner
+asking — *if my accountant finds the difference was smaller, can I just change
+it there?* — that showed the reasoning was backwards: he can, until the first
+day is entered, and afterwards the same edit **saves cleanly, reports success,
+and changes nothing on any screen**.
+
+**A control that silently no-ops is worse than one that is disabled**, and worse
+than one that errors. Disable it, say why in the cell, and name the route that
+does work — here: delete the day on Readings, correct the meter, enter the day
+again. "It can do no harm" is not the test; "will the user believe it worked" is.

@@ -5903,3 +5903,37 @@ books.
 **What to watch:** the reading above is that no fuel moved, so a coming diesel
 dip should come out clean. If one instead lands roughly 157 L short, some of it
 did leave after all and this entry is the place to start.
+
+### The starting meter goes grey once a day is entered
+
+A follow-on to the entry above, prompted by the owner asking a question the app
+answered wrongly: *if my accountant verifies the difference was smaller, can I
+just change the value in nozzle wiring?*
+
+He can — **until that nozzle's first day is entered**. After that the field is
+consulted by nothing (012): the day's opening is stored on the reading row, and
+every later day chains off the previous day's closing. The edit still saves,
+still reports success, and changes nothing anywhere.
+
+That field had been left editable on a traded nozzle on purpose, on the grounds
+that a dead field can do no harm. The question showed the reasoning was
+backwards — it does no good either, in a box that looks exactly as live as the
+one beside it, and the owner would have gone away believing a figure had moved.
+So it now shows the litres read-only, captioned *fixed — the first day holds
+it*, matching the tank cell two columns across (060) but for the opposite
+reason: the tank is frozen because changing it rewrites the past, this because
+changing it does nothing at all.
+
+**The route that does work is named in the notice**, since there is one: delete
+the day on the Readings screen, correct the meter here, enter the day again.
+
+No migration. 060 froze the tank in the database as well because changing it was
+actively harmful; changing a dead starting reading is merely useless, so the
+guard belongs in the screen that would otherwise mislead someone and nowhere
+else.
+
+Rendered at 1152px and 400px with a mix of rows — retired, live-with-no-days,
+live-with-days — confirming exactly two meter boxes stay editable and that the
+caption no longer clips at the edge of the dialog's scroller (`whitespace-normal`
+on the caption, since the cell is `whitespace-nowrap` to keep the litres figure
+from breaking mid-number).

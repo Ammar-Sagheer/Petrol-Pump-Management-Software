@@ -41,6 +41,14 @@ import Button from '@/app/_components/ui/Button';
  * read-only: those are arithmetic behind readings that are already in the
  * books, not captions.
  *
+ * SO IS THE STARTING METER, ONCE THE NOZZLE HAS TRADED - for the opposite
+ * reason to the tank's. The tank was frozen because changing it rewrites the
+ * past; this is frozen because changing it does NOTHING, and says so with a
+ * green tick. It is consulted until that nozzle's first saved day and is dead
+ * data after (012), so an owner adjusting it later gets a success message and
+ * no change anywhere. The recovery path is real and is named in the notice
+ * above: delete the day, fix the meter, enter the day again.
+ *
  * AND THE TANK IS READ-ONLY ON ANY NOZZLE THAT HAS TRADED (060), retired or
  * not. It was the one field here that could quietly rewrite the past: it says
  * which tank every litre that nozzle ever sold came out of, with no date on it,
@@ -142,11 +150,12 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
               about leaving it at 0) did not cover. */}
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
             Set a starting reading <span className="font-semibold">before</span>{' '}
-            that nozzle&apos;s first day is entered — afterwards this field does nothing and the meter has to be
-            corrected on the reading itself. Use it when a newly fitted pump does not read what you
-            expected: left at 0 on a pump that has been trading, the first day counts the meter&apos;s
-            whole lifetime as one day of sales, and set below the true reading it counts the
-            difference as sales nobody paid for.
+            that nozzle&apos;s first day is entered — it is what that first day opens on. Left at 0
+            on a pump that has been trading, the first day counts the meter&apos;s whole lifetime as
+            one day of sales; set below the true reading, it counts the difference as sales nobody
+            paid for. Once the first day is saved the box goes grey, because the figure has moved
+            into that reading: to change it then, delete the day on the Readings screen, correct
+            the meter here, and enter the day again.
           </p>
 
           <div className="card table-scroll">
@@ -272,15 +281,34 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
                         </td>
                       )}
 
-                      {/* The starting meter stays editable on a live nozzle
-                          even once it has traded. Unlike the tank it is not
-                          load-bearing after the first day is entered - 012 only
-                          ever consults it until then - so freezing it would buy
-                          nothing and take away the field the warning above
-                          tells him to use. */}
-                      {retired ? (
+                      {/* FROZEN ONCE THE NOZZLE HAS TRADED, and the reasoning
+                          here was wrong the first time round. It was left
+                          editable because a starting reading is dead data after
+                          the first saved day (012), so changing it can do no
+                          HARM - which missed that it also does no GOOD, in a
+                          box that looks exactly as live as the one above it.
+                          The owner asked, in as many words, whether he could
+                          come back and adjust this figure if his accountant
+                          found a smaller difference. He can, until the first
+                          day is entered; after that the same edit saves
+                          cleanly, reports success, and changes nothing on any
+                          screen. A field that quietly stops working is worse
+                          than one that is disabled - this file's own rule, from
+                          the tank cell two rows up. So it says where the figure
+                          lives now instead. */}
+                      {retired || traded ? (
                         <td className="td tabular whitespace-nowrap text-ink-500">
                           {formatLitres(nozzle.starting_reading)}
+                          {/* whitespace-normal: the cell is nowrap so the litres
+                              figure never breaks mid-number, and that was
+                              holding this caption on one line too - wide enough
+                              to be clipped at the edge of the dialog's own
+                              scroller. */}
+                          {!retired ? (
+                            <span className="mt-0.5 block whitespace-normal text-xs font-normal text-ink-500">
+                              fixed — the first day holds it
+                            </span>
+                          ) : null}
                         </td>
                       ) : (
                         <td className="td">
