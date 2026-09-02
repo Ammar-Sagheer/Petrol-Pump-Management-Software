@@ -133,10 +133,20 @@ export default function NozzleSettingsButton({ nozzles, tanks }) {
             stands at.
           </p>
 
+          {/* THE DEADLINE, AND NOW ALSO THE SECOND REASON TO USE IT. A starting
+              reading is consulted until that nozzle's first saved day and is
+              dead data afterwards (012) - so this is the one field on the page
+              with an expiry, and the owner needs to know he is inside it. The
+              case that sent him looking was a pump whose meter had crept up
+              157 L while it was being shifted, which the old wording (only
+              about leaving it at 0) did not cover. */}
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
             Set a starting reading <span className="font-semibold">before</span>{' '}
-            that nozzle&apos;s first day is entered — left at 0 on a pump that has been trading, that first day counts
-            the meter&apos;s whole lifetime as one day of sales.
+            that nozzle&apos;s first day is entered — afterwards this field does nothing and the meter has to be
+            corrected on the reading itself. Use it when a newly fitted pump does not read what you
+            expected: left at 0 on a pump that has been trading, the first day counts the meter&apos;s
+            whole lifetime as one day of sales, and set below the true reading it counts the
+            difference as sales nobody paid for.
           </p>
 
           <div className="card table-scroll">

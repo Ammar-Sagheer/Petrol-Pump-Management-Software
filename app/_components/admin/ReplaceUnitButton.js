@@ -285,9 +285,22 @@ export default function ReplaceUnitButton({ unit, tanks, today }) {
               </table>
             </div>
 
+            {/* THE THIRD CASE IS THE ONE THAT ACTUALLY HAPPENED, and it was
+                missing. On 1 Sep 2026 a pump was moved and its lines ran empty
+                while it was being shifted; the meter is a totaliser on the
+                outlet, not a measurement of fuel, so it counted 157 L of air.
+                The owner entered the old pump's closing figure, because that is
+                what the sentence above describes, and the difference only
+                surfaced days later. Read what is on the machine NOW - it is the
+                one figure that is always right, and it costs nothing to check. */}
             <p className="mt-2 text-xs text-ink-500">
-              0 for a brand new meter. A refurbished unit sometimes arrives with figures already on
-              it — put those in instead, or the first day entered will count them as sales.
+              <span className="font-semibold text-ink-700">
+                Type what the meter reads right now, standing at the machine.
+              </span>{' '}
+              0 for a brand new one. A refurbished unit often arrives with figures already on it,
+              and a pump that was moved can have crept up on its own — running dry while it is
+              shifted still turns the dial. Anything you put here that is lower than the true
+              reading gets counted as sales on the first day entered.
             </p>
           </div>
 

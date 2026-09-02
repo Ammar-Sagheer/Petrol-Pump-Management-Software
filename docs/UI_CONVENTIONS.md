@@ -2779,3 +2779,27 @@ taller than the table it belongs to.
 
 Where the summaries then go: across the top, two up, read once on arrival. The
 eye goes to the table afterwards and stays there.
+
+
+## A meter field asks what the machine reads, not what you expect it to read
+
+Both places that take a nozzle's starting meter — "Replace this unit" and the
+starting-reading column in the wiring dialog — used to describe the field in
+terms of the cases the writer had thought of: 0 for a new pump, or the figures a
+refurbished one arrives with. A pump was then moved with its lines empty, the
+meter counted 157 L of air while it was being shifted, and the owner typed the
+old pump's closing figure because that is what the copy implied. The gap only
+surfaced days later.
+
+The rule: **tell the user to read the instrument, then list the cases as reasons
+it might surprise them.** "Type what the meter reads right now, standing at the
+machine" is one sentence and is right in every case, including the ones nobody
+has thought of yet. A list of cases is only ever as complete as the writer's
+imagination, and this field is silently wrong when it disagrees with reality —
+anything below the true reading gets billed to customers as the first day's
+sales.
+
+And **say the deadline where the field is**, not only in the schema comment. A
+starting reading does nothing once that nozzle has a saved day, so the notice
+now says what happens after: the meter has to be corrected on the reading
+itself. A field that quietly stops working is worse than one that is disabled.
