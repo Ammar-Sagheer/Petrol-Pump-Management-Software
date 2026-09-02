@@ -5937,3 +5937,42 @@ live-with-days — confirming exactly two meter boxes stay editable and that the
 caption no longer clips at the edge of the dialog's scroller (`whitespace-normal`
 on the caption, since the cell is `whitespace-nowrap` to keep the litres figure
 from breaking mid-number).
+
+### The wiring dialog could not be saved at all (a regression, and how)
+
+The owner reported *"Every nozzle needs a tank"* whenever he tried to change a
+starting reading — a message about a field he could not see, naming rows he had
+not touched. Deleting the reading he was experimenting with did not help,
+because the row actually tripping it was Unit 3, which he had never opened.
+
+**The cause was the 060 UI change.** `setNozzleWiring` looked up the two frozen
+fields by nozzle id (`tank_id__<id>`, `starting_reading__<id>`) and validated
+them **as a pair**: if either arrived, both had to. That held while every row was
+either fully frozen (retired: posts neither) or fully live (posts both).
+
+060 froze the TANK on any nozzle that had traded and left its meter editable. A
+plain Unit 3 row then started posting a starting reading with no tank beside it,
+the pair check failed, and **every save in the dialog was refused** — including
+saves that had nothing to do with a tank.
+
+**The fix is to check them separately**, which is what the RPC underneath has
+always meant: `set_nozzle_wiring` coalesces a missing key to "leave this alone"
+per field, so a row carrying one of the two is a perfectly good instruction.
+There was never a reason to couple them in the action.
+
+The later meter freeze (previous entry) also happens to restore the matched pair
+by accident, so the dialog would have started working again anyway. That is not
+the fix and was not relied on: a UI that freezes one field and not the other is a
+reasonable thing to want, and it must not be able to take the whole dialog down.
+
+**Verified two ways.** The half-row was replayed against the live schema in a
+rolled-back transaction — a payload carrying only `starting_reading` for Unit 3 ·
+A moved the meter to 12,345.67 and left the tank on petrol, untouched. And the
+dialog's real `FormData` was dumped from the browser for one row of each kind:
+retired posts its caption only, a freshly fitted nozzle posts both fields, a
+traded nozzle posts its caption only.
+
+**The lesson for this action, written into it:** a form where some rows opt out
+of some fields cannot validate those fields as a group. Index alignment was
+already abandoned for exactly this reason (022); the pair check was the same
+assumption surviving one level further in.

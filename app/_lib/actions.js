@@ -1665,17 +1665,32 @@ export async function setNozzleWiring(_prevState, formData) {
   }
 
   /*
-   * A REPLACED NOZZLE SENDS ONLY ITS CAPTION. Its tank and its starting meter
-   * are frozen (056: that tank decides which tank months of past sales came
-   * out of), so the dialog renders those two read-only and posts nothing for
-   * them - which means `tank_id` and `starting_reading` arrive SHORTER than
-   * the other two lists and cannot be lined up by the same index.
+   * A FROZEN FIELD SENDS NOTHING, AND EACH ONE FREEZES ON ITS OWN. A nozzle's
+   * tank and its starting meter are both read-only in some states (056, 060,
+   * and the meter once a day is entered), so the dialog posts nothing for them
+   * - which means `tank_id` and `starting_reading` arrive SHORTER than the
+   * other two lists and cannot be lined up by the same index.
    *
    * Rather than pad them with placeholders and hope the order survives, the
-   * two frozen fields carry the nozzle id in their name (`tank_id__<id>`), so
-   * each is looked up by the row it belongs to instead of by position. The
+   * two carry the nozzle id in their name (`tank_id__<id>`), so each is looked
+   * up by the row it belongs to instead of by position. The
    * repeated-name-plus-index trick is still right for the fields EVERY row
    * has; it stops being right the moment some rows opt out.
+   *
+   * THE TWO ARE CHECKED SEPARATELY, and this cost the owner an afternoon. They
+   * used to be checked as a pair - if either arrived, both had to - which was
+   * true only while every row was either fully frozen (retired) or fully live.
+   * The moment 060 froze the TANK on a nozzle that had traded while leaving its
+   * meter editable, an ordinary Unit 3 row began posting a starting reading
+   * with no tank beside it, and the whole dialog answered "Every nozzle needs a
+   * tank" on every save - a message about a field the owner could not even see,
+   * naming a row he had not touched.
+   *
+   * There was never a reason to couple them. `set_nozzle_wiring` coalesces a
+   * missing key to "leave this alone" per FIELD, so a row carrying one of the
+   * two is a perfectly good instruction. Each is now validated if it is
+   * present and ignored if it is not, which is what the RPC underneath has
+   * always meant.
    */
   const rows = [];
   for (let index = 0; index < ids.length; index += 1) {
@@ -1697,20 +1712,23 @@ export async function setNozzleWiring(_prevState, formData) {
     const tankId = formData.get(`tank_id__${id}`);
     const reading = formData.get(`starting_reading__${id}`);
 
-    if (typeof tankId === 'string' || typeof reading === 'string') {
-      const startingReading = Number(String(reading ?? '').trim());
-
-      if (typeof tankId !== 'string' || tankId === '') {
+    if (typeof tankId === 'string') {
+      if (tankId === '') {
         return fail('Every nozzle needs a tank. Check the list and try again.');
       }
-      if (String(reading ?? '').trim() === '' || !Number.isFinite(startingReading)) {
+      row.tank_id = tankId;
+    }
+
+    if (typeof reading === 'string') {
+      const startingReading = Number(reading.trim());
+
+      if (reading.trim() === '' || !Number.isFinite(startingReading)) {
         return fail('Every nozzle needs a starting meter reading, even if it is 0.');
       }
       if (startingReading < 0) {
         return fail('A meter reading cannot be negative.');
       }
 
-      row.tank_id = tankId;
       row.starting_reading = roundMoney(startingReading);
     }
 
