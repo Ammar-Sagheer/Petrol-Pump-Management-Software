@@ -2815,3 +2815,22 @@ and changes nothing on any screen**.
 than one that errors. Disable it, say why in the cell, and name the route that
 does work — here: delete the day on Readings, correct the meter, enter the day
 again. "It can do no harm" is not the test; "will the user believe it worked" is.
+
+
+## When a form leaves a side panel, its button has to become the primary
+
+Moving the payment form on the customer page into a dialog freed the ledger's
+width, and quietly cost something: the trigger went into the page header at the
+default outlined style, so four grey buttons sat in a row and the one thing the
+page exists for read exactly like *Back to customers*.
+
+A form in a panel does not need a primary button — it is already the only form
+on screen, and its own Save is the emphasis. The moment it becomes one trigger
+among several, the emphasis has to move with it. So: **one `variant="primary"`
+per view, and it is the action the page is for** — here, recording a payment
+with a customer standing at the counter. Everything else in the header is
+navigation and housekeeping, and stays outlined.
+
+Worth checking on any change that converts an inline form to a dialog: the
+conversion is not finished until the trigger carries the weight the form used
+to.

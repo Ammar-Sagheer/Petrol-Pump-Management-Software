@@ -58,7 +58,14 @@ export default function PaymentForm({ customerId, balance }) {
 
   return (
     <>
-      <Button type="button" onClick={open}>
+      {/* THE ONE PRIMARY ON THIS PAGE. Recording a payment is why somebody
+          opens a customer with the customer standing in front of them; the
+          other three header buttons are navigation and housekeeping. It was
+          left at the default outlined style when it moved out of the side
+          column, which put four identical grey buttons in a row and made the
+          one thing the page is for indistinguishable from "Back to
+          customers". */}
+      <Button variant="primary" type="button" onClick={open}>
         Record a payment
       </Button>
 

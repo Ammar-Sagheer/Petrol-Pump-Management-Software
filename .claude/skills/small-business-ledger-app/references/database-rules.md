@@ -326,3 +326,65 @@ reported case. Run the app's own arithmetic against exact arithmetic across
 every rate and every plausible quantity. The answer here was that 13 of 25 rates
 could produce it and the worst refused 7% of all possible readings — which is a
 different conversation from "a reading failed once".
+
+
+## Equipment that carries a meter is dated, and its wiring is not a caption
+
+A filling station's pumps are the obvious case, but the shape recurs anywhere a
+physical device meters what the business sells — a taxi's odometer, a water
+connection, a rented machine billed by hours run. Two mistakes cost this app a
+month of its books between them, and both are worth designing out from the
+start.
+
+**1. A pointer with no date rewrites all of history when you move it.** A nozzle
+row named the tank it drew from in a single `tank_id` column. Every figure that
+asks *which stock did this litre come out of* — stock on hand, gain/loss, litres
+by fuel, the profit split — answered it by joining the sale to the device and
+reading that column **as it stands now**. So when the owner re-piped a pump from
+petrol to diesel and changed the dropdown, 19,293 litres of the previous month's
+petrol became diesel, silently, backwards, with nothing on screen about the
+previous month.
+
+The fix is not to date the column. It is to notice that the device already has a
+lifespan — `commissioned_on` / `retired_on` — and that changing what it is
+connected to **ends one span and begins another**:
+
+- retire the old row on its last day,
+- insert a new row from the next day with the new wiring,
+- carry the meter across at the figure it stands at, and link them.
+
+Every existing query is already correct against a second row. A parallel notion
+of "this row's tank, but only for these days" would have to be learned by every
+one of the dozen places that join a sale to a tank, and each of them is a money
+figure. **A new row costs one insert; a second time dimension costs a rewrite.**
+
+So: **make the pointer settable only until the device has its first recorded
+reading, and refuse it after.** Same rule the starting meter already lives
+under. And say the word "replacement" in the UI for a device that merely changed
+what it is connected to — users think of it as an edit, and it is not.
+
+**2. A meter counts turns, not units sold.** A totaliser sits on the outlet. Run
+the machine with nothing flowing — purging lines, moving it, testing it — and
+the dial advances while nothing is delivered. 157 litres arrived that way here.
+
+Two consequences to build in:
+
+- **The "meter starts at" field asks what the dial reads right now**, not what
+  the previous device closed at and not zero. Write it that way, and list the
+  cases (new, refurbished, moved-and-crept) as reasons it might surprise you
+  rather than as the definition — a list of cases is only ever as complete as
+  the writer's imagination, and this field is silently wrong when it disagrees
+  with reality.
+- **Know which side of the books a discrepancy lands on.** Turns the meter
+  counted without delivering anything cost nothing and are pure caption. Units
+  that genuinely left without a sale **cannot be kept out of profit** — closing
+  stock is valued at what is physically there, so they lower it and lower profit
+  by their cost. When an owner asks you to "not count it", find out which of the
+  two it is before answering; they are the same number and opposite facts.
+
+**And mind the deadline.** A starting meter that is only consulted until the
+first saved reading is dead data afterwards. Do not leave the field editable on
+the grounds that changing dead data is harmless: it also does no good, and the
+user gets a success message and no change. Disable it, say why in the cell, and
+name the route that does work (delete the reading, fix the meter, re-enter).
+**A control that silently no-ops is worse than one that is disabled.**

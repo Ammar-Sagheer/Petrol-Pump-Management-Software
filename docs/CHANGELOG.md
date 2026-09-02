@@ -5976,3 +5976,46 @@ traded nozzle posts its caption only.
 of some fields cannot validate those fields as a group. Index alignment was
 already abandoned for exactly this reason (022); the pair check was the same
 assumption surviving one level further in.
+
+### Docs: the damaged-unit procedure, written as a procedure
+
+Everything about the 1-2 September forecourt work had been recorded as *history*
+— what happened, in order, with the reasoning. None of it was written as
+**instructions for the next time**, and the owner pointed out that there will be
+a next time: pumps get hit, wear out and get shuffled at every filling station.
+
+So `README.md` gains **"When a dispensing unit is damaged, moved or re-piped"**,
+which is the whole job as a task rather than a story:
+
+- a table of the three things that actually happen (same pump moved, pump
+  replaced, pump re-piped onto another fuel) and which of the three controls
+  each one needs — with the third spelled out, because *a pump that changed fuel
+  is a replacement even though no hardware changed* is the one nobody guesses;
+- the order for a combined swap-and-replace: **rename first, then replace, then
+  check the meters** — and why a straight swap is safe in one save;
+- **read the meter off the machine**, with the dry-running trap and the
+  left-at-zero trap stated as the two ways it goes wrong;
+- the deadline (a starting reading is only consulted until that nozzle's first
+  saved day, per nozzle) and the way back once it has passed;
+- what the database will simply refuse, so none of it can go wrong quietly;
+- and the one genuinely unanswerable question, answered: fuel drawn during the
+  changeover cannot be kept out of profit, litres the meter counted without
+  dispensing cost nothing, and they are the same number with opposite meanings.
+
+Also updated: `README.md`'s "What the database will not let you do" gains the
+tank freeze (060) and `correct_ledger_entry()` (063); the migration table gains
+060–063; `CLAUDE.md` gains two ground rules — forecourt equipment is dated and
+its wiring is not a caption, and a meter counts turns rather than litres — both
+pointing at the README section rather than restating it.
+
+The skill's `references/database-rules.md` gets the general version, since it is
+not about petrol: **equipment that carries a meter is dated, and its wiring is
+not a caption.** An undated pointer rewrites history when it moves; the device
+already has a lifespan and changing what it is connected to ends one span and
+begins another; a new row costs one insert where a second time dimension costs a
+rewrite of every query that touches money. Plus the totaliser rule, and the
+no-op-control rule that came out of the owner's own question.
+
+**And the payment button is green.** It went into the page header at the default
+outlined style when it left the side column, so four grey buttons sat in a row
+and the action the page exists for read like *Back to customers*.

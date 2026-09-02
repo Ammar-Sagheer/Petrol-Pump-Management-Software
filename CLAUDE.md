@@ -40,6 +40,21 @@ Read these before making changes, in this order:
   `format-helpers.js`, which multiplies as integers and rounds the way `numeric`
   does. A generated column plus a check constraint is a promise that both ends
   agree — a float is a wager that they will.
+- **Forecourt equipment is dated, and the past is not editable through it.**
+  Pumps get damaged, moved and re-piped — it happens at every filling station
+  and it has happened twice here. A nozzle row is *"a meter, drawing from a
+  tank, over a span of days"*, so a pump that changed **fuel** is a replacement
+  exactly like a pump that changed **hardware**: both end one span and begin
+  another. What it is never is a field edit. `tank_id` and `starting_reading`
+  carry no date, so changing either after the nozzle has traded rewrites or
+  silently ignores history — the database refuses the first and the UI greys out
+  the second. The whole procedure, with the order to do things in, is
+  `README.md` → "When a dispensing unit is damaged, moved or re-piped". Read it
+  before touching `nozzles`.
+- **A meter counts turns, not litres.** A dispenser cycled with empty lines
+  still moves its dial; 157 L arrived that way on 1 Sep 2026. Any "meter starts
+  at" figure is read off the machine, never inferred from the old pump's
+  closing.
 - **Every page under `/admin` goes through `requirePageRole()`** and every
   Server Action through `requireRole()` (`app/_lib/helpers.js`,
   `app/_lib/actions.js`). Hiding a nav link is cosmetic only — never rely on
