@@ -19,7 +19,7 @@ theme order; the last block of work is at the bottom.
 
 **The shape of it.** Next.js App Router (plain JavaScript) on Vercel in
 `sin1`, Supabase Postgres in `ap-southeast-1`. One owner, a couple of staff
-logins, one pump. Migrations run to **062**.
+logins, one pump. Migrations run to **063**.
 
 **What was added most recently**, newest last, all of it detailed further down:
 
@@ -5767,3 +5767,91 @@ Unit 2 petrol row (it moved), successor at position 1 to the August Unit 1
 diesel row (it took over). `replaced_by` is a record read by nothing in the
 app, so the fan-in costs nothing and naming only one of the two would be the
 lie.
+
+## Correcting a ledger entry, and giving the ledger the page (migration 063)
+
+Two things the owner asked for on the customer page: put the payment form in a
+dialog so the table gets the full width, and give him a way to fix an entry he
+typed wrong.
+
+### The table gets the page
+
+The payment form and the manual adjustment sat in a 22rem column down the right,
+which cost the ledger a fifth of its width every second of every day so that a
+form used once a visit could be permanently on screen. The table is what the
+page is *for* — the owner reads down it checking entries against a paper khata —
+and it was the thing being squeezed.
+
+Both are now dialogs opened from the page header, which is the app's settled
+answer everywhere else (a purchase, a customer, a nozzle replacement) and leaves
+this page the last one that was still holding a form open beside its own data.
+The balance card and the fuel tiles moved to a two-up row across the top, so
+they are read once on arrival and then the eye goes to the table and stays
+there. The adjustment form was already behind a toggle, which is the same idea
+one step short: a panel that expands in place still reserves its width.
+
+### "Edit" in a ledger that cannot be edited
+
+`ledger_entries` refuses UPDATE and DELETE at the database (002) and RLS grants
+only select and insert (003). That is the point of the table — a balance nobody
+can quietly reach back and change is why it is worth more than a notebook — so
+the button cannot edit, and calling it Edit would be the worse lie: the owner
+would expect the old row to vanish, find it still there with two more beneath
+it, and trust the screen less than before.
+
+So it is **Correct this entry**, and it posts two rows through
+`correct_ledger_entry()`:
+
+- a **reversal** — same amount, same date, opposite direction — which cancels
+  the wrong row *where it stands*, so every balance from that date onward is
+  right again rather than only the balance today;
+- and, unless the entry should never have existed, a **replacement** carrying
+  what it should have said.
+
+Both in one statement. Half a correction is worse than none: a reversal without
+its replacement silently wipes a real payment, a replacement without its
+reversal doubles it, and neither is visible on any screen afterwards.
+
+**`corrects_entry_id` is what makes the result readable.** Without it the ledger
+grows three rows of the same amount and nothing says which cancels which — a
+worse account than before the button existed. With it the cancelled row is
+struck through and badged *cancelled*, the reversal is badged *correction*, and
+the pair reads as one crossed-out line the way it would in a register. A unique
+partial index enforces one cancellation per entry, so the guard holds however
+the row is written.
+
+**Both rows keep their place in the running balance.** Skipping them would look
+tidier and be wrong: the balance column says what was owed after each entry, and
+between the mistake and its correction that really was the figure.
+
+**What cannot be corrected here**, refused by the function and not offered by
+the table: a row posted automatically from a nozzle reading or a lubricant sale
+(the mistake is in the *sale*, and cancelling only its ledger side would leave
+the two disagreeing about the same money forever), a reversal itself, and a row
+already cancelled. Owner-only, matching `recordLedgerAdjustment` — recording a
+payment is a data-entry job, deciding that something already in the books was
+wrong is not.
+
+**The balance preview is the point of the dialog**, exactly as it is in the
+manual adjustment next door. Correcting Rs 15,000 to Rs 1,500 and correcting it
+to Rs 150,000 look identical while you are typing; *Rs 67,138 → Rs 80,638* does
+not. Somebody who fat-fingers a zero sees the wrong answer before committing to
+it, which no amount of careful labelling achieves.
+
+**`correctedIds` is a second query, not a join.** `corrects_entry_id` points
+forward — it is set on the reversal naming the row it cancels — so "was this row
+cancelled" is a backwards lookup, and the reversal is very often on a different
+page from the row it cancels: a mistake from August gets corrected in September,
+and September is page 1. Deriving it from the page's own rows would show the
+same entry struck through on one page and live on another.
+
+Rendered at 1152px, 1024px and 400px with a realistic ledger — an auto row, a
+lubricant row, a manual adjustment, and a corrected payment showing all three of
+its rows. The lubricant row also gained the `auto` badge it had never had, which
+had left it the one row on the page with no pencil and no reason given.
+
+**Still open, and the owner's call, not a bug:** the columns are headed *Fuel
+taken* and *Paid*, which have never been true of a manual adjustment and are now
+also not true of a correction — both are debits that are not fuel. Renaming them
+to something like *Owed* / *Paid* would fix it and would change a heading the
+owner reads every day, so it is left alone until he asks.

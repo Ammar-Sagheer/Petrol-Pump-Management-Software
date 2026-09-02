@@ -35,7 +35,7 @@ export default async function CustomerDetailPage({ params, searchParams }) {
    * what is listed, never what is owed. That is what makes a database page safe
    * on this screen and not on Purchases.
    */
-  const [statement, { rows: entries, total: entryCount }] = await Promise.all([
+  const [statement, { rows: entries, total: entryCount, correctedIds }] = await Promise.all([
     getCustomerStatement(id),
     getLedgerEntriesPage(id, { page, perPage: PER_PAGE }),
   ]);
@@ -53,14 +53,25 @@ export default async function CustomerDetailPage({ params, searchParams }) {
         title={customer.name}
         description={[customer.vehicle_number, customer.phone].filter(Boolean).join(' · ') || null}
       >
+        {/* THE ACTIONS THAT USED TO BE A COLUMN. Recording a payment is the
+            reason someone opens this page with a customer standing in front of
+            them, so it is the one primary button; the rest of the header is
+            navigation. See PaymentForm's own note for why the panel went. */}
+        <PaymentForm customerId={customer.id} balance={balance} />
+        {profile.role === ROLES.SUPER_ADMIN ? (
+          <LedgerAdjustmentForm customerId={customer.id} balance={balance} />
+        ) : null}
         <EditCustomerButton customer={customer} />
         <Button variant="secondary" href="/admin/customers">
           Back to customers
         </Button>
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem] [&>*]:min-w-0">
-        <div className="space-y-6">
+      <div className="space-y-6">
+        {/* THE TWO SUMMARIES SIDE BY SIDE, so the ledger below gets the whole
+            width. They are read once on arrival - what is owed, what has been
+            taken - and then the eye goes to the table and stays there. */}
+        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           {/* ---- balance ---- */}
           <section className="card p-5">
             <p className="figure-label">
@@ -134,37 +145,34 @@ export default async function CustomerDetailPage({ params, searchParams }) {
             </section>
           ) : null}
 
-          {/* ---- history ---- */}
-          <section>
-            <h2 className="section-heading">
-              Transaction history
-            </h2>
-            <CustomerLedgerTable entries={entries} />
-
-            <Pager
-              page={page}
-              perPage={PER_PAGE}
-              total={entryCount}
-              hrefFor={(n) => `/admin/customers/${id}?page=${n}`}
-              label="Ledger pages"
-            />
-          </section>
         </div>
 
-        {/* ---- side forms ---- */}
-        <div className="space-y-6">
-          <PaymentForm customerId={customer.id} balance={balance} />
+        {/* ---- history ---- */}
+        <section>
+          <h2 className="section-heading">Transaction history</h2>
 
-          {profile.role === ROLES.SUPER_ADMIN ? (
-            <LedgerAdjustmentForm customerId={customer.id} balance={balance} />
-          ) : null}
-
-          <p className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-xs text-ink-600">
+          <p className="mb-3 text-sm text-ink-600">
             Fuel taken on credit reaches this ledger by itself, from the readings screen. Nothing
             here is ever edited or deleted — a mistake is corrected with a new entry pointing the
             other way, so the history always adds up.
           </p>
-        </div>
+
+          <CustomerLedgerTable
+            entries={entries}
+            correctedIds={correctedIds}
+            customerId={customer.id}
+            balance={balance}
+            canCorrect={profile.role === ROLES.SUPER_ADMIN}
+          />
+
+          <Pager
+            page={page}
+            perPage={PER_PAGE}
+            total={entryCount}
+            hrefFor={(n) => `/admin/customers/${id}?page=${n}`}
+            label="Ledger pages"
+          />
+        </section>
       </div>
     </>
   );

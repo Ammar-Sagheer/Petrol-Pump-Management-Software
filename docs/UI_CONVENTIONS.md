@@ -2733,3 +2733,49 @@ The rule that came out of it:
 Where three notices would stack above a table, fold the new one into an existing
 box rather than adding a third — the owner scrolls past a wall to reach the
 fields, and the rule he most needs to have read is the one that gets skipped.
+
+
+## An append-only record needs a Correct button, never an Edit button
+
+The customer ledger cannot be edited — the database refuses UPDATE and DELETE —
+so the control that fixes a mistyped entry posts a cancelling row and a
+replacement instead. Three rules came out of building it, and they apply to any
+record in this app that is append-only by design.
+
+- **Name the button for what it does, not for what the user wishes it did.**
+  "Edit" promises the old row will disappear. It will not, and the owner who
+  expects it to will find three rows where he expected one and trust the screen
+  less than before. "Correct this entry", and a subtitle saying *nothing is
+  erased — the old entry is cancelled and the right one recorded beside it*.
+- **A cancelled row stays visible, and says so in a word.** Struck through and
+  greyed, plus a `cancelled` badge; the row that cancelled it gets a
+  `correction` badge. The strikethrough alone is decoration — easy to miss on a
+  tablet in poor light — and it is the one thing on that row that changes what
+  it means, so it is stated. Same rule as everywhere else here: colour and shape
+  are never the only cue.
+- **Show the resulting balance before it is committed.** Correcting Rs 15,000 to
+  Rs 1,500 and to Rs 150,000 look identical while you are typing. *Rs 67,138 →
+  Rs 80,638* does not. This is the same preview the manual adjustment carries,
+  and for the same reason — it is the only check that catches a fat-fingered
+  zero.
+- **Offer the control only on rows it can act on, and let the database refuse
+  the rest anyway.** A row posted automatically from a sale has no pencil,
+  because the sale is where it gets fixed; the function says so too if asked
+  directly. A row that is *not* correctable should also carry the badge that
+  explains why — the lubricant row had no `auto` badge and so read as the one
+  row that had simply been forgotten.
+
+## A form beside a table is a form the table is paying for
+
+The customer page held its payment form in a fixed 22rem column, so the ledger —
+the thing the page exists to show — ran at four-fifths width every second of
+every day to keep a form on screen that is used once a visit.
+
+The rule: **a form used occasionally opens from a button; the data it acts on
+keeps the width.** A dialog costs one tap when it is wanted and nothing when it
+is not, and it is what every other screen here already does. A collapsible panel
+is not the fix — it still reserves its column, and expanding it pushes the page
+taller than the table it belongs to.
+
+Where the summaries then go: across the top, two up, read once on arrival. The
+eye goes to the table afterwards and stays there.

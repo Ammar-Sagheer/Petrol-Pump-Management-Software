@@ -1490,6 +1490,76 @@ export async function recordLedgerAdjustment(_prevState, formData) {
   return ok('Adjustment recorded.');
 }
 
+/**
+ * Correcting a ledger entry that was typed wrong.
+ *
+ * NOT AN EDIT, AND CANNOT BE. `ledger_entries` refuses UPDATE and DELETE at the
+ * database (002), which is the reason a balance on this screen is worth more
+ * than one in a notebook. So the "edit" the owner asked for is a CORRECTION:
+ * `correct_ledger_entry` (063) posts a reversal cancelling the wrong row where
+ * it stands, and - unless the entry should never have existed - a replacement
+ * carrying what it should have said. Both in one statement, because a reversal
+ * that lands without its replacement silently wipes a real payment.
+ *
+ * Every rule about WHICH rows may be corrected lives in the function, not here:
+ * a row posted from a reading or a lubricant sale is refused there, so is a row
+ * already cancelled, and so is a reversal itself. This validates only what a
+ * form can get wrong before the round trip.
+ */
+export async function correctLedgerEntry(_prevState, formData) {
+  try {
+    await requireRole(ROLES.SUPER_ADMIN);
+  } catch (error) {
+    return fail(error.message);
+  }
+
+  const entryId = text(formData, 'entry_id');
+  const customerId = text(formData, 'customer_id');
+  // A checkbox is absent from the payload when it is unticked, which is exactly
+  // the right shape here: the default is to correct, and removing is the case
+  // someone has to reach for.
+  const remove = formData.get('remove') === 'on';
+
+  if (!entryId) return fail('Missing the entry to correct.');
+
+  let amount = null;
+  let entryDate = null;
+  let note = null;
+
+  if (!remove) {
+    amount = number(formData, 'amount');
+    entryDate = text(formData, 'entry_date');
+    note = text(formData, 'note');
+
+    if (amount === null || amount <= 0) return fail('Enter what the entry should have been.');
+    // Whole rupees, like every other row on this ledger - see roundRupees.
+    amount = roundRupees(amount);
+    if (amount <= 0) return fail('A ledger entry has to be at least one rupee.');
+    if (!entryDate) return fail('Enter the date the entry should carry.');
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('correct_ledger_entry', {
+    p_entry_id: entryId,
+    p_remove: remove,
+    p_amount: amount,
+    p_entry_date: entryDate,
+    p_note: note || null,
+  });
+
+  if (error) return fail(describe(error, 'Could not correct that entry.'));
+
+  if (customerId) revalidatePath(`/admin/customers/${customerId}`);
+  revalidatePath('/admin/customers');
+
+  const was = formatPKR(data?.was_amount ?? 0);
+  return ok(
+    remove
+      ? `${was} cancelled — the entry is struck from the balance.`
+      : `${was} cancelled and ${formatPKR(data?.now_amount ?? 0)} recorded in its place.`,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Configuration - super_admin only
 // ---------------------------------------------------------------------------

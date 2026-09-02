@@ -509,7 +509,33 @@ export async function getLedgerEntriesPage(customerId, { page = 1, perPage = 25 
     throw new Error(`Could not load the ledger entries: ${error.message}`);
   }
 
-  return { rows: data ?? [], total: count ?? 0 };
+  /*
+   * WHICH ENTRIES HAVE BEEN CANCELLED, as a second query rather than a join.
+   * `corrects_entry_id` points FORWARD - it is set on the reversal, naming the
+   * row it cancels - so asking "was this row cancelled" is a backwards lookup,
+   * and the reversal is very often on a different page from the row it
+   * cancels: a mistake from August gets corrected in September, and September
+   * is page 1. Deriving it from `data` alone would therefore show the same row
+   * struck through on one page and live on another.
+   *
+   * Only the id column, for the whole customer: it is one small column, and it
+   * is the only way the answer is right on every page.
+   */
+  const { data: corrections, error: correctionsError } = await supabase
+    .from('ledger_entries')
+    .select('corrects_entry_id')
+    .eq('customer_id', customerId)
+    .not('corrects_entry_id', 'is', null);
+
+  if (correctionsError) {
+    throw new Error(`Could not load the ledger corrections: ${correctionsError.message}`);
+  }
+
+  return {
+    rows: data ?? [],
+    total: count ?? 0,
+    correctedIds: (corrections ?? []).map((row) => row.corrects_entry_id),
+  };
 }
 
 // ---------------------------------------------------------------------------
