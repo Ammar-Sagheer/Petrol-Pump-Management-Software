@@ -162,10 +162,54 @@ export default function AdminSidebar({ profile }) {
    * instead would pull the drawer away while the new page is still loading,
    * leaving a blank screen and no sign anything is happening - the pending
    * spinner on the link someone just pressed is the only feedback there is.
+   *
+   * This is the OVERLAY drawer only. A pinned column is not affected by it and
+   * must not be: the whole point of pinning is that the menu is still there on
+   * the next page.
    */
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
+
+  /*
+   * THE READER'S CHOICE, WRITTEN WHERE THE SERVER CAN SEE IT.
+   *
+   * Two writes, on purpose. The dataset attribute changes the layout in this
+   * instant - CSS is already keyed to it, so the column appears without a
+   * re-render and without waiting for a round trip. The cookie is so the NEXT
+   * page, rendered on the server, already knows: `app/layout.js` reads it and
+   * stamps the same attribute into the HTML, which is what stops the page
+   * painting one layout and jumping to the other on every navigation.
+   *
+   * A year, because this is a preference about a person's own screen and not
+   * something they should have to set again next month. `samesite=lax` because
+   * it is read on ordinary navigations; there is nothing in it worth
+   * protecting beyond that - it says "open" or "closed".
+   */
+  function setNav(value) {
+    document.documentElement.dataset.nav = value;
+    document.cookie = `nav=${value}; path=/; max-age=31536000; samesite=lax`;
+  }
+
+  /*
+   * ONE BUTTON, TWO MEANINGS, DECIDED BY WHETHER THERE IS ROOM TO PIN.
+   *
+   * On anything but a phone the burger PINS the column open - it stays across
+   * navigations until it is put away, which is what was asked for. Below
+   * 1024px it opens the overlay instead, because a 240px column pinned over a
+   * 400px screen leaves nothing to pin it beside; there the menu is a thing
+   * you visit and dismiss.
+   *
+   * Read at click time rather than held in state: a window can be resized
+   * between renders, and this way the answer is never stale.
+   */
+  function openMenu() {
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setNav('open');
+    } else {
+      setIsOpen(true);
+    }
+  }
 
   const roleLabel = profile.role === 'super_admin' ? 'Owner' : 'Data entry';
 
@@ -269,13 +313,39 @@ export default function AdminSidebar({ profile }) {
 
   return (
     <>
-      {/* ---------- laptop: a fixed column ---------- */}
+      {/* ---------- a fixed column, when it is standing ----------
+           `.nav-column` decides whether it is: at >=1620px by default, at
+           >=1024px if the reader pinned it open, never if they put it away.
+           See the block on `data-nav` in globals.css. */}
       <aside
         aria-label="Sections"
-        className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-ink-200
-                   bg-white lg:flex"
+        className="nav-column fixed inset-y-0 left-0 z-30 w-60 flex-col border-r border-ink-200
+                   bg-white"
       >
-        <div className="border-b border-ink-200 px-4 py-3">{identityStacked}</div>
+        {/* NO RIGHT PADDING RESERVED FOR THE BUTTON, deliberately. `pr-12`
+            was the obvious first guess and it broke the thing the stacked
+            identity exists to protect - it pushed "Muhammad Sagheer · Owner"
+            onto two lines, which is the same squeeze the drawer's own comment
+            describes. The block is centred and the logo row leaves the
+            top-right corner empty, so the button sits over nothing. */}
+        <div className="relative border-b border-ink-200 px-4 py-3">
+          {identityStacked}
+          {/* THE OTHER HALF OF THE TOGGLE. The burger opens it; this puts it
+              away, and the choice sticks. Placed absolutely for the same
+              reason the drawer's close button is - a 40px button in the same
+              row as "Mubeen Petroleum Service" pushes the name onto three
+              lines in a 240px column. */}
+          <button
+            type="button"
+            onClick={() => setNav('closed')}
+            aria-label="Hide the menu"
+            title="Hide the menu"
+            className="absolute right-1 top-2 flex h-10 w-10 items-center justify-center
+                       rounded-lg text-ink-500 transition hover:bg-ink-100 hover:text-ink-900"
+          >
+            <Icon name="close" className="h-5 w-5" />
+          </button>
+        </div>
 
         {/* Scrolls on its own if the window is short, so Settings is always
             reachable without the page moving. */}
@@ -286,14 +356,17 @@ export default function AdminSidebar({ profile }) {
         <div className="px-3 pb-3">{accountBlock}</div>
       </aside>
 
-      {/* ---------- phone and tablet: a bar with a burger ---------- */}
+      {/* ---------- the bar with the burger, when the column is away ----------
+           `.nav-when-burger` is the exact complement of `.nav-column`, so
+           precisely one of the two is on screen at any width and in any
+           state. */}
       <header
-        className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-ink-200
-                   bg-white px-4 lg:hidden"
+        className="nav-when-burger sticky top-0 z-30 flex h-16 items-center gap-3
+                   border-b border-ink-200 bg-white px-4"
       >
         <button
           type="button"
-          onClick={() => setIsOpen(true)}
+          onClick={openMenu}
           aria-label="Open the menu"
           aria-expanded={isOpen}
           className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg
@@ -315,7 +388,7 @@ export default function AdminSidebar({ profile }) {
           if (event.target === drawerRef.current) drawerRef.current.close();
         }}
         className="m-0 mr-auto h-dvh max-h-none w-[19rem] max-w-none bg-transparent p-0
-                   backdrop:bg-ink-900/60 backdrop:backdrop-blur-sm lg:hidden"
+                   backdrop:bg-ink-900/60 backdrop:backdrop-blur-sm nav-when-burger"
       >
         <div className="flex h-full flex-col bg-white">
           {/* The close button is taken out of the flow rather than sitting

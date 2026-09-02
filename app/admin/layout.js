@@ -15,8 +15,12 @@ import AdminSidebar from '@/app/_components/admin/AdminSidebar';
  * the login page redirecting to itself.
  *
  * The sidebar is fixed rather than a flex sibling, so a long page scrolls under
- * a nav that stays put. `lg:pl-60` is what keeps the content clear of it; the
- * two numbers have to agree, and they are the only two places 60 appears.
+ * a nav that stays put. `.nav-offset` is what keeps the content clear of it.
+ *
+ * `.nav-offset` is that padding, and it is a class in globals.css rather than
+ * a Tailwind variant because four elements in three files have to agree about
+ * whether the column is standing there - and the reader can now pin it open or
+ * put it away, so it is not a question a breakpoint can answer alone.
  *
  * THE CONTENT CAP IS 85rem (1360px), SIZED FOR THE 1600x900 LAPTOP this is read
  * on. It was `max-w-6xl` (1152px), which on that screen left 104px of empty
@@ -40,7 +44,7 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen lg:pl-60">
+    <div className="nav-offset min-h-screen">
       <AdminSidebar profile={profile} />
       <main className="mx-auto w-full max-w-[85rem] px-4 py-4 sm:py-6">{children}</main>
     </div>

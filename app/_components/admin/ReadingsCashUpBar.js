@@ -65,16 +65,18 @@ export default function ReadingsCashUpBar({ watchId, entered, total, litres, cas
   return (
     <div
       /*
-       * `lg:pl-60` matches the admin layout's own sidebar offset, so the bar
+       * `.nav-offset` is the admin layout's own sidebar offset, so the bar
        * starts where the content does rather than running underneath the nav.
-       * The two numbers have to agree - see app/admin/layout.js, which carries
-       * the same comment about the only other place 60 appears.
+       * It is a shared class for exactly this reason: this file carried its own
+       * copy of the breakpoint, the layout's copy moved, and the bar sat
+       * indented 240px for a column that was no longer there. One rule now,
+       * in globals.css, and the reader's pinned/put-away choice reaches both.
        *
        * aria-hidden while it is off screen, so a screen reader is not read the
        * same four figures twice - it already has them from the tiles.
        */
       aria-hidden={!showing}
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 lg:pl-60
+      className={`pointer-events-none nav-offset fixed inset-x-0 bottom-0 z-30
                   transition-transform duration-200 ease-out
                   ${showing ? 'translate-y-0' : 'translate-y-full'}`}
     >

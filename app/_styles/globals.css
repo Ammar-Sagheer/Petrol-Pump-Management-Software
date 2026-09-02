@@ -28,6 +28,27 @@
   --color-ink-800: #1e293b;
   --color-ink-900: #0f172a;
 
+  /*
+   * WHERE THE NAVIGATION STOPS BEING A COLUMN AND BECOMES A BURGER.
+   *
+   * Not a round number and not a guess: the sidebar is 240px and the content
+   * column is capped at 1360px (see app/admin/layout.js), so a window needs
+   * about 1620px before it can hold BOTH at full size. Below that the sidebar
+   * is not free - it is taking width out of the thing being read.
+   *
+   * The old threshold was Tailwind's `lg`, 1024px, which meant a 14in 1600x900
+   * laptop kept a permanent 240px nav column on a physically small screen, and
+   * only dropped it once the window was dragged narrower than 1024. Same
+   * screen, two different answers, and the wrong one at the size the app is
+   * actually used at.
+   *
+   * CHOSEN SO THE CONTENT WIDTH BARELY MOVES ACROSS IT, which is what keeps
+   * the switch from being jarring: at 1600 with a burger the content is its
+   * 1360 cap; at 1620 with the sidebar it is 1348. Twelve pixels. Set this
+   * lower and crossing the breakpoint would visibly reflow the page.
+   */
+  --breakpoint-nav: 1620px;
+
   /* Kept in step with app/_lib/fuel-colors.js, which is the source of
      truth for anything that renders a fuel. Petrol is the dark blue, diesel
      the light orange - see the header of that file for why. */
@@ -397,6 +418,64 @@ input[type='number']::-webkit-inner-spin-button {
    * on this date, costing Rs 731,200") is not prose and looks wrong boxed into
    * a narrow measure. The rule is in docs/UI_CONVENTIONS.md.
    */
+
+  /*
+   * THE NAVIGATION: A COLUMN, OR A BURGER, AND THE READER DECIDES.
+   *
+   * Three classes and one attribute on <html>, rather than Tailwind variants
+   * at each call site, for one reason: FOUR SEPARATE ELEMENTS have to agree
+   * about whether the sidebar is standing there - the column itself, the
+   * burger bar, the drawer, and the padding that keeps content clear of the
+   * column. That last one is applied in two different files (the admin layout
+   * and ReadingsCashUpBar, which is fixed to the bottom of the window and has
+   * to start where the content does). When the breakpoint lived in a Tailwind
+   * variant, moving it meant finding all four; the cash-up bar was missed and
+   * sat indented 240px for a column that was no longer there.
+   *
+   * `data-nav` is written on <html> BY THE SERVER from a cookie, so the first
+   * paint is already right. A preference read on the client instead would show
+   * the wrong layout for a frame and then jump - on every navigation.
+   *
+   *   absent          follow the screen: column at >=1620px, burger below
+   *   data-nav=open   column, from 1024px up - the reader pinned it open
+   *   data-nav=closed burger, at every width - the reader put it away
+   *
+   * 1620 is where a window can hold the 240px column AND the 1360px content
+   * cap at once; below it the column is taking width out of the thing being
+   * read. 1024 is the floor for pinning at all: a 240px column pinned over a
+   * phone leaves nothing to pin it beside.
+   */
+  .nav-column {
+    display: none;
+  }
+
+  .nav-offset {
+    padding-left: 0;
+  }
+
+  @media (min-width: 1620px) {
+    html:not([data-nav='closed']) .nav-column {
+      display: flex;
+    }
+    html:not([data-nav='closed']) .nav-offset {
+      padding-left: 15rem;
+    }
+    html:not([data-nav='closed']) .nav-when-burger {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html[data-nav='open'] .nav-column {
+      display: flex;
+    }
+    html[data-nav='open'] .nav-offset {
+      padding-left: 15rem;
+    }
+    html[data-nav='open'] .nav-when-burger {
+      display: none !important;
+    }
+  }
 
   /*
    * BARE-MINIMUM ROW HEIGHT, 1600px and narrower - the exact screen the
