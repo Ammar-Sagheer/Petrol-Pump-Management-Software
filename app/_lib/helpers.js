@@ -155,24 +155,15 @@ export async function requirePageRole(...allowedRoles) {
 // lakh style (1,40,000), change 'en-US' to 'en-IN' in the two formatters below.
 // ---------------------------------------------------------------------------
 
-const moneyFormat = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
-/**
- * 140000 -> "Rs 140,000"
- *
- * The `|| 0` is not decoration. Intl rounds -0.28 to the string "-0", so a
- * customer sitting on a 28-paisa residue on the wrong side of zero had an
- * OWES column reading "Rs -0" - which looks like a bug to anyone who sees it,
- * and is one. Adding zero collapses negative zero to zero before formatting.
+/*
+ * `formatPKR` and `roundRupees` LIVE IN format-helpers.js, and are re-exported
+ * below. Exactly the arrangement the dates already use, and for the same reason:
+ * this module reaches into request cookies and cannot go in a browser bundle,
+ * while the statement preview - a client component showing the reader the very
+ * figures he is about to print - has to format money the same way the PDF does.
+ * A hand-rolled `showMoney` in the component would agree with the file right up
+ * until the day it quietly stopped.
  */
-export function formatPKR(value) {
-  const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return 'Rs 0';
-  return `Rs ${moneyFormat.format(roundRupees(n) === 0 ? 0 : n)}`;
-}
 
 /*
  * There WAS a formatPKRExact here, showing the ledger to the paisa on the
@@ -215,6 +206,8 @@ export {
   saleAmount,
   formatLitres,
   formatNumber,
+  formatPKR,
+  roundRupees,
 } from './format-helpers';
 
 /**
@@ -245,37 +238,6 @@ export function fullResetAllowed() {
 /** Money is rounded to 2 decimals the same way Postgres rounds it. */
 export function roundMoney(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-}
-
-/**
- * Whole rupees, for anything a person actually hands over or owes.
- *
- * The distinction against roundMoney matters and is not cosmetic:
- *
- *   roundMoney (2 dp)  - the arithmetic of the meter. litres x rate genuinely
- *                        carries paisa, and a day's sale_amount must keep them
- *                        or the takings stop reconciling against stock.
- *   roundRupees        - the customer ledger. A debt is settled with notes, and
- *                        the smallest note or coin is one rupee, so a balance
- *                        that cannot be paid in cash should never be created.
- *
- * Where a whole-rupee credit is taken out of a fractional sale, the CASH side
- * absorbs the remainder - which is right, because cash is the residual and is
- * counted in notes anyway.
- */
-export function roundRupees(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-
-  /*
-   * Half away from zero, because that is what Postgres `round()` does and what
-   * Intl does when it formats. JavaScript's own Math.round rounds half toward
-   * +Infinity, so Math.round(-0.5) is -0 while Postgres gives -1 - and the two
-   * ends of the app would then disagree about whether an account was settled.
-   * Anything that rounds a balance has to round it the same way.
-   */
-  const sign = n < 0 ? -1 : 1;
-  return sign * Math.round(Math.abs(n) + Number.EPSILON);
 }
 
 export function litresSold(opening, closing) {

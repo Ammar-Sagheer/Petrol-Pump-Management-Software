@@ -1,7 +1,12 @@
 import { notFound } from 'next/navigation';
 
-import { requirePageRole, ROLES, formatPKR, formatLitres } from '@/app/_lib/helpers';
-import { getCustomerStatement, getLedgerEntriesPage } from '@/app/_lib/data-service';
+import { requirePageRole, ROLES, formatPKR, formatLitres, todayISO } from '@/app/_lib/helpers';
+import {
+  getCustomerStatement,
+  getLedgerEntriesPage,
+  getLedgerEntriesForStatement,
+} from '@/app/_lib/data-service';
+import { allocatePayments, listPayments } from '@/app/_lib/customer-statement';
 import PageHeader from '@/app/_components/ui/PageHeader';
 import PaymentForm from '@/app/_components/admin/PaymentForm';
 import LedgerAdjustmentForm from '@/app/_components/admin/LedgerAdjustmentForm';
@@ -43,15 +48,31 @@ export default async function CustomerDetailPage({ params, searchParams }) {
    * what is listed, never what is owed. That is what makes a database page safe
    * on this screen and not on Purchases.
    */
-  const [statement, { rows: entries, total: entryCount, correctedIds }] = await Promise.all([
-    getCustomerStatement(id),
-    getLedgerEntriesPage(id, { page, perPage: PER_PAGE }),
-  ]);
+  const [statement, { rows: entries, total: entryCount, correctedIds }, allEntries] =
+    await Promise.all([
+      getCustomerStatement(id),
+      getLedgerEntriesPage(id, { page, perPage: PER_PAGE }),
+      /*
+       * The WHOLE ledger, for the statement preview only.
+       *
+       * Which fills are still open depends on every payment ever made against
+       * every fill ever taken, so this is the one thing on the page that cannot
+       * be answered from a page of 25 - see getLedgerEntriesForStatement. The
+       * allocation is done here, once, and the dialog re-windows it in the
+       * browser as the reader changes the range.
+       */
+      getLedgerEntriesForStatement(id),
+    ]);
 
   const customer = statement?.customer;
   if (!customer) notFound();
 
   const balance = Number(statement.balance ?? 0);
+
+  // Serialisable, and the same allocation the download route performs.
+  const { openItems, unapplied } = allocatePayments(allEntries);
+  const allocation = { openItems, unapplied, payments: listPayments(allEntries) };
+
   const limit = customer.credit_limit === null ? null : Number(customer.credit_limit);
   const isOverLimit = limit !== null && balance > limit;
 
@@ -73,6 +94,8 @@ export default async function CustomerDetailPage({ params, searchParams }) {
           customerId={customer.id}
           customerName={customer.name}
           balance={balance}
+          allocation={allocation}
+          asOf={todayISO()}
         />
         {profile.role === ROLES.SUPER_ADMIN ? (
           <LedgerAdjustmentForm customerId={customer.id} balance={balance} />

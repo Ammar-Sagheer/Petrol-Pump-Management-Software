@@ -138,6 +138,11 @@ It is an **open-item** statement, which is the standard shape for chasing money
 figure carried in). A fill drops off the list once a payment has covered it, so
 what is printed is only what is genuinely still owed.
 
+**The statement appears on screen first.** The button opens it — total, ageing,
+the unpaid fills, the payments received — so the figures can be checked against
+the ledger on the same page before anything is downloaded. Changing the day range
+redraws it immediately. The PDF is produced from exactly what is shown.
+
 **Payments are applied to the oldest fill first.** They have to be applied
 somehow — nothing in the ledger records which payment settled which fill, because
 a customer hands over money against a running account and not against named
@@ -155,7 +160,16 @@ Two things it is worth knowing before you use it:
   for an account that has drifted.
 - **Payments made in the period are shown even though the fills they cleared are
   not.** Someone who paid last week and is handed a page that never mentions it
-  will ask where it went.
+  will ask where it went. Reversals are not payments and are left off: deleting a
+  reading posts a credit to cancel its slip (see below), and listing that would
+  be a receipt for money nobody handed over.
+- **Money paid ahead of the fills stays on the account.** Pay Rs 16,000 against
+  Rs 14,100 owed and the extra Rs 1,900 sits as credit until the next fill, which
+  is charged against it before anything is asked for.
+
+The lines on the page always add up to the total. If they ever did not, the
+statement would say so on its own line rather than print a column that quietly
+fails to reach its own total.
 
 If the account is clear the statement says so in as many words, which makes it
 useful as a receipt that nothing is outstanding. Both the owner and counter

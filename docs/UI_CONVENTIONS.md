@@ -38,7 +38,8 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | `<DailyTableDialog>`        | The month's days as a table, in a modal opened from the heading row above the charts. A client shell holding a **server-rendered** child.                                                                                                                                                                                                                                                                    |
 | `<ClearOldActivityButton>`  | The activity log's whole-period trim — see "Clearing history" below.                                                                                                                                                                                                                                                                                                                                        |
 | `<GuideFlow>`               | The bilingual guide's stages, steps, section map and roles table.                                                                                                                                                                                                                                                                                                                                                                                                |
-| `<PrintStatementButton>`    | A customer's dues statement as a PDF. The dialog picks how far back the fills are listed — and says, before printing, that the range never changes what is owed. See "A document the app produces is still a screen someone reads" at the end of this file.                                                                                                                                                     |
+| `<PrintStatementButton>`    | A customer's dues statement. Opens the statement ON SCREEN with a day-range picker above it; the PDF is downloaded from there. See "Show the document before you produce it" below.                                                                                                                                                                                     |
+| `<StatementPreview>`        | The statement itself, rendered from the same `statementFromParts()` the PDF uses. Never give a preview its own arithmetic.                                                                                                                                                                                                                        |
 
 ## Design tokens (`app/_styles/globals.css`)
 
@@ -3029,3 +3030,42 @@ download headers), redirect back with the reason on failure rather than returnin
 text, since a download link writes whatever it receives to disk. Use a standard
 font — the WinAnsi encoding means non-ASCII **throws** rather than degrading, so
 scrub the input; the app writes "Rs" everywhere anyway.
+
+
+## Show the document before you produce it
+
+A button that hands over a file and nothing else is a bad loop for anything the
+reader is meant to CHECK. The statement of account shipped that way — pick a
+range, download a PDF — and a statement whose lines came to Rs 12,000 under a
+total of Rs 10,100 got as far as being printed and handed over. Nothing on screen
+was ever going to catch it, because the screen was not showing the statement.
+
+So the dialog now renders the document, and the download is what you reach for
+once the figures look right. Three rules came out of it:
+
+- **The preview must be the document, not a summary of it.** Every figure that
+  prints is on screen: the total, the ageing bands, each unpaid fill with what
+  has come off it, the carried-forward line, the payments. A preview that shows
+  less than the page is the same trap one step further back.
+- **It must share the arithmetic, not repeat it.** `statementFromParts()` is
+  called by the screen and by the PDF route, over one allocation done on the
+  server. A preview that computes its own figures agrees with the file right up
+  until the day it quietly stops — and that day, nobody looks, because the whole
+  point of the preview was that it had been checked.
+- **Don't mimic the paper.** This is not a thumbnail of an A4 page: that is
+  unreadable on a phone and invites the reader to check the layout instead of the
+  numbers. Same information, in this app's own table classes, at this app's own
+  type sizes.
+
+A corollary for the formatters. `formatPKR` and `roundRupees` had to move from
+`helpers.js` (server-only — it reads request cookies) into `format-helpers.js`,
+re-exported so server callers are unchanged. Client components in this app have
+historically hand-rolled a local `showMoney`, and that is fine for a figure that
+only ever appears on screen. It is not fine for one that also has to match a file:
+**anything the screen and a produced document both display must come from one
+formatter.**
+
+And one thing the preview itself taught: **a summary row should span the columns
+it has nothing to say about.** Given its own Detail cell, "Total now due" wrapped
+onto three lines at phone width. `colSpan` across Date/Detail/Amount/Paid off
+leaves the figure in the Still due column, where the eye is already looking.

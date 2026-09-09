@@ -135,3 +135,63 @@ export function formatNumber(value) {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? numberFormat.format(n) : '0';
 }
+
+
+// ---------------------------------------------------------------------------
+// Money
+//
+// Here rather than in helpers.js because the client needs it: the statement
+// preview shows the reader the same figures the PDF will print, and the two must
+// format identically. helpers.js re-exports both, so server callers are
+// unaffected.
+// ---------------------------------------------------------------------------
+
+const moneyFormat = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+/**
+ * Whole rupees, for anything a person actually hands over or owes.
+ *
+ * The distinction against roundMoney matters and is not cosmetic:
+ *
+ *   roundMoney (2 dp)  - the arithmetic of the meter. litres x rate genuinely
+ *                        carries paisa, and a day's sale_amount must keep them
+ *                        or the takings stop reconciling against stock.
+ *   roundRupees        - the customer ledger. A debt is settled with notes, and
+ *                        the smallest note or coin is one rupee, so a balance
+ *                        that cannot be paid in cash should never be created.
+ *
+ * Where a whole-rupee credit is taken out of a fractional sale, the CASH side
+ * absorbs the remainder - which is right, because cash is the residual and is
+ * counted in notes anyway.
+ */
+export function roundRupees(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+
+  /*
+   * Half away from zero, because that is what Postgres `round()` does and what
+   * Intl does when it formats. JavaScript's own Math.round rounds half toward
+   * +Infinity, so Math.round(-0.5) is -0 while Postgres gives -1 - and the two
+   * ends of the app would then disagree about whether an account was settled.
+   * Anything that rounds a balance has to round it the same way.
+   */
+  const sign = n < 0 ? -1 : 1;
+  return sign * Math.round(Math.abs(n) + Number.EPSILON);
+}
+
+/**
+ * 140000 -> "Rs 140,000"
+ *
+ * The `|| 0` is not decoration. Intl rounds -0.28 to the string "-0", so a
+ * customer sitting on a 28-paisa residue on the wrong side of zero had an
+ * OWES column reading "Rs -0" - which looks like a bug to anyone who sees it,
+ * and is one. Collapsing to zero before formatting is what stops it.
+ */
+export function formatPKR(value) {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return 'Rs 0';
+  return `Rs ${moneyFormat.format(roundRupees(n) === 0 ? 0 : n)}`;
+}

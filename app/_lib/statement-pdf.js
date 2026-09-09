@@ -536,7 +536,36 @@ function drawBroughtForward(sheet, statement) {
 }
 
 function drawTotal(sheet, statement) {
-  sheet.ensure(40);
+  sheet.ensure(58);
+
+  /*
+   * THE LINES MUST REACH THE TOTAL, and if they do not the page says so instead
+   * of hoping nobody adds up the column. `discrepancy` is zero on every statement
+   * this can currently produce - it exists because it was once not zero and
+   * nothing on the page admitted it. Drawn immediately above the total, where
+   * someone checking the arithmetic is already looking.
+   */
+  if (statement.discrepancy) {
+    const top = sheet.y;
+    sheet.text('Other movements on the account', {
+      x: MARGIN + COLUMNS[0].width + 6,
+      width: 260,
+      size: 9,
+      color: COLOR.muted,
+    });
+    const dueX = MARGIN + COLUMNS.slice(0, 4).reduce((sum, c) => sum + c.width, 0);
+    sheet.text(formatPKR(statement.discrepancy), {
+      x: dueX + 6,
+      width: COLUMNS[4].width - 12,
+      align: 'right',
+      size: 9,
+      font: 'bold',
+      color: COLOR.muted,
+    });
+    sheet.y = top + 16;
+    sheet.rule({ color: rgb(0.93, 0.94, 0.95), thickness: 0.5 });
+  }
+
   const top = sheet.y + 4;
 
   sheet.box(MARGIN, CONTENT, 30, COLOR.dueTint, { y: top });
