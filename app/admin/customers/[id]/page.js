@@ -7,6 +7,8 @@ import PaymentForm from '@/app/_components/admin/PaymentForm';
 import LedgerAdjustmentForm from '@/app/_components/admin/LedgerAdjustmentForm';
 import CustomerLedgerTable from '@/app/_components/admin/CustomerLedgerTable';
 import EditCustomerButton from '@/app/_components/admin/EditCustomerButton';
+import PrintStatementButton from '@/app/_components/admin/PrintStatementButton';
+import DownloadNotice from '@/app/_components/ui/DownloadNotice';
 import Pager, { pageFrom } from '@/app/_components/ui/Pager';
 import FuelBadge from '@/app/_components/ui/FuelBadge';
 import { fuelColor } from '@/app/_lib/fuel-colors';
@@ -27,7 +29,13 @@ const PER_PAGE = 25;
 export default async function CustomerDetailPage({ params, searchParams }) {
   const profile = await requirePageRole(ROLES.SUPER_ADMIN, ROLES.DATA_ENTRY);
   const { id } = await params;
-  const page = pageFrom(await searchParams);
+  const params_ = await searchParams;
+  const page = pageFrom(params_);
+
+  // Set by the statement route when the PDF could not be produced. Trimmed, and
+  // cleared out of the URL by DownloadNotice once it has been read.
+  const statementError =
+    typeof params_?.statement_error === 'string' ? params_.statement_error.slice(0, 300) : null;
 
   /*
    * The balance and the fuel breakdown come from the statement RPC, which sums
@@ -58,6 +66,14 @@ export default async function CustomerDetailPage({ params, searchParams }) {
             them, so it is the one primary button; the rest of the header is
             navigation. See PaymentForm's own note for why the panel went. */}
         <PaymentForm customerId={customer.id} balance={balance} />
+        {/* Second, because collecting is the other half of the same errand:
+            you print the page, you go, you come back and record what came in
+            with the button beside it. */}
+        <PrintStatementButton
+          customerId={customer.id}
+          customerName={customer.name}
+          balance={balance}
+        />
         {profile.role === ROLES.SUPER_ADMIN ? (
           <LedgerAdjustmentForm customerId={customer.id} balance={balance} />
         ) : null}
@@ -66,6 +82,14 @@ export default async function CustomerDetailPage({ params, searchParams }) {
           Back to customers
         </Button>
       </PageHeader>
+
+      {/* The same self-clearing notice the Reports export uses - a download is
+          a plain link, so a failure has nowhere else to be shown. */}
+      {statementError ? (
+        <DownloadNotice param="statement_error">
+          The statement did not download: {statementError}
+        </DownloadNotice>
+      ) : null}
 
       <div className="space-y-6">
         {/* THE TWO SUMMARIES SIDE BY SIDE, so the ledger below gets the whole

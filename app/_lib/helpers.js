@@ -283,9 +283,19 @@ export function litresSold(opening, closing) {
   return Number.isFinite(sold) ? roundMoney(sold) : 0;
 }
 
-export function saleAmount(litres, ratePerLitre) {
-  return roundMoney(Number(litres) * Number(ratePerLitre));
-}
+/*
+ * `saleAmount` IS NOT DEFINED HERE. It is re-exported from format-helpers.js at
+ * the top of this file, and there was a second, local copy of it sitting here -
+ * `roundMoney(litres * rate)`, a binary-double multiply, which is exactly the
+ * arithmetic migration 052 exists to remove. Two exports of the same name in one
+ * module is a SyntaxError under strict ESM; webpack tolerated it and picked one,
+ * so which implementation a caller got was down to the bundler.
+ *
+ * Nothing imported it from here - every caller reaches into format-helpers.js
+ * directly - so this was a trap rather than a live bug. Removed rather than
+ * renamed, because the app should have one answer to "what does this fill cost",
+ * and it is the one that multiplies as integers.
+ */
 
 /** Positive = the customer owes money. */
 export function ledgerBalance(entries = []) {

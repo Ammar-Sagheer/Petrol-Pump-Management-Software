@@ -38,6 +38,7 @@ Pump-specific ones worth knowing about in `app/_components/admin/`:
 | `<DailyTableDialog>`        | The month's days as a table, in a modal opened from the heading row above the charts. A client shell holding a **server-rendered** child.                                                                                                                                                                                                                                                                    |
 | `<ClearOldActivityButton>`  | The activity log's whole-period trim — see "Clearing history" below.                                                                                                                                                                                                                                                                                                                                        |
 | `<GuideFlow>`               | The bilingual guide's stages, steps, section map and roles table.                                                                                                                                                                                                                                                                                                                                                                                                |
+| `<PrintStatementButton>`    | A customer's dues statement as a PDF. The dialog picks how far back the fills are listed — and says, before printing, that the range never changes what is owed. See "A document the app produces is still a screen someone reads" at the end of this file.                                                                                                                                                     |
 
 ## Design tokens (`app/_styles/globals.css`)
 
@@ -2981,3 +2982,50 @@ Three rules came out of building it:
   Sagheer · Owner"* onto two lines. The block is centred and the logo row leaves
   the corner empty, so the button overlaps nothing and the padding was simply
   wrong.
+
+## A document the app produces is still a screen someone reads
+
+`app/_lib/statement-pdf.js` is the first thing this app draws that is not HTML —
+a customer's statement of account, laid out with `pdf-lib` on A4. Nothing about
+Tailwind survives the trip, so everything the design system encodes has to be
+re-stated by hand. Which turned out to be a useful test of which conventions were
+real and which were just classes.
+
+The ones that carried over unchanged:
+
+- **The type is bigger than a document of this kind normally uses.** Body text is
+  9.5pt where a dense financial document would set 7.5, and the figure that
+  matters is 26pt. Same reason the screens are large: poor light, a cheap tablet,
+  and now a customer squinting at a phone.
+- **Colour is never the only cue.** A part-paid line's "paid off" figure is in
+  the green the app uses for money received *and* carries a minus sign, because
+  this page gets photocopied in black and white. The one alarming ageing band is
+  tinted red *and* is the band whose label says "over 30 days".
+- **The palette is the app's**, taken off `globals.css` rather than picked
+  afresh, so a statement in a folder and the screen it came from are recognisably
+  the same document.
+
+And three that only exist once you are laying out paper:
+
+- **Measure a column off its content, not off its heading.** The Date column was
+  sized to the word "Date" and every row printed "11 Aug 2..." — the year, which
+  is the part that settles an argument about an old fill, was what got cut. There
+  is no `overflow` on paper: it truncates or it fits.
+- **A continuation page must be worth turning to.** An ordinary account spilled
+  its closing note and signature strip onto a second page holding nothing else,
+  and repeated the table's column headings above no rows at all. A near-empty
+  second page is the one that gets handed over by mistake. Reclaim the space
+  (logo beside the name, not above it) and make repeating furniture conditional
+  on the thing that actually broke across the page.
+- **Every figure on the page must add up to every other figure on the page.** A
+  filtered list is fine on screen, where the reader can see the filter; on a page
+  handed to the person being asked for money, a list of lines that sums to less
+  than the total at the foot is an argument waiting to happen. Whatever is
+  excluded from the detail comes back as one summarising line.
+
+The mechanics worth copying if a second document is ever added: build with
+`pdf-lib` behind a route handler (never a Server Action — the browser needs
+download headers), redirect back with the reason on failure rather than returning
+text, since a download link writes whatever it receives to disk. Use a standard
+font — the WinAnsi encoding means non-ASCII **throws** rather than degrading, so
+scrub the input; the app writes "Rs" everywhere anyway.

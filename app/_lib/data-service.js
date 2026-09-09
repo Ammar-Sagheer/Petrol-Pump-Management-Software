@@ -538,6 +538,48 @@ export async function getLedgerEntriesPage(customerId, { page = 1, perPage = 25 
   };
 }
 
+/**
+ * One customer's WHOLE ledger, oldest first, for the printed statement.
+ *
+ * The deliberate opposite of getLedgerEntriesPage above, and for a reason worth
+ * writing down: that one pages because the screen only ever LISTS rows, and
+ * nothing on the page is derived from them. The statement derives everything
+ * from them - which fills are still open depends on every payment ever made
+ * against every fill ever taken, so a page of 25 would allocate against a
+ * fragment of the history and quietly print fills as unpaid that were settled
+ * two pages back.
+ *
+ * PAGED THROUGH IN BATCHES ANYWAY, because PostgREST caps a response at 1,000
+ * rows by default and would hand back the first 1,000 without complaining. A
+ * regular haulier runs to a few hundred entries a year, so the cap is years
+ * away and not never - and the failure it produces is a statement that looks
+ * completely normal and asks for the wrong money.
+ */
+export async function getLedgerEntriesForStatement(customerId) {
+  const supabase = await createClient();
+  const BATCH = 1000;
+
+  const all = [];
+  for (let from = 0; ; from += BATCH) {
+    const { data, error } = await supabase
+      .from('ledger_entries')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('entry_date', { ascending: true })
+      .order('created_at', { ascending: true })
+      .range(from, from + BATCH - 1);
+
+    if (error) {
+      throw new Error(`Could not load the ledger entries: ${error.message}`);
+    }
+
+    all.push(...(data ?? []));
+    if (!data || data.length < BATCH) break;
+  }
+
+  return all;
+}
+
 // ---------------------------------------------------------------------------
 // Dashboard and reports - all aggregated in Postgres
 // ---------------------------------------------------------------------------

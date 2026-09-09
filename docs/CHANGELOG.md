@@ -6199,3 +6199,95 @@ client-side navigation, full reload, hide, reload again — each step asserting
 `data-nav`, the column's computed display, the burger bar's, the content
 padding and the cookie. Plus a phone check that the burger still opens the
 overlay and does not pin.
+
+## Printing what a customer still owes, fill by fill
+
+The customer page could show a balance and it could show the whole ledger, and
+neither is the thing you take with you when you go to collect. The owner asked
+for the missing document: *"a customer has due of 51k, then the print button
+should print a full statement which combines all the pending dues, till 51k is
+adjusted, if the customer already paid in between, it should skip those."*
+
+**That is an open-item statement, and it has a name because everyone who sells
+on credit needs one.** The two standard shapes are *balance forward* — a period's
+activity with a figure carried in at the top — and *open item*, which lists only
+what is unpaid or part-paid and shows what is left on each line. Open item is the
+collecting document: the one you can put in front of someone and go down line by
+line. It is what was asked for, arrived at from the trade rather than from a
+textbook, and it is what `app/_lib/customer-statement.js` builds.
+
+**Payments are applied oldest first, and the page says so.** Nothing in
+`ledger_entries` records which payment settled which fill and nothing could — a
+haulier hands over Rs 50,000 against a running account, not against three named
+slips. So the allocation is a convention, the same one every running account
+uses, and the PDF prints the sentence *"payments are applied to the oldest fill
+first"* rather than presenting an allocation as a measurement. The **total** is
+not a convention: whatever the allocation does, the open items sum to the
+balance, because they are the same rows summed the same way.
+
+**Corrections are paired off before any of that happens, and this was the bug
+worth catching.** A correction (063) is a reversal carrying `corrects_entry_id`
+plus a replacement. Run it through oldest-first allocation naively and that
+reversal — an ordinary credit as far as the walk is concerned — pays off the
+oldest *open* fill instead of the one it was written to cancel. A mistyped entry
+from August would then silently settle a real fill from September, and the
+statement would drop a fill the customer genuinely owes for while still totalling
+correctly. Both rows of every pair are removed before allocation starts; they net
+to zero by construction, so the balance is untouched. There is a check for it.
+
+**A day range narrows what is LISTED, never what is owed.** "Last 30 days"
+itemises the fills inside the window and collapses everything still open from
+before it into one *"brought forward"* line naming how many fills and how far
+back they start. A statement whose lines do not add up to its total is worse than
+no statement — it is an argument waiting to happen — so the carried line is not
+optional, and the empty-window case (nothing new taken on credit at all) prints a
+sentence saying so rather than an empty table above a large total.
+
+**The ageing bands are 7 / 15 / 30 and not 30 / 60 / 90.** The textbook bands
+come from net-30 invoice terms; this pump's entire credit cycle finishes inside
+the first one, so all four standard bands would read "everything is current" on
+an account three weeks late. The bands follow the trade the owner described: a
+week is normal, a fortnight is the usual outside edge, a month is late, past a
+month is what to chase today.
+
+**Payments in the period are listed even though their fills are not.** The fills
+a payment cleared are gone from the list, which is what was asked for — but a man
+who paid Rs 25,000 last week and is handed a page that never mentions it will ask
+where it went, and he is right to. Skipping the fills and acknowledging the
+payments is the difference between a demand and a statement.
+
+**A generated PDF rather than a print stylesheet**, because of where the page
+goes after it leaves the app: onto WhatsApp to a haulier who will not come to the
+office, into a folder against the day a figure is disputed, and only sometimes
+onto paper. A browser print dialog serves the last of those three reliably and
+the first two only if the person holding the tablet knows where "Save as PDF"
+hides. `pdf-lib` draws it; Helvetica is a built-in font so nothing is embedded.
+
+**Three faults the first render caught, none of which a DOM check would have.**
+Every date printed as *"11 Aug 2..."* — the column had been measured off the word
+"Date" rather than off a date, and the year is exactly the part that settles an
+argument about an old fill. An ordinary ten-fill account pushed its closing note
+and signature strip onto a second page holding nothing else, which is the page
+someone hands over by mistake while the copy that matters stays in the printer;
+moving the logo beside the business name instead of above it, plus 3pt off each
+table row, brought it back to one page. And that second page carried a repeat of
+the column headings above no rows at all, because the continuation header was
+drawn unconditionally rather than only while the table was the thing that broke.
+
+**A latent trap removed on the way past.** `helpers.js` exported `saleAmount`
+twice — the re-export of the integer-math version from `format-helpers.js` and a
+local `roundMoney(litres * rate)` copy, which is the binary-double multiply
+migration 052 exists to remove. Two exports of one name is a SyntaxError under
+strict ESM; webpack tolerated it and picked one, so which implementation a caller
+got was down to the bundler. Nothing imported it from there — every caller reaches
+into `format-helpers.js` directly — so it was a trap rather than a live bug, and
+the wrong implementation is the one that went.
+
+**Verified by rendering, not by reading the code.** Seven shapes — everything
+owed, three day windows, a settled account, a bare customer with no phone or
+vehicle, and a 34-fill account that genuinely runs to two pages — each rendered
+to PNG through pdf.js in Chromium and looked at, each asserting that the listed
+lines plus the carried-forward line equal the total. Plus fifteen checks on the
+allocation itself (bulk payment, part payments, the correction pair, overpayment,
+paisa dust, the window, the bands) and the dialog screenshotted at 1152, 1024 and
+400px.

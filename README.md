@@ -124,6 +124,43 @@ Every screen with a date has arrows either side of a date box; picking a date in
 the box goes straight to that day. If a day was entered against the wrong date,
 the owner can wipe it with **Clear this day** on Readings and type it again.
 
+### Collecting what a customer owes
+
+Credit here runs seven to fifteen days, sometimes a month, and is settled mostly
+in one lump and sometimes in parts. **Print statement**, on a customer's own
+page, produces the page you take with you when you go to collect: a PDF listing
+the fills that have *not* been paid for, oldest first, each with what it cost,
+what has already come off it and how many days it has been standing — adding up
+to exactly what the balance at the top of the screen says.
+
+It is an **open-item** statement, which is the standard shape for chasing money
+(as against a *balance-forward* one, which lists a period's activity with a
+figure carried in). A fill drops off the list once a payment has covered it, so
+what is printed is only what is genuinely still owed.
+
+**Payments are applied to the oldest fill first.** They have to be applied
+somehow — nothing in the ledger records which payment settled which fill, because
+a customer hands over money against a running account and not against named
+slips — and oldest-first is the convention every running account uses. The PDF
+says so on its face. Whichever way it is applied, the lines always total the
+balance.
+
+Two things it is worth knowing before you use it:
+
+- **The day range changes what is listed, never what is owed.** Ask for the last
+  30 days and the fills inside that window are itemised while everything still
+  unpaid from before it appears as one *"brought forward"* line, so the total at
+  the foot is always the whole amount. Use it for a regular who settles monthly
+  and does not want a fill from June on the page; use *"everything still owed"*
+  for an account that has drifted.
+- **Payments made in the period are shown even though the fills they cleared are
+  not.** Someone who paid last week and is handed a page that never mentions it
+  will ask where it went.
+
+If the account is clear the statement says so in as many words, which makes it
+useful as a receipt that nothing is outstanding. Both the owner and counter
+staff can print one — it reads and writes nothing.
+
 ### The safe on site
 
 Separate from all of the above, and owner-only: **Treasury** is the cash
@@ -536,6 +573,7 @@ app/
     purchases/             fuel deliveries and lubricant restocks
     stock-checks/          dip readings, gain/loss, and lubricant stock
     customers/             list and [id] detail with ledger; adding is a dialog
+      [id]/statement/      the dues statement as a PDF (route handler, no page)
     banking/               the owner's bank accounts - owner only
     treasury/              the cash in the safe on site - owner only
     expenses/              what the pump spends, by month - owner only
@@ -567,6 +605,8 @@ app/
     customer-avatar.js     a customer's initials and their stable tint
     fuel-colors.js         the single definition of petrol, diesel and lubricant
     excel-report.js        builds the monthly workbook from the template
+    customer-statement.js  which fills are still unpaid: payments applied oldest first
+    statement-pdf.js       draws that as an A4 statement of account (pdf-lib)
   _styles/globals.css        tokens, .card, .fuel-band, .unit-card
 proxy.js                   session refresh + signed-in gate
 scripts/                   restore-backup.mjs (disaster recovery), build-report-template.py, build-icons.py
